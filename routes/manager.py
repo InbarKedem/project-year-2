@@ -9,7 +9,7 @@ from services.reports_service import (
 from services.employee_service import add_new_staff
 from services.flight_service import (
     get_all_airports, get_all_aircrafts, get_all_pilots, get_all_attendants,
-    create_flight, get_active_flights, cancel_flight, get_flight_details, update_flight_status
+    create_flight, get_active_flights, cancel_flight, get_flight_details, update_flight_status, get_flights
 )
 from datetime import datetime
 
@@ -121,7 +121,15 @@ def manage_flights():
         flash('Access denied. Managers only.', 'danger')
         return redirect(url_for('auth.login'))
         
-    flights = get_active_flights()
+    status = request.args.get('status')
+    source_id = request.args.get('source_id')
+    dest_id = request.args.get('dest_id')
+    date_from = request.args.get('date_from')
+    date_to = request.args.get('date_to')
+
+    flights = get_flights(status, source_id, dest_id, date_from, date_to)
+    airports = get_all_airports()
+    
     now = datetime.now()
     
     # Add a flag for cancellation eligibility (72 hours)
@@ -133,7 +141,7 @@ def manage_flights():
         time_diff = f['departure_time'] - now
         f['can_cancel'] = time_diff.total_seconds() >= 72 * 3600
 
-    return render_template('manage_flights.html', flights=flights)
+    return render_template('manage_flights.html', flights=flights, airports=airports)
 
 @manager_bp.route('/cancel_flight/<int:source_id>/<int:dest_id>/<string:departure_time>')
 def cancel_flight_route(source_id, dest_id, departure_time):

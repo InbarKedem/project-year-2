@@ -41,6 +41,40 @@ def create_flight(source_id, dest_id, departure_time, aircraft_id, economy_price
     except Exception as e:
         return False, str(e)
 
+def get_flights(status=None, source_id=None, dest_id=None, date_from=None, date_to=None):
+    query = """
+        SELECT F.*, A1.airport_name as source, A2.airport_name as dest 
+        FROM Flight F
+        JOIN Airport A1 ON F.source_airport_id = A1.airport_id
+        JOIN Airport A2 ON F.dest_airport_id = A2.airport_id
+        WHERE 1=1
+    """
+    params = []
+    
+    if status and status != 'All':
+        query += " AND F.flight_status = %s"
+        params.append(status)
+    
+    if source_id and source_id != '':
+        query += " AND F.source_airport_id = %s"
+        params.append(source_id)
+        
+    if dest_id and dest_id != '':
+        query += " AND F.dest_airport_id = %s"
+        params.append(dest_id)
+        
+    if date_from and date_from != '':
+        query += " AND DATE(F.departure_time) >= %s"
+        params.append(date_from)
+        
+    if date_to and date_to != '':
+        query += " AND DATE(F.departure_time) <= %s"
+        params.append(date_to)
+        
+    query += " ORDER BY F.departure_time DESC"
+    
+    return db.query_db(query, tuple(params))
+
 def get_active_flights():
     return db.query_db("""
         SELECT F.*, A1.airport_name as source, A2.airport_name as dest 

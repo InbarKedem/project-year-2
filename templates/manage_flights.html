@@ -70,6 +70,50 @@
 {% endblock %} {% block content %}
 <div class="container">
   <h2>Manage Flights</h2>
+  
+  <div class="report-card" style="margin-bottom: 20px; padding: 15px;">
+    <form method="GET" action="{{ url_for('manager.manage_flights') }}" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end;">
+        <div class="form-group" style="margin-bottom: 0;">
+            <label>Status</label>
+            <select name="status" class="form-control">
+                <option value="">All</option>
+                <option value="Active" {% if request.args.get('status') == 'Active' %}selected{% endif %}>Active</option>
+                <option value="Delayed" {% if request.args.get('status') == 'Delayed' %}selected{% endif %}>Delayed</option>
+                <option value="Cancelled" {% if request.args.get('status') == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+                <option value="Landed" {% if request.args.get('status') == 'Landed' %}selected{% endif %}>Landed</option>
+            </select>
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+            <label>Source</label>
+            <select name="source_id" class="form-control">
+                <option value="">All</option>
+                {% for airport in airports %}
+                <option value="{{ airport.airport_id }}" {% if request.args.get('source_id')|int == airport.airport_id %}selected{% endif %}>{{ airport.airport_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+            <label>Destination</label>
+            <select name="dest_id" class="form-control">
+                <option value="">All</option>
+                {% for airport in airports %}
+                <option value="{{ airport.airport_id }}" {% if request.args.get('dest_id')|int == airport.airport_id %}selected{% endif %}>{{ airport.airport_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+            <label>From Date</label>
+            <input type="date" name="date_from" class="form-control" value="{{ request.args.get('date_from', '') }}">
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+            <label>To Date</label>
+            <input type="date" name="date_to" class="form-control" value="{{ request.args.get('date_to', '') }}">
+        </div>
+        <button type="submit" class="btn btn-primary">Filter</button>
+        <a href="{{ url_for('manager.manage_flights') }}" class="btn btn-secondary">Clear</a>
+    </form>
+  </div>
+
   <div class="report-card">
     <table class="table">
       <thead>
