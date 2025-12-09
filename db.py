@@ -15,6 +15,10 @@ DB_CONFIG = {
 def get_db():
     if 'db' not in g:
         g.db = mysql.connector.connect(**DB_CONFIG)
+        # Disable ONLY_FULL_GROUP_BY to allow non-aggregated columns in SELECT list
+        cursor = g.db.cursor()
+        cursor.execute("SET sql_mode=(SELECT REPLACE(@@sql_mode,'ONLY_FULL_GROUP_BY',''))")
+        cursor.close()
     return g.db
 
 def close_db(e=None):

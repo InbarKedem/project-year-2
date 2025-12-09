@@ -4,7 +4,7 @@
 <h2>My Orders</h2>
 
 <div class="filter-section">
-    <form action="{{ url_for('my_orders') }}" method="GET">
+    <form action="{{ url_for('customer.my_orders') }}" method="GET">
         <label for="status">Filter by Status:</label>
         <select name="status" id="status">
             <option value="">All</option>
