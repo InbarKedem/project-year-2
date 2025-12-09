@@ -13,7 +13,7 @@ CREATE TABLE Airport (
 CREATE TABLE Flight_Route (
     source_airport_id INT NOT NULL,
     dest_airport_id INT NOT NULL,
-    flight_duration INT NOT NULL, -- in minutes
+    flight_duration INT NOT NULL,
     PRIMARY KEY (source_airport_id, dest_airport_id),
     FOREIGN KEY (source_airport_id) REFERENCES Airport(airport_id),
     FOREIGN KEY (dest_airport_id) REFERENCES Airport(airport_id)
@@ -78,7 +78,7 @@ CREATE TABLE Flight (
     source_airport_id INT NOT NULL,
     dest_airport_id INT NOT NULL,
     departure_time DATETIME NOT NULL,
-    flight_status VARCHAR(50), -- Active, Full, Completed, Cancelled
+    flight_status VARCHAR(50),
     aircraft_id INT,
     PRIMARY KEY (source_airport_id, dest_airport_id, departure_time),
     FOREIGN KEY (source_airport_id) REFERENCES Airport(airport_id),
@@ -92,7 +92,7 @@ CREATE TABLE Employee_Flight_Assignment (
     dest_airport_id INT NOT NULL,
     departure_time DATETIME NOT NULL,
     PRIMARY KEY (employee_id, source_airport_id, dest_airport_id, departure_time),
-    FOREIGN KEY (employee_id) REFERENCES Flight_Crew(id_number), -- Changed to Flight_Crew for strictness
+    FOREIGN KEY (employee_id) REFERENCES Flight_Crew(id_number),
     FOREIGN KEY (source_airport_id, dest_airport_id, departure_time)
         REFERENCES Flight(source_airport_id, dest_airport_id, departure_time)
 );
@@ -105,8 +105,6 @@ CREATE TABLE User (
     middle_name VARCHAR(50),
     last_name VARCHAR(50)
 );
-
--- Note: System_Admin table removed as it conflicts with Manager (Employee) and requirements.
 
 CREATE TABLE Phone (
     email VARCHAR(100) NOT NULL,
@@ -125,15 +123,15 @@ CREATE TABLE Registered_Customer (
 );
 
 CREATE TABLE Order_Table (
-    order_code INT PRIMARY KEY, -- Changed to INT as per user schema, though VARCHAR is often better for codes
-    order_date DATETIME, -- Changed to DATETIME to capture exact time of order
+    order_code INT PRIMARY KEY,
+    order_date DATETIME,
     total_payment DECIMAL(10,2),
     order_status VARCHAR(50),
     customer_email VARCHAR(100),
     source_airport_id INT,
     dest_airport_id INT,
-    departure_time DATETIME, -- Merged Date/Time to match Flight PK
-    FOREIGN KEY (customer_email) REFERENCES User(email), -- Changed to User to allow Guests
+    departure_time DATETIME,
+    FOREIGN KEY (customer_email) REFERENCES User(email),
     FOREIGN KEY (source_airport_id, dest_airport_id, departure_time) 
         REFERENCES Flight(source_airport_id, dest_airport_id, departure_time)
 );
