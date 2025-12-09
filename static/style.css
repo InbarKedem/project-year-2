@@ -270,7 +270,10 @@ nav {
 }
 
 /* Empty state styling */
-.table tbody td[colspan] {
+.table tbody td[colspan='3'],
+.table tbody td[colspan='4'],
+.table tbody td[colspan='5'],
+.table tbody td[colspan='6'] {
   text-align: center;
   color: #999;
   font-style: italic;
@@ -285,6 +288,7 @@ nav {
 
   .report-card {
     padding: 1.5rem;
+    overflow-x: auto; /* Make tables scrollable on mobile */
   }
 
   .report-card h3 {
@@ -293,20 +297,12 @@ nav {
 
   .table {
     font-size: 0.85rem;
+    min-width: 600px;
   }
 
   .table thead th,
   .table tbody td {
     padding: 10px 8px;
-  }
-
-  /* Make tables scrollable on mobile */
-  .report-card {
-    overflow-x: auto;
-  }
-
-  .table {
-    min-width: 600px;
   }
 }
 
