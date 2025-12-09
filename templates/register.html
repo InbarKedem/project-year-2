@@ -6,7 +6,7 @@
 {% endblock %} {% block content %}
 <div class="auth-container">
   <h2>Register New Account</h2>
-  <form method="POST" action="{{ url_for('register') }}" class="register-form">
+  <form method="POST" action="{{ url_for('auth.register') }}" class="register-form">
     <div class="form-row">
       <div class="form-group">
         <label>First Name:</label>
