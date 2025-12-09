@@ -1,121 +1,57 @@
 {% extends 'base.html' %} {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='manager.css') }}" />
-<link rel="stylesheet" href="{{ url_for('static', filename='reports.css') }}" />
-<style>
-  /* Modal Styles */
-  .modal {
-    display: none;
-    position: fixed;
-    z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
-    background-color: rgba(0, 0, 0, 0.5);
-  }
-  .modal-content {
-    background-color: #fefefe;
-    margin: 5% auto;
-    padding: 20px;
-    border: 1px solid #888;
-    width: 90%;
-    max-width: 700px;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  }
-  .close {
-    color: #aaa;
-    float: right;
-    font-size: 28px;
-    font-weight: bold;
-    cursor: pointer;
-  }
-  .close:hover,
-  .close:focus {
-    color: black;
-    text-decoration: none;
-    cursor: pointer;
-  }
-  .detail-row {
-    display: flex;
-    justify-content: space-between;
-    padding: 0.8rem 0;
-    border-bottom: 1px solid #eee;
-  }
-  .detail-label {
-    font-weight: bold;
-    color: #666;
-  }
-  .detail-value {
-    font-weight: 500;
-  }
-  .pilot-badge {
-    background: #007bff;
-    color: white;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 0.8rem;
-    margin-left: 5px;
-  }
-  .attendant-badge {
-    background: #28a745;
-    color: white;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 0.8rem;
-    margin-left: 5px;
-  }
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/modules/manager.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/modules/reports.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/modules/flights.css') }}" />
 {% endblock %} {% block content %}
 <div class="container">
   <h2>Manage Flights</h2>
   
-  <div class="report-card" style="margin-bottom: 20px; padding: 15px;">
-    <form method="GET" action="{{ url_for('manager.manage_flights') }}" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end;">
-        <div class="form-group" style="margin-bottom: 0;">
-            <label>Status</label>
-            <select name="status" class="form-control">
-                <option value="">All</option>
-                <option value="Active" {% if request.args.get('status') == 'Active' %}selected{% endif %}>Active</option>
-                <option value="Delayed" {% if request.args.get('status') == 'Delayed' %}selected{% endif %}>Delayed</option>
-                <option value="Cancelled" {% if request.args.get('status') == 'Cancelled' %}selected{% endif %}>Cancelled</option>
-                <option value="Landed" {% if request.args.get('status') == 'Landed' %}selected{% endif %}>Landed</option>
-            </select>
-        </div>
-        <div class="form-group" style="margin-bottom: 0;">
-            <label>Source</label>
-            <select name="source_id" class="form-control">
-                <option value="">All</option>
-                {% for airport in airports %}
-                <option value="{{ airport.airport_id }}" {% if request.args.get('source_id')|int == airport.airport_id %}selected{% endif %}>{{ airport.airport_name }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="form-group" style="margin-bottom: 0;">
-            <label>Destination</label>
-            <select name="dest_id" class="form-control">
-                <option value="">All</option>
-                {% for airport in airports %}
-                <option value="{{ airport.airport_id }}" {% if request.args.get('dest_id')|int == airport.airport_id %}selected{% endif %}>{{ airport.airport_name }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="form-group" style="margin-bottom: 0;">
-            <label>From Date</label>
-            <input type="date" name="date_from" class="form-control" value="{{ request.args.get('date_from', '') }}">
-        </div>
-        <div class="form-group" style="margin-bottom: 0;">
-            <label>To Date</label>
-            <input type="date" name="date_to" class="form-control" value="{{ request.args.get('date_to', '') }}">
-        </div>
-        <button type="submit" class="btn btn-primary">Filter</button>
-        <a href="{{ url_for('manager.manage_flights') }}" class="btn btn-secondary">Clear</a>
-    </form>
-  </div>
+  <form method="GET" action="{{ url_for('manager.manage_flights') }}" class="filter-form">
+      <div class="filter-group">
+          <label>Status</label>
+          <select name="status" class="filter-control">
+              <option value="">All</option>
+              <option value="Active" {% if request.args.get('status') == 'Active' %}selected{% endif %}>Active</option>
+              <option value="Delayed" {% if request.args.get('status') == 'Delayed' %}selected{% endif %}>Delayed</option>
+              <option value="Cancelled" {% if request.args.get('status') == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+              <option value="Landed" {% if request.args.get('status') == 'Landed' %}selected{% endif %}>Landed</option>
+          </select>
+      </div>
+      <div class="filter-group">
+          <label>Source</label>
+          <select name="source_id" class="filter-control">
+              <option value="">All</option>
+              {% for airport in airports %}
+              <option value="{{ airport.airport_id }}" {% if request.args.get('source_id')|int == airport.airport_id %}selected{% endif %}>{{ airport.airport_name }}</option>
+              {% endfor %}
+          </select>
+      </div>
+      <div class="filter-group">
+          <label>Destination</label>
+          <select name="dest_id" class="filter-control">
+              <option value="">All</option>
+              {% for airport in airports %}
+              <option value="{{ airport.airport_id }}" {% if request.args.get('dest_id')|int == airport.airport_id %}selected{% endif %}>{{ airport.airport_name }}</option>
+              {% endfor %}
+          </select>
+      </div>
+      <div class="filter-group">
+          <label>From Date</label>
+          <input type="date" name="date_from" class="filter-control" value="{{ request.args.get('date_from', '') }}">
+      </div>
+      <div class="filter-group">
+          <label>To Date</label>
+          <input type="date" name="date_to" class="filter-control" value="{{ request.args.get('date_to', '') }}">
+      </div>
+      <div style="display: flex; gap: 10px; align-items: flex-end;">
+          <button type="submit" class="btn btn-primary">Filter</button>
+          <a href="{{ url_for('manager.manage_flights') }}" class="btn btn-secondary">Clear</a>
+      </div>
+  </form>
 
-  <div class="report-card">
-    <table class="table">
+  <div class="report-card" style="padding: 0; overflow: hidden;">
+    <table class="flights-table">
+
       <thead>
         <tr>
           <th>Flight</th>
@@ -126,34 +62,27 @@
       </thead>
       <tbody>
         {% for flight in flights %}
-        <tr>
-          <td>
-            <a
-              href="#"
-              onclick="openFlightModal({{ flight.source_airport_id }}, {{ flight.dest_airport_id }}, '{{ flight.departure_time }}'); return false;"
-              style="text-decoration: none; color: #007bff; font-weight: bold"
-            >
-              {{ flight.source }} -> {{ flight.dest }}
-            </a>
+        <tr onclick="openFlightModal({{ flight.source_airport_id }}, {{ flight.dest_airport_id }}, '{{ flight.departure_time }}')" style="cursor: pointer;">
+          <td class="flight-route">
+              {{ flight.source }} &rarr; {{ flight.dest }}
           </td>
           <td>{{ flight.departure_time }}</td>
-          <td>{{ flight.flight_status }}</td>
+          <td>
+              <span class="badge {% if flight.flight_status == 'Active' %}badge-info{% elif flight.flight_status == 'Cancelled' %}badge-danger{% else %}badge-secondary{% endif %}">
+                  {{ flight.flight_status }}
+              </span>
+          </td>
           <td>
             {% if flight.can_cancel %}
             <a
               href="{{ url_for('manager.cancel_flight_route', source_id=flight.source_airport_id, dest_id=flight.dest_airport_id, departure_time=flight.departure_time) }}"
-              class="btn btn-secondary"
-              onclick="return confirm('Are you sure you want to cancel this flight?');"
-              style="
-                background-color: #dc3545;
-                padding: 5px 10px;
-                font-size: 0.8rem;
-              "
+              class="btn-cancel"
+              onclick="event.stopPropagation(); return confirm('Are you sure you want to cancel this flight?');"
             >
               Cancel
             </a>
             {% else %}
-            <span style="color: #999">Cannot Cancel (< 72h)</span>
+            <span style="color: #999; font-size: 0.85rem;">Cannot Cancel (< 72h)</span>
             {% endif %}
           </td>
         </tr>
@@ -177,13 +106,15 @@
 <!-- The Modal -->
 <div id="flightModal" class="modal">
   <div class="modal-content">
-    <span class="close" onclick="closeModal()">&times;</span>
-    <div id="modalBody">
-      <h3 style="margin-top: 0">Flight Details</h3>
-      <div id="loadingMessage">Loading details...</div>
-      <div id="flightContent" style="display: none">
-        <!-- Content will be injected here -->
-      </div>
+    <div class="modal-header">
+        <h3>Flight Details</h3>
+        <span class="close" onclick="closeModal()">&times;</span>
+    </div>
+    <div class="modal-body">
+        <div id="loadingMessage">Loading details...</div>
+        <div id="flightContent" style="display: none">
+            <!-- Content will be injected here -->
+        </div>
     </div>
   </div>
 </div>
@@ -248,10 +179,10 @@
                     ${crewHtml}
                 </div>
                 
-                <div style="margin-top: 20px; padding-top: 20px; border-top: 2px solid #eee;">
+                <div class="status-update-section">
                     <h4>Update Status</h4>
-                    <div style="display: flex; gap: 10px; align-items: center;">
-                        <select id="newStatus" class="form-control" style="max-width: 200px;">
+                    <div class="status-controls">
+                        <select id="newStatus" class="status-select">
                             <option value="Active" ${
                               data.flight_status === "Active" ? "selected" : ""
                             }>Active</option>
@@ -271,7 +202,7 @@
                           data.source_airport_id
                         }, ${data.dest_airport_id}, '${
           data.departure_time
-        }')" class="btn btn-primary">Update</button>
+        }')" class="btn-update">Update Status</button>
                     </div>
                 </div>
             `;

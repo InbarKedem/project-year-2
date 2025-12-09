@@ -159,21 +159,6 @@ def cancel_flight_route(source_id, dest_id, departure_time):
     return redirect(url_for('manager.manage_flights'))
 
 
-@manager_bp.route('/flight_details/<int:source_id>/<int:dest_id>/<departure_time>')
-def flight_details(source_id, dest_id, departure_time):
-    if session.get('role') != 'manager':
-        flash('Access denied. Managers only.', 'danger')
-        return redirect(url_for('auth.login'))
-    
-    flight = get_flight_details(source_id, dest_id, departure_time)
-    
-    if not flight:
-        flash('Flight not found.', 'danger')
-        return redirect(url_for('manager.manage_flights'))
-        
-    return render_template('flight_details.html', flight=flight)
-
-
 @manager_bp.route('/api/flight_details/<int:source_id>/<int:dest_id>/<departure_time>')
 def api_flight_details(source_id, dest_id, departure_time):
     if session.get('role') != 'manager':

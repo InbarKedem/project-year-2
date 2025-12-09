@@ -1,5 +1,8 @@
 {% extends 'base.html' %} {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='manager.css') }}" />
+<link
+  rel="stylesheet"
+  href="{{ url_for('static', filename='css/modules/manager.css') }}"
+/>
 {% endblock %} {% block content %}
 <div class="container">
   <h2>Add New Flight</h2>
