@@ -172,3 +172,133 @@ nav {
 .card p {
   margin-bottom: 1.5rem;
 }
+
+/* Reports Styling */
+.reports-container {
+  margin-top: 2rem;
+}
+
+.report-card {
+  background: white;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.report-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.report-card h3 {
+  color: #003366;
+  margin-bottom: 0.5rem;
+  font-size: 1.5rem;
+  border-bottom: 3px solid #0056b3;
+  padding-bottom: 0.5rem;
+}
+
+.report-card p {
+  color: #666;
+  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+}
+
+/* Table Styling */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  background: white;
+}
+
+.table thead {
+  background: linear-gradient(135deg, #003366 0%, #0056b3 100%);
+  color: white;
+}
+
+.table thead th {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.table tbody tr {
+  border-bottom: 1px solid #e0e0e0;
+  transition: background-color 0.2s ease;
+}
+
+.table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.table tbody td {
+  padding: 1rem;
+  color: #333;
+  font-size: 0.9rem;
+}
+
+.table tbody td:first-child {
+  font-weight: 500;
+}
+
+/* Alternating row colors for better readability */
+.table tbody tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.table tbody tr:nth-child(even):hover {
+  background-color: #f0f0f0;
+}
+
+/* Empty state styling */
+.table tbody td[colspan] {
+  text-align: center;
+  color: #999;
+  font-style: italic;
+  padding: 2rem;
+}
+
+/* Responsive table */
+@media (max-width: 768px) {
+  .report-card {
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .report-card h3 {
+    font-size: 1.2rem;
+  }
+
+  .table {
+    font-size: 0.85rem;
+  }
+
+  .table thead th,
+  .table tbody td {
+    padding: 0.75rem 0.5rem;
+  }
+
+  /* Make tables scroll horizontally on small screens */
+  .table-container {
+    overflow-x: auto;
+  }
+}
+
+/* Page title styling */
+h2 {
+  color: #003366;
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 4px solid #0056b3;
+}

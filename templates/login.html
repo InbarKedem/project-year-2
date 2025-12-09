@@ -5,7 +5,7 @@
   <div class="login-sections">
     <div class="login-box">
       <h3>Customer Login</h3>
-      <form method="POST" action="{{ url_for('login') }}">
+      <form method="POST" action="{{ url_for('auth.login') }}">
         <input type="hidden" name="user_type" value="customer" />
         <div class="form-group">
           <label>Email:</label>
@@ -23,7 +23,7 @@
 
     <div class="login-box">
       <h3>Manager Login</h3>
-      <form method="POST" action="{{ url_for('login') }}">
+      <form method="POST" action="{{ url_for('auth.login') }}">
         <input type="hidden" name="user_type" value="manager" />
         <div class="form-group">
           <label>ID Number:</label>
