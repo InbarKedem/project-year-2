@@ -1,151 +1,159 @@
-{% extends 'base.html' %}
-
-{% block content %}
+{% extends 'base.html' %} {% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='reports.css') }}" />
+{% endblock %} {% block content %}
 <h2>Manager Reports</h2>
 
 <div class="reports-container">
-    
-    <!-- 1. Average Occupancy -->
-    <div class="report-card">
-        <h3>Average Flight Occupancy</h3>
-        <p>Average occupancy of flights that took place.</p>
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Flight ID (Source -> Dest)</th>
-                    <th>Date</th>
-                    <th>Occupancy (%)</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in occupancy_report %}
-                <tr>
-                    <td>{{ row.source }} -> {{ row.dest }}</td>
-                    <td>{{ row.departure_time }}</td>
-                    <td>{{ row.occupancy_percentage }}%</td>
-                </tr>
-                {% else %}
-                <tr><td colspan="3">No data available</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+  <!-- 1. Average Occupancy -->
+  <div class="report-card">
+    <h3>Average Flight Occupancy</h3>
+    <p>Average occupancy of flights that took place.</p>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Flight ID (Source -> Dest)</th>
+          <th>Date</th>
+          <th>Occupancy (%)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in occupancy_report %}
+        <tr>
+          <td>{{ row.source }} -> {{ row.dest }}</td>
+          <td>{{ row.departure_time }}</td>
+          <td>{{ row.occupancy_percentage }}%</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="3">No data available</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 
-    <!-- 2. Total Revenue -->
-    <div class="report-card">
-        <h3>Total Revenue Analysis</h3>
-        <p>Revenue by Aircraft Size, Manufacturer, and Class.</p>
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Manufacturer</th>
-                    <th>Size (Large/Small)</th>
-                    <th>Class</th>
-                    <th>Total Revenue</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in revenue_report %}
-                <tr>
-                    <td>{{ row.manufacturer }}</td>
-                    <td>{{ 'Large' if row.is_large else 'Small' }}</td>
-                    <td>{{ 'Business' if row.is_business else 'Economy' }}</td>
-                    <td>{{ row.total_revenue }}</td>
-                </tr>
-                {% else %}
-                <tr><td colspan="4">No data available</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+  <!-- 2. Total Revenue -->
+  <div class="report-card">
+    <h3>Total Revenue Analysis</h3>
+    <p>Revenue by Aircraft Size, Manufacturer, and Class.</p>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Manufacturer</th>
+          <th>Size (Large/Small)</th>
+          <th>Class</th>
+          <th>Total Revenue</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in revenue_report %}
+        <tr>
+          <td>{{ row.manufacturer }}</td>
+          <td>{{ 'Large' if row.is_large else 'Small' }}</td>
+          <td>{{ 'Business' if row.is_business else 'Economy' }}</td>
+          <td>{{ row.total_revenue }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="4">No data available</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 
-    <!-- 3. Employee Flight Hours -->
-    <div class="report-card">
-        <h3>Employee Flight Hours</h3>
-        <p>Accumulated flight hours (Long vs Short flights).</p>
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Employee Name</th>
-                    <th>Role</th>
-                    <th>Long Flight Hours</th>
-                    <th>Short Flight Hours</th>
-                    <th>Total Hours</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in employee_hours_report %}
-                <tr>
-                    <td>{{ row.first_name }} {{ row.last_name }}</td>
-                    <td>{{ row.role }}</td>
-                    <td>{{ row.long_hours }}</td>
-                    <td>{{ row.short_hours }}</td>
-                    <td>{{ row.total_hours }}</td>
-                </tr>
-                {% else %}
-                <tr><td colspan="5">No data available</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+  <!-- 3. Employee Flight Hours -->
+  <div class="report-card">
+    <h3>Employee Flight Hours</h3>
+    <p>Accumulated flight hours (Long vs Short flights).</p>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Employee Name</th>
+          <th>Role</th>
+          <th>Long Flight Hours</th>
+          <th>Short Flight Hours</th>
+          <th>Total Hours</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in employee_hours_report %}
+        <tr>
+          <td>{{ row.first_name }} {{ row.last_name }}</td>
+          <td>{{ row.role }}</td>
+          <td>{{ row.long_hours }}</td>
+          <td>{{ row.short_hours }}</td>
+          <td>{{ row.total_hours }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5">No data available</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 
-    <!-- 4. Cancellation Rate -->
-    <div class="report-card">
-        <h3>Monthly Cancellation Rate</h3>
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Month</th>
-                    <th>Total Orders</th>
-                    <th>Cancelled Orders</th>
-                    <th>Cancellation Rate (%)</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in cancellation_report %}
-                <tr>
-                    <td>{{ row.month }}</td>
-                    <td>{{ row.total_orders }}</td>
-                    <td>{{ row.cancelled_orders }}</td>
-                    <td>{{ row.cancellation_rate }}%</td>
-                </tr>
-                {% else %}
-                <tr><td colspan="4">No data available</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+  <!-- 4. Cancellation Rate -->
+  <div class="report-card">
+    <h3>Monthly Cancellation Rate</h3>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Month</th>
+          <th>Total Orders</th>
+          <th>Cancelled Orders</th>
+          <th>Cancellation Rate (%)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in cancellation_report %}
+        <tr>
+          <td>{{ row.month }}</td>
+          <td>{{ row.total_orders }}</td>
+          <td>{{ row.cancelled_orders }}</td>
+          <td>{{ row.cancellation_rate }}%</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="4">No data available</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 
-    <!-- 5. Plane Monthly Activity -->
-    <div class="report-card">
-        <h3>Plane Monthly Activity</h3>
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Aircraft ID</th>
-                    <th>Month</th>
-                    <th>Flights Performed</th>
-                    <th>Flights Cancelled</th>
-                    <th>Utilization (%)</th>
-                    <th>Dominant Route</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in plane_activity_report %}
-                <tr>
-                    <td>{{ row.aircraft_id }}</td>
-                    <td>{{ row.month }}</td>
-                    <td>{{ row.flights_performed }}</td>
-                    <td>{{ row.flights_cancelled }}</td>
-                    <td>{{ row.utilization }}%</td>
-                    <td>{{ row.dominant_route }}</td>
-                </tr>
-                {% else %}
-                <tr><td colspan="6">No data available</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-
+  <!-- 5. Plane Monthly Activity -->
+  <div class="report-card">
+    <h3>Plane Monthly Activity</h3>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Aircraft ID</th>
+          <th>Month</th>
+          <th>Flights Performed</th>
+          <th>Flights Cancelled</th>
+          <th>Utilization (%)</th>
+          <th>Dominant Route</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in plane_activity_report %}
+        <tr>
+          <td>{{ row.aircraft_id }}</td>
+          <td>{{ row.month }}</td>
+          <td>{{ row.flights_performed }}</td>
+          <td>{{ row.flights_cancelled }}</td>
+          <td>{{ row.utilization }}%</td>
+          <td>{{ row.dominant_route }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6">No data available</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}
