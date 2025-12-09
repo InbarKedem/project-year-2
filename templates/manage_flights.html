@@ -1,0 +1,287 @@
+{% extends 'base.html' %} {% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='manager.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='reports.css') }}" />
+<style>
+  /* Modal Styles */
+  .modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.5);
+  }
+  .modal-content {
+    background-color: #fefefe;
+    margin: 5% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 90%;
+    max-width: 700px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  }
+  .close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  .close:hover,
+  .close:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.8rem 0;
+    border-bottom: 1px solid #eee;
+  }
+  .detail-label {
+    font-weight: bold;
+    color: #666;
+  }
+  .detail-value {
+    font-weight: 500;
+  }
+  .pilot-badge {
+    background: #007bff;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    margin-left: 5px;
+  }
+  .attendant-badge {
+    background: #28a745;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    margin-left: 5px;
+  }
+</style>
+{% endblock %} {% block content %}
+<div class="container">
+  <h2>Manage Flights</h2>
+  <div class="report-card">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Flight</th>
+          <th>Departure</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for flight in flights %}
+        <tr>
+          <td>
+            <a
+              href="#"
+              onclick="openFlightModal({{ flight.source_airport_id }}, {{ flight.dest_airport_id }}, '{{ flight.departure_time }}'); return false;"
+              style="text-decoration: none; color: #007bff; font-weight: bold"
+            >
+              {{ flight.source }} -> {{ flight.dest }}
+            </a>
+          </td>
+          <td>{{ flight.departure_time }}</td>
+          <td>{{ flight.flight_status }}</td>
+          <td>
+            {% if flight.can_cancel %}
+            <a
+              href="{{ url_for('manager.cancel_flight_route', source_id=flight.source_airport_id, dest_id=flight.dest_airport_id, departure_time=flight.departure_time) }}"
+              class="btn btn-secondary"
+              onclick="return confirm('Are you sure you want to cancel this flight?');"
+              style="
+                background-color: #dc3545;
+                padding: 5px 10px;
+                font-size: 0.8rem;
+              "
+            >
+              Cancel
+            </a>
+            {% else %}
+            <span style="color: #999">Cannot Cancel (< 72h)</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="4">No active flights found.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div style="margin-top: 20px">
+    <a
+      href="{{ url_for('manager.manager_dashboard') }}"
+      class="btn btn-secondary"
+      >Back to Dashboard</a
+    >
+  </div>
+</div>
+
+<!-- The Modal -->
+<div id="flightModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeModal()">&times;</span>
+    <div id="modalBody">
+      <h3 style="margin-top: 0">Flight Details</h3>
+      <div id="loadingMessage">Loading details...</div>
+      <div id="flightContent" style="display: none">
+        <!-- Content will be injected here -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openFlightModal(sourceId, destId, departureTime) {
+    document.getElementById("flightModal").style.display = "block";
+    document.getElementById("loadingMessage").style.display = "block";
+    document.getElementById("flightContent").style.display = "none";
+
+    fetch(`/api/flight_details/${sourceId}/${destId}/${departureTime}`)
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.error) {
+          document.getElementById("loadingMessage").innerText = data.error;
+          return;
+        }
+
+        let crewHtml = '<ul style="padding-left: 20px; margin: 5px 0;">';
+        if (data.crew && data.crew.length > 0) {
+          data.crew.forEach((member) => {
+            const badge = member.is_pilot
+              ? '<span class="pilot-badge">Pilot</span>'
+              : '<span class="attendant-badge">Attendant</span>';
+            crewHtml += `<li>${member.first_name} ${member.last_name} ${badge}</li>`;
+          });
+        } else {
+          crewHtml += '<li style="color: #999;">No crew assigned</li>';
+        }
+        crewHtml += "</ul>";
+
+        const aircraftInfo = data.manufacturer
+          ? `${data.manufacturer} (ID: ${data.aircraft_id}) ${
+              data.is_large ? '<span class="badge badge-info">Large</span>' : ""
+            }`
+          : "Not Assigned";
+
+        const html = `
+                <div class="detail-row">
+                    <span class="detail-label">Route</span>
+                    <span class="detail-value">${data.source} &rarr; ${
+          data.dest
+        }</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Departure</span>
+                    <span class="detail-value">${data.departure_time}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Aircraft</span>
+                    <span class="detail-value">${aircraftInfo}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Pricing</span>
+                    <div class="detail-value" style="text-align: right;">
+                        <div>Economy: $${data.economy_price}</div>
+                        <div>Business: $${data.business_price}</div>
+                    </div>
+                </div>
+                <div class="detail-row" style="display: block;">
+                    <div class="detail-label" style="margin-bottom: 5px;">Assigned Crew</div>
+                    ${crewHtml}
+                </div>
+                
+                <div style="margin-top: 20px; padding-top: 20px; border-top: 2px solid #eee;">
+                    <h4>Update Status</h4>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <select id="newStatus" class="form-control" style="max-width: 200px;">
+                            <option value="Active" ${
+                              data.flight_status === "Active" ? "selected" : ""
+                            }>Active</option>
+                            <option value="Delayed" ${
+                              data.flight_status === "Delayed" ? "selected" : ""
+                            }>Delayed</option>
+                            <option value="Cancelled" ${
+                              data.flight_status === "Cancelled"
+                                ? "selected"
+                                : ""
+                            }>Cancelled</option>
+                            <option value="Landed" ${
+                              data.flight_status === "Landed" ? "selected" : ""
+                            }>Landed</option>
+                        </select>
+                        <button onclick="updateStatus(${
+                          data.source_airport_id
+                        }, ${data.dest_airport_id}, '${
+          data.departure_time
+        }')" class="btn btn-primary">Update</button>
+                    </div>
+                </div>
+            `;
+
+        document.getElementById("flightContent").innerHTML = html;
+        document.getElementById("loadingMessage").style.display = "none";
+        document.getElementById("flightContent").style.display = "block";
+      })
+      .catch((err) => {
+        console.error(err);
+        document.getElementById("loadingMessage").innerText =
+          "Error loading details.";
+      });
+  }
+
+  function closeModal() {
+    document.getElementById("flightModal").style.display = "none";
+  }
+
+  function updateStatus(sourceId, destId, departureTime) {
+    const newStatus = document.getElementById("newStatus").value;
+
+    fetch("/update_flight_status", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        source_id: sourceId,
+        dest_id: destId,
+        departure_time: departureTime,
+        status: newStatus,
+      }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.success) {
+          alert("Status updated successfully!");
+          location.reload(); // Reload to reflect changes in the table
+        } else {
+          alert("Error updating status: " + data.message);
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        alert("Error updating status.");
+      });
+  }
+
+  // Close modal when clicking outside
+  window.onclick = function (event) {
+    if (event.target == document.getElementById("flightModal")) {
+      closeModal();
+    }
+  };
+</script>
+{% endblock %}

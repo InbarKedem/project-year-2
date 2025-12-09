@@ -1,0 +1,129 @@
+{% extends 'base.html' %} {% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='manager.css') }}" />
+{% endblock %} {% block content %}
+<div class="container">
+  <h2>Add New Flight</h2>
+  <div class="auth-container">
+    <form
+      method="POST"
+      action="{{ url_for('manager.add_flight') }}"
+      class="staff-form"
+    >
+      <!-- Basic Data -->
+      <h3>Flight Details</h3>
+      <div class="staff-form-grid">
+        <div class="form-group">
+          <label>Source Airport: <span style="color: red">*</span></label>
+          <select name="source_id" required class="form-select">
+            {% for airport in airports %}
+            <option value="{{ airport.airport_id }}">
+              {{ airport.airport_name }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Destination Airport: <span style="color: red">*</span></label>
+          <select name="dest_id" required class="form-select">
+            {% for airport in airports %}
+            <option value="{{ airport.airport_id }}">
+              {{ airport.airport_name }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Departure Time: <span style="color: red">*</span></label>
+          <input type="datetime-local" name="departure_time" required />
+        </div>
+      </div>
+
+      <!-- Aircraft -->
+      <h3>Aircraft</h3>
+      <div class="form-group">
+        <label>Select Aircraft: <span style="color: red">*</span></label>
+        <select name="aircraft_id" required class="form-select">
+          {% for aircraft in aircrafts %}
+          <option value="{{ aircraft.aircraft_id }}">
+            {{ aircraft.manufacturer }} (ID: {{ aircraft.aircraft_id }})
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Crew -->
+      <h3>Crew Assignment <span style="color: red">*</span></h3>
+      <div class="staff-form-grid">
+        <div class="form-group">
+          <label>Pilots:</label>
+          <div
+            class="checkbox-list"
+            style="
+              max-height: 150px;
+              overflow-y: auto;
+              border: 1px solid #ddd;
+              padding: 5px;
+            "
+          >
+            {% for pilot in pilots %}
+            <label class="checkbox-label">
+              <input
+                type="checkbox"
+                name="crew_ids"
+                value="{{ pilot.id_number }}"
+              />
+              {{ pilot.first_name }} {{ pilot.last_name }}
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Flight Attendants:</label>
+          <div
+            class="checkbox-list"
+            style="
+              max-height: 150px;
+              overflow-y: auto;
+              border: 1px solid #ddd;
+              padding: 5px;
+            "
+          >
+            {% for attendant in attendants %}
+            <label class="checkbox-label">
+              <input
+                type="checkbox"
+                name="crew_ids"
+                value="{{ attendant.id_number }}"
+              />
+              {{ attendant.first_name }} {{ attendant.last_name }}
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Pricing -->
+      <h3>Ticket Pricing</h3>
+      <div class="staff-form-grid">
+        <div class="form-group">
+          <label>Economy Price ($): <span style="color: red">*</span></label>
+          <input type="number" name="economy_price" step="0.01" required />
+        </div>
+        <div class="form-group">
+          <label>Business Price ($): <span style="color: red">*</span></label>
+          <input type="number" name="business_price" step="0.01" required />
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn">Publish Flight</button>
+        <a
+          href="{{ url_for('manager.manager_dashboard') }}"
+          class="btn btn-secondary"
+          >Cancel</a
+        >
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

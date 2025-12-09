@@ -159,20 +159,20 @@ INSERT INTO Registered_Customer (email, passport_number, birth_date, registratio
 
 -- 7. Flights
 -- Flight 1: TLV->JFK (Long), Plane 1 (Large), 2026-01-01 08:00
-INSERT INTO Flight (source_airport_id, dest_airport_id, departure_time, aircraft_id, flight_status) VALUES
-(1, 2, '2026-01-01 08:00:00', 1, 'Active');
+INSERT INTO Flight (source_airport_id, dest_airport_id, departure_time, aircraft_id, flight_status, economy_price, business_price) VALUES
+(1, 2, '2026-01-01 08:00:00', 1, 'Active', 800.00, 1500.00);
 
 -- Flight 2: TLV->LHR (Short), Plane 3 (Small), 2026-01-02 10:00
-INSERT INTO Flight (source_airport_id, dest_airport_id, departure_time, aircraft_id, flight_status) VALUES
-(1, 3, '2026-01-02 10:00:00', 3, 'Active');
+INSERT INTO Flight (source_airport_id, dest_airport_id, departure_time, aircraft_id, flight_status, economy_price, business_price) VALUES
+(1, 3, '2026-01-02 10:00:00', 3, 'Active', 400.00, 900.00);
 
 -- Flight 3: JFK->TLV (Long), Plane 2 (Large), 2026-01-03 12:00
-INSERT INTO Flight (source_airport_id, dest_airport_id, departure_time, aircraft_id, flight_status) VALUES
-(2, 1, '2026-01-03 12:00:00', 2, 'Active');
+INSERT INTO Flight (source_airport_id, dest_airport_id, departure_time, aircraft_id, flight_status, economy_price, business_price) VALUES
+(2, 1, '2026-01-03 12:00:00', 2, 'Active', 850.00, 1600.00);
 
 -- Flight 4: LHR->TLV (Short), Plane 4 (Small), 2026-01-04 14:00
-INSERT INTO Flight (source_airport_id, dest_airport_id, departure_time, aircraft_id, flight_status) VALUES
-(3, 1, '2026-01-04 14:00:00', 4, 'Active');
+INSERT INTO Flight (source_airport_id, dest_airport_id, departure_time, aircraft_id, flight_status, economy_price, business_price) VALUES
+(3, 1, '2026-01-04 14:00:00', 4, 'Active', 450.00, 950.00);
 
 -- 8. Crew Assignments
 INSERT INTO Employee_Flight_Assignment (employee_id, source_airport_id, dest_airport_id, departure_time) VALUES
