@@ -20,6 +20,9 @@
         </li>
         {% endif %} {% if session.get('user_id') %}
         <li><span>Welcome, {{ session.get('name') }}</span></li>
+        {% if session.get('role') == 'customer' %}
+        <li><a href="{{ url_for('my_orders') }}">My Orders</a></li>
+        {% endif %}
         <li><a href="{{ url_for('logout') }}">Logout</a></li>
         {% else %}
         <li><a href="{{ url_for('login') }}">Login</a></li>
