@@ -6,8 +6,10 @@
     <title>FLYTAU Airline</title>
     <link
       rel="stylesheet"
-      href="{{ url_for('static', filename='style.css') }}"
+      href="{{ url_for('static', filename='base.css') }}"
     />
+    <link rel="stylesheet" href="{{ url_for('static', filename='nav.css') }}" />
+    {% block extra_css %}{% endblock %}
   </head>
   <body>
     <nav>
@@ -16,7 +18,9 @@
         <li><a href="{{ url_for('customer.index') }}">Home</a></li>
         {% if session.get('role') == 'manager' %}
         <li>
-          <a href="{{ url_for('manager.manager_dashboard') }}">Manager Dashboard</a>
+          <a href="{{ url_for('manager.manager_dashboard') }}"
+            >Manager Dashboard</a
+          >
         </li>
         {% endif %} {% if session.get('user_id') %}
         <li><span>Welcome, {{ session.get('name') }}</span></li>
