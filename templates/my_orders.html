@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>My Orders</h2>
+
+<div class="filter-section">
+    <form action="{{ url_for('my_orders') }}" method="GET">
+        <label for="status">Filter by Status:</label>
+        <select name="status" id="status">
+            <option value="">All</option>
+            <option value="Active" {% if request.args.get('status') == 'Active' %}selected{% endif %}>Active</option>
+            <option value="Completed" {% if request.args.get('status') == 'Completed' %}selected{% endif %}>Completed</option>
+            <option value="Customer Cancelled" {% if request.args.get('status') == 'Customer Cancelled' %}selected{% endif %}>Customer Cancelled</option>
+            <option value="System Cancelled" {% if request.args.get('status') == 'System Cancelled' %}selected{% endif %}>System Cancelled</option>
+        </select>
+        <button type="submit" class="btn">Filter</button>
+    </form>
+</div>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Order Code</th>
+            <th>Order Date</th>
+            <th>Flight</th>
+            <th>Departure</th>
+            <th>Seats</th>
+            <th>Total Payment</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for order in orders %}
+        <tr>
+            <td>{{ order.order_code }}</td>
+            <td>{{ order.order_date }}</td>
+            <td>{{ order.source_airport }} -> {{ order.dest_airport }}</td>
+            <td>{{ order.departure_time }}</td>
+            <td>{{ order.seats }}</td>
+            <td>{{ order.total_payment }}</td>
+            <td>{{ order.order_status }}</td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="7">No orders found.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

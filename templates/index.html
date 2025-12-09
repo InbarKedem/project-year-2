@@ -1,0 +1,26 @@
+{% extends 'base.html' %} {% block content %}
+<div class="hero">
+  <h1>Welcome to FLYTAU Airline</h1>
+  <p>Your journey begins here.</p>
+
+  <div class="search-box">
+    <h2>Search Flights</h2>
+    <form action="#" method="GET">
+      <!-- Placeholder for search form -->
+      <div class="form-group">
+        <label>From:</label>
+        <input type="text" name="source" placeholder="Origin City" />
+      </div>
+      <div class="form-group">
+        <label>To:</label>
+        <input type="text" name="dest" placeholder="Destination City" />
+      </div>
+      <div class="form-group">
+        <label>Date:</label>
+        <input type="date" name="date" />
+      </div>
+      <button type="submit" class="btn">Search</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
