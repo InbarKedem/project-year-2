@@ -80,6 +80,8 @@ CREATE TABLE Flight (
     departure_time DATETIME NOT NULL,
     flight_status VARCHAR(50),
     aircraft_id INT,
+    economy_price DECIMAL(10, 2),
+    business_price DECIMAL(10, 2),
     PRIMARY KEY (source_airport_id, dest_airport_id, departure_time),
     FOREIGN KEY (source_airport_id) REFERENCES Airport(airport_id),
     FOREIGN KEY (dest_airport_id) REFERENCES Airport(airport_id),

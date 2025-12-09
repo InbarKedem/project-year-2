@@ -6,9 +6,12 @@
     <title>FLYTAU Airline</title>
     <link
       rel="stylesheet"
-      href="{{ url_for('static', filename='base.css') }}"
+      href="{{ url_for('static', filename='css/global/base.css') }}"
     />
-    <link rel="stylesheet" href="{{ url_for('static', filename='nav.css') }}" />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/global/nav.css') }}"
+    />
     {% block extra_css %}{% endblock %}
   </head>
   <body>

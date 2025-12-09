@@ -1,12 +1,22 @@
 {% extends 'base.html' %} {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='manager.css') }}" />
+<link
+  rel="stylesheet"
+  href="{{ url_for('static', filename='css/modules/manager.css') }}"
+/>
 {% endblock %} {% block content %}
 <h2>Manager Dashboard</h2>
 <div class="dashboard-grid">
   <div class="card">
     <h3>Flight Management</h3>
     <p>Add new flights, cancel existing ones, and manage schedule.</p>
-    <a href="#" class="btn">Manage Flights</a>
+    <div style="display: flex; gap: 10px; flex-wrap: wrap">
+      <a href="{{ url_for('manager.add_flight') }}" class="btn">Add Flight</a>
+      <a
+        href="{{ url_for('manager.manage_flights') }}"
+        class="btn btn-secondary"
+        >Manage Flights</a
+      >
+    </div>
   </div>
   <div class="card">
     <h3>Reports</h3>
