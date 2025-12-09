@@ -57,11 +57,11 @@ INSERT INTO Aircraft_Class (aircraft_id, is_business, num_rows, num_columns) VAL
 
 -- Generate Seats for Plane 1 (Large)
 -- Business
-INSERT INTO Seat (aircraft_id, is_business, row_number, column_number) VALUES
+INSERT INTO Seat (aircraft_id, is_business, `row_number`, `column_number`) VALUES
 (1, TRUE, 1, 1), (1, TRUE, 1, 2),
 (1, TRUE, 2, 1), (1, TRUE, 2, 2);
 -- Economy
-INSERT INTO Seat (aircraft_id, is_business, row_number, column_number) VALUES
+INSERT INTO Seat (aircraft_id, is_business, `row_number`, `column_number`) VALUES
 (1, FALSE, 1, 1), (1, FALSE, 1, 2), (1, FALSE, 1, 3), (1, FALSE, 1, 4),
 (1, FALSE, 2, 1), (1, FALSE, 2, 2), (1, FALSE, 2, 3), (1, FALSE, 2, 4),
 (1, FALSE, 3, 1), (1, FALSE, 3, 2), (1, FALSE, 3, 3), (1, FALSE, 3, 4),
@@ -69,7 +69,7 @@ INSERT INTO Seat (aircraft_id, is_business, row_number, column_number) VALUES
 (1, FALSE, 5, 1), (1, FALSE, 5, 2), (1, FALSE, 5, 3), (1, FALSE, 5, 4);
 
 -- Generate Seats for Plane 3 (Small)
-INSERT INTO Seat (aircraft_id, is_business, row_number, column_number) VALUES
+INSERT INTO Seat (aircraft_id, is_business, `row_number`, `column_number`) VALUES
 (3, FALSE, 1, 1), (3, FALSE, 1, 2), (3, FALSE, 1, 3), (3, FALSE, 1, 4),
 (3, FALSE, 2, 1), (3, FALSE, 2, 2), (3, FALSE, 2, 3), (3, FALSE, 2, 4),
 (3, FALSE, 3, 1), (3, FALSE, 3, 2), (3, FALSE, 3, 3), (3, FALSE, 3, 4),
@@ -77,9 +77,9 @@ INSERT INTO Seat (aircraft_id, is_business, row_number, column_number) VALUES
 (3, FALSE, 5, 1), (3, FALSE, 5, 2), (3, FALSE, 5, 3), (3, FALSE, 5, 4);
 
 -- Plane 2 (Large)
-INSERT INTO Seat (aircraft_id, is_business, row_number, column_number) VALUES
+INSERT INTO Seat (aircraft_id, is_business, `row_number`, `column_number`) VALUES
 (2, TRUE, 1, 1), (2, TRUE, 1, 2), (2, TRUE, 2, 1), (2, TRUE, 2, 2);
-INSERT INTO Seat (aircraft_id, is_business, row_number, column_number) VALUES
+INSERT INTO Seat (aircraft_id, is_business, `row_number`, `column_number`) VALUES
 (2, FALSE, 1, 1), (2, FALSE, 1, 2), (2, FALSE, 1, 3), (2, FALSE, 1, 4),
 (2, FALSE, 2, 1), (2, FALSE, 2, 2), (2, FALSE, 2, 3), (2, FALSE, 2, 4),
 (2, FALSE, 3, 1), (2, FALSE, 3, 2), (2, FALSE, 3, 3), (2, FALSE, 3, 4),
@@ -87,7 +87,7 @@ INSERT INTO Seat (aircraft_id, is_business, row_number, column_number) VALUES
 (2, FALSE, 5, 1), (2, FALSE, 5, 2), (2, FALSE, 5, 3), (2, FALSE, 5, 4);
 
 -- Plane 4 (Small)
-INSERT INTO Seat (aircraft_id, is_business, row_number, column_number) VALUES
+INSERT INTO Seat (aircraft_id, is_business, `row_number`, `column_number`) VALUES
 (4, FALSE, 1, 1), (4, FALSE, 1, 2), (4, FALSE, 1, 3), (4, FALSE, 1, 4),
 (4, FALSE, 2, 1), (4, FALSE, 2, 2), (4, FALSE, 2, 3), (4, FALSE, 2, 4),
 (4, FALSE, 3, 1), (4, FALSE, 3, 2), (4, FALSE, 3, 3), (4, FALSE, 3, 4),
@@ -191,26 +191,26 @@ INSERT INTO Employee_Flight_Assignment (employee_id, source_airport_id, dest_air
 INSERT INTO Order_Table (order_code, order_date, total_payment, order_status, customer_email, source_airport_id, dest_airport_id, departure_time) VALUES
 (1, '2025-12-01 10:00:00', 1500.00, 'Active', 'reg1@test.com', 1, 2, '2026-01-01 08:00:00');
 
-INSERT INTO Order_Seats (order_code, aircraft_id, is_business, row_number, column_number) VALUES
+INSERT INTO Order_Seats (order_code, aircraft_id, is_business, `row_number`, `column_number`) VALUES
 (1, 1, TRUE, 1, 1);
 
 -- Order 2: Reg2, Flight 2, 1 Seat (Economy)
 INSERT INTO Order_Table (order_code, order_date, total_payment, order_status, customer_email, source_airport_id, dest_airport_id, departure_time) VALUES
 (2, '2025-12-02 11:00:00', 500.00, 'Active', 'reg2@test.com', 1, 3, '2026-01-02 10:00:00');
 
-INSERT INTO Order_Seats (order_code, aircraft_id, is_business, row_number, column_number) VALUES
+INSERT INTO Order_Seats (order_code, aircraft_id, is_business, `row_number`, `column_number`) VALUES
 (2, 3, FALSE, 1, 1);
 
 -- Order 3: Guest1, Flight 1, 1 Seat (Economy)
 INSERT INTO Order_Table (order_code, order_date, total_payment, order_status, customer_email, source_airport_id, dest_airport_id, departure_time) VALUES
 (3, '2025-12-03 12:00:00', 800.00, 'Active', 'guest1@test.com', 1, 2, '2026-01-01 08:00:00');
 
-INSERT INTO Order_Seats (order_code, aircraft_id, is_business, row_number, column_number) VALUES
+INSERT INTO Order_Seats (order_code, aircraft_id, is_business, `row_number`, `column_number`) VALUES
 (3, 1, FALSE, 1, 1);
 
 -- Order 4: Guest2, Flight 3, 1 Seat (Business)
 INSERT INTO Order_Table (order_code, order_date, total_payment, order_status, customer_email, source_airport_id, dest_airport_id, departure_time) VALUES
 (4, '2025-12-04 13:00:00', 1600.00, 'Active', 'guest2@test.com', 2, 1, '2026-01-03 12:00:00');
 
-INSERT INTO Order_Seats (order_code, aircraft_id, is_business, row_number, column_number) VALUES
+INSERT INTO Order_Seats (order_code, aircraft_id, is_business, `row_number`, `column_number`) VALUES
 (4, 2, TRUE, 1, 1);

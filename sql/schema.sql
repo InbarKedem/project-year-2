@@ -1,4 +1,5 @@
 -- Create Database
+DROP DATABASE IF EXISTS flytau;
 CREATE DATABASE IF NOT EXISTS flytau CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE flytau;
 
@@ -37,9 +38,9 @@ CREATE TABLE Aircraft_Class (
 CREATE TABLE Seat (
     aircraft_id INT NOT NULL,
     is_business BOOLEAN NOT NULL,
-    row_number INT NOT NULL,
-    column_number INT NOT NULL,
-    PRIMARY KEY (aircraft_id, is_business, row_number, column_number),
+    `row_number` INT NOT NULL,
+    `column_number` INT NOT NULL,
+    PRIMARY KEY (aircraft_id, is_business, `row_number`, `column_number`),
     FOREIGN KEY (aircraft_id, is_business)
         REFERENCES Aircraft_Class(aircraft_id, is_business)
 );
@@ -141,10 +142,10 @@ CREATE TABLE Order_Seats (
     order_code INT NOT NULL,
     aircraft_id INT NOT NULL,
     is_business BOOLEAN NOT NULL,
-    row_number INT NOT NULL,
-    column_number INT NOT NULL,
-    PRIMARY KEY (order_code, aircraft_id, is_business, row_number, column_number),
+    `row_number` INT NOT NULL,
+    `column_number` INT NOT NULL,
+    PRIMARY KEY (order_code, aircraft_id, is_business, `row_number`, `column_number`),
     FOREIGN KEY (order_code) REFERENCES Order_Table(order_code),
-    FOREIGN KEY (aircraft_id, is_business, row_number, column_number)
-        REFERENCES Seat(aircraft_id, is_business, row_number, column_number)
+    FOREIGN KEY (aircraft_id, is_business, `row_number`, `column_number`)
+        REFERENCES Seat(aircraft_id, is_business, `row_number`, `column_number`)
 );

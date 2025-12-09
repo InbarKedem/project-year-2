@@ -5,7 +5,7 @@ from flask import g
 # UPDATE THESE VALUES WITH YOUR LOCAL MYSQL CONFIGURATION
 DB_CONFIG = {
     'user': 'root',
-    'password': 'password',  # Change this to your MySQL password
+    'password': 'root',  # Change this to your MySQL password
     'host': 'localhost',
     'database': 'flytau',
     'charset': 'utf8mb4',
