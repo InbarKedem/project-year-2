@@ -16,7 +16,7 @@
                 <div class="filter-group">
                     <label for="route">Route</label>
                     <input type="text" name="route" id="route" class="filter-control" 
-                           value="{{ request.args.get('route', '') }}" placeholder="Search airport">
+                           value="{{ request.args.get('route', '') }}" placeholder="Search airports">
                 </div>
                 
                 <div class="filter-group">
@@ -282,17 +282,13 @@ document.getElementById('toggleAdvanced').addEventListener('click', function() {
 // Show advanced filters if any advanced filter has a value
 window.addEventListener('DOMContentLoaded', function() {
     const advancedInputs = document.querySelectorAll('#advancedFilters input, #advancedFilters select');
-    let hasValue = false;
     
-    advancedInputs.forEach(input => {
+    for (let input of advancedInputs) {
         if (input.value) {
-            hasValue = true;
+            document.getElementById('advancedFilters').style.display = 'grid';
+            document.getElementById('toggleText').textContent = 'Hide Advanced';
+            break;
         }
-    });
-    
-    if (hasValue) {
-        document.getElementById('advancedFilters').style.display = 'grid';
-        document.getElementById('toggleText').textContent = 'Hide Advanced';
     }
 });
 
