@@ -1,4 +1,4 @@
-{% extends 'base.html' %} {% block extra_css %}
+{% extends 'layout/base.html' %} {% block extra_css %}
 <link
   rel="stylesheet"
   href="{{ url_for('static', filename='css/modules/reports.css') }}"
@@ -8,7 +8,7 @@
 
 <div class="reports-container">
   <!-- 1. Average Occupancy -->
-  <div class="report-card">
+  <div class="card">
     <h3>Average Flight Occupancy</h3>
     <p>Average occupancy of flights that took place.</p>
     <table class="table">
@@ -36,7 +36,7 @@
   </div>
 
   <!-- 2. Total Revenue -->
-  <div class="report-card">
+  <div class="card">
     <h3>Total Revenue Analysis</h3>
     <p>Revenue by Aircraft Size, Manufacturer, and Class.</p>
     <table class="table">
@@ -66,7 +66,7 @@
   </div>
 
   <!-- 3. Employee Flight Hours -->
-  <div class="report-card">
+  <div class="card">
     <h3>Employee Flight Hours</h3>
     <p>Accumulated flight hours (Long vs Short flights).</p>
     <table class="table">
@@ -98,7 +98,7 @@
   </div>
 
   <!-- 4. Cancellation Rate -->
-  <div class="report-card">
+  <div class="card">
     <h3>Monthly Cancellation Rate</h3>
     <table class="table">
       <thead>
@@ -127,7 +127,7 @@
   </div>
 
   <!-- 5. Plane Monthly Activity -->
-  <div class="report-card">
+  <div class="card">
     <h3>Plane Monthly Activity</h3>
     <table class="table">
       <thead>

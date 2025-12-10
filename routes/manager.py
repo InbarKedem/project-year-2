@@ -20,7 +20,7 @@ def manager_dashboard():
     if session.get('role') != 'manager':
         flash('Access denied. Managers only.', 'danger')
         return redirect(url_for('auth.login'))
-    return render_template('manager_dashboard.html')
+    return render_template('manager/dashboard.html')
 
 @manager_bp.route('/reports')
 def reports():
@@ -28,7 +28,7 @@ def reports():
         flash('Access denied. Managers only.', 'danger')
         return redirect(url_for('auth.login'))
 
-    return render_template('reports.html', 
+    return render_template('manager/reports.html', 
                            occupancy_report=get_occupancy_report(),
                            revenue_report=get_revenue_report(),
                            employee_hours_report=get_employee_hours_report(),
@@ -66,9 +66,9 @@ def add_staff():
             return redirect(url_for('manager.manager_dashboard'))
         else:
             flash(message, 'danger')
-            return render_template('add_staff.html')
+            return render_template('manager/add_staff.html')
 
-    return render_template('add_staff.html')
+    return render_template('manager/add_staff.html')
 
 
 
@@ -109,7 +109,7 @@ def add_flight():
     pilots = get_all_pilots()
     attendants = get_all_attendants()
 
-    return render_template('add_flight.html', 
+    return render_template('manager/add_flight.html', 
                            airports=airports, 
                            aircrafts=aircrafts, 
                            pilots=pilots, 
@@ -141,7 +141,7 @@ def manage_flights():
         time_diff = f['departure_time'] - now
         f['can_cancel'] = time_diff.total_seconds() >= 72 * 3600
 
-    return render_template('manage_flights.html', flights=flights, airports=airports)
+    return render_template('manager/manage_flights.html', flights=flights, airports=airports)
 
 @manager_bp.route('/cancel_flight/<int:source_id>/<int:dest_id>/<string:departure_time>')
 def cancel_flight_route(source_id, dest_id, departure_time):

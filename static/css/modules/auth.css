@@ -23,13 +23,3 @@
   width: 1px;
   background-color: #ddd;
 }
-
-/* Register Form */
-.register-form .form-row {
-  display: flex;
-  gap: 1rem;
-}
-
-.register-form .form-row .form-group {
-  flex: 1;
-}
