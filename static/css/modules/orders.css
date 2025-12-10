@@ -318,9 +318,10 @@
 /* Seats Grid */
 .seats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
   gap: 0.5rem;
   margin-top: 0.5rem;
+  max-width: 400px;
 }
 
 .seat-item {

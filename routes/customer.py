@@ -73,10 +73,6 @@ def my_orders():
         query += " AND DATE(O.departure_time) <= %s"
         params.append(departure_to)
     
-    if seats_filter:
-        # This will be handled with HAVING since seats is calculated
-        pass
-    
     if payment_min:
         query += " AND O.total_payment >= %s"
         params.append(payment_min)
@@ -93,9 +89,14 @@ def my_orders():
     
     orders = query_db(query, tuple(params))
     
-    # Apply seats filter after query if needed
+    # Apply seats filter after query (post-processing since seats is calculated in SELECT)
     if seats_filter:
-        orders = [order for order in orders if order['seats'] == int(seats_filter)]
+        try:
+            seats_num = int(seats_filter)
+            orders = [order for order in orders if order['seats'] == seats_num]
+        except ValueError:
+            # Ignore invalid seats filter value
+            pass
     
     # Add cancellation eligibility flag
     now = datetime.now()

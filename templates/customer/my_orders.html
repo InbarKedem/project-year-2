@@ -172,6 +172,7 @@ function openOrderModal(orderCode) {
                 data.seats_details.forEach(seat => {
                     const seatClass = seat.is_business ? 'seat-business' : 'seat-economy';
                     const seatType = seat.is_business ? 'Business' : 'Economy';
+                    // Note: column_number is 1-indexed, so 1=A, 2=B, etc.
                     seatsHtml += `<div class="seat-item ${seatClass}">${seat.row_number}${String.fromCharCode(64 + seat.column_number)}</div>`;
                 });
             } else {
