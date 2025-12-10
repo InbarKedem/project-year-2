@@ -91,7 +91,7 @@
     </div>
 
     <!-- Search Results -->
-    {% if flights is defined %}
+    {% if flights is not none %}
     <div class="results-section">
         <h3 class="results-header">Available Flights ({{ flights|length }})</h3>
         
