@@ -11,74 +11,83 @@
     <!-- Filter Section -->
     <div class="filter-section">
         <form action="{{ url_for('customer.my_orders') }}" method="GET" class="filter-form">
-            <div class="filter-group">
-                <label for="order_code">Order Code</label>
-                <input type="number" name="order_code" id="order_code" class="filter-control" 
-                       value="{{ request.args.get('order_code', '') }}" placeholder="Order #">
+            <!-- Basic Filters (Always Visible) -->
+            <div class="basic-filters">
+                <div class="filter-group">
+                    <label for="route">Route</label>
+                    <input type="text" name="route" id="route" class="filter-control" 
+                           value="{{ request.args.get('route', '') }}" placeholder="Search airport">
+                </div>
+                
+                <div class="filter-group">
+                    <label for="status">Status</label>
+                    <select name="status" id="status" class="filter-control">
+                        <option value="">All</option>
+                        <option value="Active" {% if request.args.get('status') == 'Active' %}selected{% endif %}>Active</option>
+                        <option value="Completed" {% if request.args.get('status') == 'Completed' %}selected{% endif %}>Completed</option>
+                        <option value="Customer Cancelled" {% if request.args.get('status') == 'Customer Cancelled' %}selected{% endif %}>Customer Cancelled</option>
+                        <option value="System Cancelled" {% if request.args.get('status') == 'System Cancelled' %}selected{% endif %}>System Cancelled</option>
+                    </select>
+                </div>
+                
+                <div class="filter-actions">
+                    <button type="submit" class="btn">Filter</button>
+                    <a href="{{ url_for('customer.my_orders') }}" class="btn btn-secondary">Clear</a>
+                    <button type="button" class="btn btn-secondary" id="toggleAdvanced">
+                        <span id="toggleText">Show Advanced</span>
+                    </button>
+                </div>
             </div>
             
-            <div class="filter-group">
-                <label for="date_from">Order From</label>
-                <input type="date" name="date_from" id="date_from" class="filter-control" 
-                       value="{{ request.args.get('date_from', '') }}">
-            </div>
-            
-            <div class="filter-group">
-                <label for="date_to">Order To</label>
-                <input type="date" name="date_to" id="date_to" class="filter-control" 
-                       value="{{ request.args.get('date_to', '') }}">
-            </div>
-            
-            <div class="filter-group">
-                <label for="route">Route</label>
-                <input type="text" name="route" id="route" class="filter-control" 
-                       value="{{ request.args.get('route', '') }}" placeholder="Airport name">
-            </div>
-            
-            <div class="filter-group">
-                <label for="departure_from">Depart From</label>
-                <input type="date" name="departure_from" id="departure_from" class="filter-control" 
-                       value="{{ request.args.get('departure_from', '') }}">
-            </div>
-            
-            <div class="filter-group">
-                <label for="departure_to">Depart To</label>
-                <input type="date" name="departure_to" id="departure_to" class="filter-control" 
-                       value="{{ request.args.get('departure_to', '') }}">
-            </div>
-            
-            <div class="filter-group">
-                <label for="seats">Seats</label>
-                <input type="number" name="seats" id="seats" class="filter-control" 
-                       value="{{ request.args.get('seats', '') }}" placeholder="# seats">
-            </div>
-            
-            <div class="filter-group">
-                <label for="payment_min">Min Payment</label>
-                <input type="number" name="payment_min" id="payment_min" class="filter-control" 
-                       value="{{ request.args.get('payment_min', '') }}" placeholder="$" step="0.01">
-            </div>
-            
-            <div class="filter-group">
-                <label for="payment_max">Max Payment</label>
-                <input type="number" name="payment_max" id="payment_max" class="filter-control" 
-                       value="{{ request.args.get('payment_max', '') }}" placeholder="$" step="0.01">
-            </div>
-            
-            <div class="filter-group">
-                <label for="status">Status</label>
-                <select name="status" id="status" class="filter-control">
-                    <option value="">All</option>
-                    <option value="Active" {% if request.args.get('status') == 'Active' %}selected{% endif %}>Active</option>
-                    <option value="Completed" {% if request.args.get('status') == 'Completed' %}selected{% endif %}>Completed</option>
-                    <option value="Customer Cancelled" {% if request.args.get('status') == 'Customer Cancelled' %}selected{% endif %}>Customer Cancelled</option>
-                    <option value="System Cancelled" {% if request.args.get('status') == 'System Cancelled' %}selected{% endif %}>System Cancelled</option>
-                </select>
-            </div>
-            
-            <div class="filter-actions">
-                <button type="submit" class="btn">Filter</button>
-                <a href="{{ url_for('customer.my_orders') }}" class="btn btn-secondary">Clear</a>
+            <!-- Advanced Filters (Hidden by Default) -->
+            <div class="advanced-filters" id="advancedFilters" style="display: none;">
+                <div class="filter-group">
+                    <label for="order_code">Order Code</label>
+                    <input type="number" name="order_code" id="order_code" class="filter-control" 
+                           value="{{ request.args.get('order_code', '') }}" placeholder="Order #">
+                </div>
+                
+                <div class="filter-group">
+                    <label for="date_from">Order From</label>
+                    <input type="date" name="date_from" id="date_from" class="filter-control" 
+                           value="{{ request.args.get('date_from', '') }}">
+                </div>
+                
+                <div class="filter-group">
+                    <label for="date_to">Order To</label>
+                    <input type="date" name="date_to" id="date_to" class="filter-control" 
+                           value="{{ request.args.get('date_to', '') }}">
+                </div>
+                
+                <div class="filter-group">
+                    <label for="departure_from">Depart From</label>
+                    <input type="date" name="departure_from" id="departure_from" class="filter-control" 
+                           value="{{ request.args.get('departure_from', '') }}">
+                </div>
+                
+                <div class="filter-group">
+                    <label for="departure_to">Depart To</label>
+                    <input type="date" name="departure_to" id="departure_to" class="filter-control" 
+                           value="{{ request.args.get('departure_to', '') }}">
+                </div>
+                
+                <div class="filter-group">
+                    <label for="seats">Seats</label>
+                    <input type="number" name="seats" id="seats" class="filter-control" 
+                           value="{{ request.args.get('seats', '') }}" placeholder="# seats">
+                </div>
+                
+                <div class="filter-group">
+                    <label for="payment_min">Min Payment</label>
+                    <input type="number" name="payment_min" id="payment_min" class="filter-control" 
+                           value="{{ request.args.get('payment_min', '') }}" placeholder="$" step="0.01">
+                </div>
+                
+                <div class="filter-group">
+                    <label for="payment_max">Max Payment</label>
+                    <input type="number" name="payment_max" id="payment_max" class="filter-control" 
+                           value="{{ request.args.get('payment_max', '') }}" placeholder="$" step="0.01">
+                </div>
             </div>
         </form>
     </div>
@@ -255,5 +264,37 @@ window.onclick = function(event) {
         closeModal();
     }
 };
+
+// Toggle advanced filters
+document.getElementById('toggleAdvanced').addEventListener('click', function() {
+    const advancedFilters = document.getElementById('advancedFilters');
+    const toggleText = document.getElementById('toggleText');
+    
+    if (advancedFilters.style.display === 'none') {
+        advancedFilters.style.display = 'grid';
+        toggleText.textContent = 'Hide Advanced';
+    } else {
+        advancedFilters.style.display = 'none';
+        toggleText.textContent = 'Show Advanced';
+    }
+});
+
+// Show advanced filters if any advanced filter has a value
+window.addEventListener('DOMContentLoaded', function() {
+    const advancedInputs = document.querySelectorAll('#advancedFilters input, #advancedFilters select');
+    let hasValue = false;
+    
+    advancedInputs.forEach(input => {
+        if (input.value) {
+            hasValue = true;
+        }
+    });
+    
+    if (hasValue) {
+        document.getElementById('advancedFilters').style.display = 'grid';
+        document.getElementById('toggleText').textContent = 'Hide Advanced';
+    }
+});
+
 </script>
 {% endblock %}

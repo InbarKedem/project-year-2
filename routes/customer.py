@@ -201,7 +201,7 @@ def api_order_details(order_code):
     
     # Get seat details
     seats = query_db("""
-        SELECT is_business, row_number, column_number
+        SELECT aircraft_id, is_business, row_number, column_number
         FROM Order_Seats
         WHERE order_code = %s
         ORDER BY is_business DESC, row_number, column_number
