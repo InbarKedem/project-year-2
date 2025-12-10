@@ -1,4 +1,4 @@
-{% extends 'base.html' %} {% block extra_css %}
+{% extends 'layout/base.html' %} {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/modules/manager.css') }}" />
 <link rel="stylesheet" href="{{ url_for('static', filename='css/modules/reports.css') }}" />
 <link rel="stylesheet" href="{{ url_for('static', filename='css/modules/flights.css') }}" />
@@ -49,8 +49,8 @@
       </div>
   </form>
 
-  <div class="report-card" style="padding: 0; overflow: hidden;">
-    <table class="flights-table">
+  <div class="card" style="padding: 0; overflow: hidden;">
+    <table class="table">
 
       <thead>
         <tr>

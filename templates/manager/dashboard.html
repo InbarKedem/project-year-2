@@ -1,11 +1,11 @@
-{% extends 'base.html' %} {% block extra_css %}
+{% extends 'layout/base.html' %} {% block extra_css %}
 <link
   rel="stylesheet"
   href="{{ url_for('static', filename='css/modules/manager.css') }}"
 />
 {% endblock %} {% block content %}
 <h2>Manager Dashboard</h2>
-<div class="dashboard-grid">
+<div class="grid-container">
   <div class="card">
     <h3>Flight Management</h3>
     <p>Add new flights, cancel existing ones, and manage schedule.</p>

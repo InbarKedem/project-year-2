@@ -41,7 +41,7 @@ def login():
             else:
                 flash('Invalid Email or Password', 'danger')
                 
-    return render_template('login.html')
+    return render_template('auth/login.html')
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
@@ -78,7 +78,7 @@ def register():
         except Exception as e:
             flash(f'An error occurred: {str(e)}', 'danger')
             
-    return render_template('register.html')
+    return render_template('auth/register.html')
 
 @auth_bp.route('/logout')
 def logout():

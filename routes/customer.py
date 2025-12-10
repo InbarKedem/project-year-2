@@ -5,7 +5,7 @@ customer_bp = Blueprint('customer', __name__)
 
 @customer_bp.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('customer/index.html')
 
 @customer_bp.route('/my_orders')
 def my_orders():
@@ -41,4 +41,4 @@ def my_orders():
     
     orders = query_db(query, tuple(params))
     
-    return render_template('my_orders.html', orders=orders)
+    return render_template('customer/my_orders.html', orders=orders)
