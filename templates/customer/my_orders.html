@@ -1,50 +1,258 @@
 {% extends 'layout/base.html' %}
 
-{% block content %}
-<h2>My Orders</h2>
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/modules/orders.css') }}" />
+{% endblock %}
 
-<div class="filter-section">
-    <form action="{{ url_for('customer.my_orders') }}" method="GET">
-        <label for="status">Filter by Status:</label>
-        <select name="status" id="status">
-            <option value="">All</option>
-            <option value="Active" {% if request.args.get('status') == 'Active' %}selected{% endif %}>Active</option>
-            <option value="Completed" {% if request.args.get('status') == 'Completed' %}selected{% endif %}>Completed</option>
-            <option value="Customer Cancelled" {% if request.args.get('status') == 'Customer Cancelled' %}selected{% endif %}>Customer Cancelled</option>
-            <option value="System Cancelled" {% if request.args.get('status') == 'System Cancelled' %}selected{% endif %}>System Cancelled</option>
-        </select>
-        <button type="submit" class="btn">Filter</button>
-    </form>
+{% block content %}
+<div class="orders-container">
+    <h2 class="orders-header">My Orders</h2>
+
+    <!-- Filter Section -->
+    <div class="filter-section">
+        <form action="{{ url_for('customer.my_orders') }}" method="GET" class="filter-form">
+            <div class="filter-group">
+                <label for="order_code">Order Code</label>
+                <input type="number" name="order_code" id="order_code" class="filter-control" 
+                       value="{{ request.args.get('order_code', '') }}" placeholder="Order #">
+            </div>
+            
+            <div class="filter-group">
+                <label for="date_from">Order From</label>
+                <input type="date" name="date_from" id="date_from" class="filter-control" 
+                       value="{{ request.args.get('date_from', '') }}">
+            </div>
+            
+            <div class="filter-group">
+                <label for="date_to">Order To</label>
+                <input type="date" name="date_to" id="date_to" class="filter-control" 
+                       value="{{ request.args.get('date_to', '') }}">
+            </div>
+            
+            <div class="filter-group">
+                <label for="route">Route</label>
+                <input type="text" name="route" id="route" class="filter-control" 
+                       value="{{ request.args.get('route', '') }}" placeholder="Airport name">
+            </div>
+            
+            <div class="filter-group">
+                <label for="departure_from">Depart From</label>
+                <input type="date" name="departure_from" id="departure_from" class="filter-control" 
+                       value="{{ request.args.get('departure_from', '') }}">
+            </div>
+            
+            <div class="filter-group">
+                <label for="departure_to">Depart To</label>
+                <input type="date" name="departure_to" id="departure_to" class="filter-control" 
+                       value="{{ request.args.get('departure_to', '') }}">
+            </div>
+            
+            <div class="filter-group">
+                <label for="seats">Seats</label>
+                <input type="number" name="seats" id="seats" class="filter-control" 
+                       value="{{ request.args.get('seats', '') }}" placeholder="# seats">
+            </div>
+            
+            <div class="filter-group">
+                <label for="payment_min">Min Payment</label>
+                <input type="number" name="payment_min" id="payment_min" class="filter-control" 
+                       value="{{ request.args.get('payment_min', '') }}" placeholder="$" step="0.01">
+            </div>
+            
+            <div class="filter-group">
+                <label for="payment_max">Max Payment</label>
+                <input type="number" name="payment_max" id="payment_max" class="filter-control" 
+                       value="{{ request.args.get('payment_max', '') }}" placeholder="$" step="0.01">
+            </div>
+            
+            <div class="filter-group">
+                <label for="status">Status</label>
+                <select name="status" id="status" class="filter-control">
+                    <option value="">All</option>
+                    <option value="Active" {% if request.args.get('status') == 'Active' %}selected{% endif %}>Active</option>
+                    <option value="Completed" {% if request.args.get('status') == 'Completed' %}selected{% endif %}>Completed</option>
+                    <option value="Customer Cancelled" {% if request.args.get('status') == 'Customer Cancelled' %}selected{% endif %}>Customer Cancelled</option>
+                    <option value="System Cancelled" {% if request.args.get('status') == 'System Cancelled' %}selected{% endif %}>System Cancelled</option>
+                </select>
+            </div>
+            
+            <div class="filter-actions">
+                <button type="submit" class="btn">Filter</button>
+                <a href="{{ url_for('customer.my_orders') }}" class="btn btn-secondary">Clear</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Orders Table -->
+    <div class="orders-table-container">
+        <table class="orders-table">
+            <thead>
+                <tr>
+                    <th>Order Code</th>
+                    <th>Order Date</th>
+                    <th>Flight</th>
+                    <th>Departure</th>
+                    <th>Seats</th>
+                    <th>Total Payment</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr onclick="openOrderModal({{ order.order_code }})" style="cursor: pointer;">
+                    <td>{{ order.order_code }}</td>
+                    <td>{{ order.order_date.strftime('%Y-%m-%d %H:%M') if order.order_date else '' }}</td>
+                    <td class="flight-route">
+                        {{ order.source_airport }} &rarr; {{ order.dest_airport }}
+                    </td>
+                    <td>{{ order.departure_time.strftime('%Y-%m-%d %H:%M') if order.departure_time else '' }}</td>
+                    <td>{{ order.seats }}</td>
+                    <td>${{ order.total_payment }}</td>
+                    <td>
+                        <span class="status-badge {% if order.order_status == 'Active' %}status-active{% elif order.order_status == 'Completed' %}status-completed{% else %}status-cancelled{% endif %}">
+                            {{ order.order_status }}
+                        </span>
+                    </td>
+                    <td onclick="event.stopPropagation();">
+                        {% if order.can_cancel %}
+                        <a href="{{ url_for('customer.cancel_order', order_code=order.order_code) }}" 
+                           class="btn-cancel-order"
+                           onclick="return confirm('Are you sure you want to cancel this order?');">
+                            Cancel
+                        </a>
+                        {% else %}
+                        <span class="cannot-cancel">Cannot Cancel</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" class="no-orders">No orders found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
 
-<table class="table">
-    <thead>
-        <tr>
-            <th>Order Code</th>
-            <th>Order Date</th>
-            <th>Flight</th>
-            <th>Departure</th>
-            <th>Seats</th>
-            <th>Total Payment</th>
-            <th>Status</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for order in orders %}
-        <tr>
-            <td>{{ order.order_code }}</td>
-            <td>{{ order.order_date }}</td>
-            <td>{{ order.source_airport }} -> {{ order.dest_airport }}</td>
-            <td>{{ order.departure_time }}</td>
-            <td>{{ order.seats }}</td>
-            <td>{{ order.total_payment }}</td>
-            <td>{{ order.order_status }}</td>
-        </tr>
-        {% else %}
-        <tr>
-            <td colspan="7">No orders found.</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<!-- Order Details Modal -->
+<div id="orderModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Order Details</h3>
+            <span class="close" onclick="closeModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div id="loadingMessage" class="loading-message">Loading details...</div>
+            <div id="orderContent" style="display: none;">
+                <!-- Content will be injected here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function openOrderModal(orderCode) {
+    document.getElementById('orderModal').style.display = 'block';
+    document.getElementById('loadingMessage').style.display = 'block';
+    document.getElementById('orderContent').style.display = 'none';
+
+    fetch(`/api/order_details/${orderCode}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                document.getElementById('loadingMessage').innerText = data.error;
+                return;
+            }
+
+            // Build seats display
+            let seatsHtml = '<div class="seats-grid">';
+            if (data.seats_details && data.seats_details.length > 0) {
+                data.seats_details.forEach(seat => {
+                    const seatClass = seat.is_business ? 'seat-business' : 'seat-economy';
+                    const seatType = seat.is_business ? 'Business' : 'Economy';
+                    seatsHtml += `<div class="seat-item ${seatClass}">${seat.row_number}${String.fromCharCode(64 + seat.column_number)}</div>`;
+                });
+            } else {
+                seatsHtml += '<div style="color: #999;">No seats assigned</div>';
+            }
+            seatsHtml += '</div>';
+
+            const aircraftInfo = data.manufacturer 
+                ? `${data.manufacturer} (ID: ${data.aircraft_id}) ${data.is_large ? '<span class="status-badge status-active">Large</span>' : ''}`
+                : 'Not Assigned';
+
+            const html = `
+                <div class="detail-row">
+                    <span class="detail-label">Order Code</span>
+                    <span class="detail-value">${data.order_code}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Order Date</span>
+                    <span class="detail-value">${data.order_date}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Flight Route</span>
+                    <span class="detail-value">${data.source_airport} &rarr; ${data.dest_airport}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Departure Time</span>
+                    <span class="detail-value">${data.departure_time}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Aircraft</span>
+                    <span class="detail-value">${aircraftInfo}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Flight Status</span>
+                    <span class="detail-value">
+                        <span class="status-badge ${data.flight_status === 'Active' ? 'status-active' : data.flight_status === 'Cancelled' ? 'status-cancelled' : 'status-completed'}">
+                            ${data.flight_status}
+                        </span>
+                    </span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Order Status</span>
+                    <span class="detail-value">
+                        <span class="status-badge ${data.order_status === 'Active' ? 'status-active' : data.order_status === 'Completed' ? 'status-completed' : 'status-cancelled'}">
+                            ${data.order_status}
+                        </span>
+                    </span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Total Seats</span>
+                    <span class="detail-value">${data.seats}</span>
+                </div>
+                <div class="detail-row" style="display: block;">
+                    <div class="detail-label" style="margin-bottom: 10px;">Seat Assignments</div>
+                    ${seatsHtml}
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Total Payment</span>
+                    <span class="detail-value" style="font-size: 1.2rem; font-weight: 700; color: #007bff;">$${data.total_payment}</span>
+                </div>
+            `;
+
+            document.getElementById('orderContent').innerHTML = html;
+            document.getElementById('loadingMessage').style.display = 'none';
+            document.getElementById('orderContent').style.display = 'block';
+        })
+        .catch(err => {
+            console.error(err);
+            document.getElementById('loadingMessage').innerText = 'Error loading details.';
+        });
+}
+
+function closeModal() {
+    document.getElementById('orderModal').style.display = 'none';
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    if (event.target == document.getElementById('orderModal')) {
+        closeModal();
+    }
+};
+</script>
 {% endblock %}
