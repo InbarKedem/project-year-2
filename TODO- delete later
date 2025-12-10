@@ -1,3 +1,12 @@
+users:
+    block managers from creating costumer accounts- think of logic
+auth:
+    fix login function- missing get part
 costumer:
     add order functions and logic blocking managers from ordering
+    choose seat functions
+
+order management:
+    add flight cancel options
+    add viewing future flights
 
