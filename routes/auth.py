@@ -40,8 +40,9 @@ def login():
                 return redirect(url_for('customer.index'))
             else:
                 flash('Invalid Email or Password', 'danger')
-                
-    return render_template('auth/login.html')
+    else:
+        return render_template('auth/login.html')
+
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
@@ -77,8 +78,10 @@ def register():
             return redirect(url_for('auth.login'))
         except Exception as e:
             flash(f'An error occurred: {str(e)}', 'danger')
+    else:
+        return render_template('auth/register.html')
             
-    return render_template('auth/register.html')
+
 
 @auth_bp.route('/logout')
 def logout():
