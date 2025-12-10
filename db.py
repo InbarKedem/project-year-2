@@ -1,16 +1,29 @@
 import mysql.connector
 from flask import g
+import os
 
 # Database configuration
-# UPDATE THESE VALUES WITH YOUR LOCAL MYSQL CONFIGURATION
-DB_CONFIG = {
-    'user': 'root',
-    'password': 'root',  # Change this to your MySQL password
-    'host': 'localhost',
-    'database': 'flytau',
-    'charset': 'utf8mb4',
-    'collation': 'utf8mb4_unicode_ci'
-}
+# Check if we are running on PythonAnywhere
+if os.getenv('PYTHONANYWHERE_DOMAIN'):
+    # Production Settings (PythonAnywhere)
+    DB_CONFIG = {
+        'user': 'inbarkedem', 
+        'password': 'rootroot',  # Put your actual PA password here
+        'host': 'inbarkedem.mysql.pythonanywhere-services.com',
+        'database': 'inbarkedem$flytau',
+        'charset': 'utf8mb4',
+        'collation': 'utf8mb4_unicode_ci'
+    }
+else:
+    # Local Development Settings
+    DB_CONFIG = {
+        'user': 'root',
+        'password': 'root', 
+        'host': 'localhost',
+        'database': 'flytau',
+        'charset': 'utf8mb4',
+        'collation': 'utf8mb4_unicode_ci'
+    }
 
 def get_db():
     if 'db' not in g:

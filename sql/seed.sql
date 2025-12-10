@@ -1,5 +1,3 @@
-USE flytau;
-
 -- 1. Airports
 INSERT INTO Airport (airport_id, airport_name) VALUES
 (1, 'Ben Gurion (TLV)'),
