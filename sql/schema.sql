@@ -1,10 +1,21 @@
--- Create Database
-DROP DATABASE IF EXISTS flytau;
-CREATE DATABASE IF NOT EXISTS flytau CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE flytau;
-
 -- 1. Infrastructure & Planes
+DROP TABLE IF EXISTS Order_Seats;
+DROP TABLE IF EXISTS Order_Table;
+DROP TABLE IF EXISTS Registered_Customer;
+DROP TABLE IF EXISTS Phone;
+DROP TABLE IF EXISTS User;
+DROP TABLE IF EXISTS Employee_Flight_Assignment;
+DROP TABLE IF EXISTS Flight;
+DROP TABLE IF EXISTS Manager;
+DROP TABLE IF EXISTS Flight_Crew;
+DROP TABLE IF EXISTS Employee;
+DROP TABLE IF EXISTS Seat;
+DROP TABLE IF EXISTS Aircraft_Class;
+DROP TABLE IF EXISTS Aircraft;
+DROP TABLE IF EXISTS Flight_Route;
+DROP TABLE IF EXISTS Airport;
 
+-- Now create tables
 CREATE TABLE Airport (
     airport_id INT PRIMARY KEY,
     airport_name VARCHAR(100) NOT NULL
