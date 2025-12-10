@@ -168,7 +168,12 @@ function openOrderModal(orderCode) {
     document.getElementById('orderContent').style.display = 'none';
 
     fetch(`/api/order_details/${orderCode}`)
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.error) {
                 document.getElementById('loadingMessage').innerText = data.error;
@@ -249,8 +254,8 @@ function openOrderModal(orderCode) {
             document.getElementById('orderContent').style.display = 'block';
         })
         .catch(err => {
-            console.error(err);
-            document.getElementById('loadingMessage').innerText = 'Error loading details.';
+            console.error('Error fetching order details:', err);
+            document.getElementById('loadingMessage').innerText = `Error loading details: ${err.message}`;
         });
 }
 

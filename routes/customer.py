@@ -167,52 +167,61 @@ def api_order_details(order_code):
     
     email = session.get('user_id')
     
-    # Get order and flight details
-    order = query_db("""
-        SELECT 
-            O.order_code,
-            O.order_date,
-            O.total_payment,
-            O.order_status,
-            O.departure_time,
-            O.source_airport_id,
-            O.dest_airport_id,
-            A1.airport_name as source_airport,
-            A2.airport_name as dest_airport,
-            F.economy_price,
-            F.business_price,
-            F.flight_status,
-            F.aircraft_id,
-            AC.manufacturer,
-            AC.is_large,
-            (SELECT COUNT(*) FROM Order_Seats OS WHERE OS.order_code = O.order_code) as seats
-        FROM Order_Table O
-        JOIN Airport A1 ON O.source_airport_id = A1.airport_id
-        JOIN Airport A2 ON O.dest_airport_id = A2.airport_id
-        JOIN Flight F ON O.source_airport_id = F.source_airport_id 
-            AND O.dest_airport_id = F.dest_airport_id 
-            AND O.departure_time = F.departure_time
-        LEFT JOIN Aircraft AC ON F.aircraft_id = AC.aircraft_id
-        WHERE O.order_code = %s AND O.customer_email = %s
-    """, (order_code, email), one=True)
-    
-    if not order:
-        return jsonify({'error': 'Order not found'}), 404
-    
-    # Get seat details
-    seats = query_db("""
-        SELECT aircraft_id, is_business, row_number, column_number
-        FROM Order_Seats
-        WHERE order_code = %s
-        ORDER BY is_business DESC, row_number, column_number
-    """, (order_code,))
-    
-    # Convert datetime objects to strings for JSON serialization
-    if order.get('departure_time'):
-        order['departure_time'] = order['departure_time'].strftime('%Y-%m-%d %H:%M:%S')
-    if order.get('order_date'):
-        order['order_date'] = order['order_date'].strftime('%Y-%m-%d %H:%M:%S')
-    
-    order['seats_details'] = seats
-    
-    return jsonify(order)
+    try:
+        # Get order and flight details
+        order = query_db("""
+            SELECT 
+                O.order_code,
+                O.order_date,
+                O.total_payment,
+                O.order_status,
+                O.departure_time,
+                O.source_airport_id,
+                O.dest_airport_id,
+                A1.airport_name as source_airport,
+                A2.airport_name as dest_airport,
+                F.economy_price,
+                F.business_price,
+                F.flight_status,
+                F.aircraft_id,
+                AC.manufacturer,
+                AC.is_large,
+                (SELECT COUNT(*) FROM Order_Seats OS WHERE OS.order_code = O.order_code) as seats
+            FROM Order_Table O
+            JOIN Airport A1 ON O.source_airport_id = A1.airport_id
+            JOIN Airport A2 ON O.dest_airport_id = A2.airport_id
+            JOIN Flight F ON O.source_airport_id = F.source_airport_id 
+                AND O.dest_airport_id = F.dest_airport_id 
+                AND O.departure_time = F.departure_time
+            LEFT JOIN Aircraft AC ON F.aircraft_id = AC.aircraft_id
+            WHERE O.order_code = %s AND O.customer_email = %s
+        """, (order_code, email), one=True)
+        
+        if not order:
+            return jsonify({'error': 'Order not found'}), 404
+        
+        # Get seat details
+        seats = query_db("""
+            SELECT aircraft_id, is_business, row_number, column_number
+            FROM Order_Seats
+            WHERE order_code = %s
+            ORDER BY is_business DESC, row_number, column_number
+        """, (order_code,))
+        
+        # Convert to dict for JSON serialization
+        order_dict = dict(order)
+        
+        # Convert datetime objects to strings for JSON serialization
+        if order_dict.get('departure_time'):
+            order_dict['departure_time'] = order_dict['departure_time'].strftime('%Y-%m-%d %H:%M:%S')
+        if order_dict.get('order_date'):
+            order_dict['order_date'] = order_dict['order_date'].strftime('%Y-%m-%d %H:%M:%S')
+        
+        # Convert seats to list of dicts
+        order_dict['seats_details'] = [dict(seat) for seat in seats]
+        
+        return jsonify(order_dict)
+    except Exception as e:
+        # Log the error for debugging
+        print(f"Error in api_order_details: {str(e)}")
+        return jsonify({'error': f'Error loading order details: {str(e)}'}), 500
