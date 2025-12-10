@@ -1,19 +1,195 @@
-{% extends 'layout/base.html' %} {% block content %}
-<div class="hero">
-  <h1>Welcome to FLYTAU Airline</h1>
-  <p>Your journey begins here.</p>
+{% extends 'layout/base.html' %}
 
-  <div class="search-box">
-    <h2>Search Flights</h2>
-    <p>Find and book your next flight with ease</p>
-    <div style="margin-top: 2rem; display: flex; gap: 1rem; justify-content: center;">
-      <a href="{{ url_for('customer.search_flights') }}" class="btn" style="background-color: #007bff; color: white; padding: 1rem 2rem; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 1.1rem;">
-        Search Flights
-      </a>
-      <a href="{{ url_for('customer.order_lookup') }}" class="btn" style="background-color: #6c757d; color: white; padding: 1rem 2rem; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 1.1rem;">
-        Track Order
-      </a>
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/modules/flights.css') }}" />
+{% endblock %}
+
+{% block content %}
+<div class="flights-container">
+    <h2 class="flights-header">Search Flights</h2>
+
+    <!-- Search Form -->
+    <div class="search-section">
+        <form action="{{ url_for('customer.index') }}" method="GET" class="search-form">
+            <!-- Basic Search Filters -->
+            <div class="basic-search">
+                <div class="search-group">
+                    <label for="source">From</label>
+                    <select name="source" id="source" class="search-control" required>
+                        <option value="">Select Origin</option>
+                        {% for airport in airports %}
+                        <option value="{{ airport.airport_id }}" {% if request.args.get('source') == airport.airport_id|string %}selected{% endif %}>
+                            {{ airport.airport_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="search-group">
+                    <label for="dest">To</label>
+                    <select name="dest" id="dest" class="search-control" required>
+                        <option value="">Select Destination</option>
+                        {% for airport in airports %}
+                        <option value="{{ airport.airport_id }}" {% if request.args.get('dest') == airport.airport_id|string %}selected{% endif %}>
+                            {{ airport.airport_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="search-group">
+                    <label for="date">Date</label>
+                    <input type="date" name="date" id="date" class="search-control" 
+                           value="{{ request.args.get('date', '') }}" required>
+                </div>
+                
+                <div class="search-actions">
+                    <button type="submit" class="btn btn-primary">Search Flights</button>
+                    <a href="{{ url_for('customer.index') }}" class="btn btn-secondary">Clear</a>
+                    <button type="button" class="btn btn-secondary" id="toggleAdvancedSearch">
+                        <span id="toggleSearchText">Show Advanced</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Advanced Search Filters -->
+            <div class="advanced-search" id="advancedSearch" style="display: none;">
+                <div class="search-group">
+                    <label for="min_price">Min Price ($)</label>
+                    <input type="number" name="min_price" id="min_price" class="search-control" 
+                           value="{{ request.args.get('min_price', '') }}" step="0.01" min="0">
+                </div>
+                
+                <div class="search-group">
+                    <label for="max_price">Max Price ($)</label>
+                    <input type="number" name="max_price" id="max_price" class="search-control" 
+                           value="{{ request.args.get('max_price', '') }}" step="0.01" min="0">
+                </div>
+                
+                <div class="search-group">
+                    <label for="flight_status">Flight Status</label>
+                    <select name="flight_status" id="flight_status" class="search-control">
+                        <option value="">All</option>
+                        <option value="Active" {% if request.args.get('flight_status') == 'Active' %}selected{% endif %}>Active</option>
+                        <option value="Delayed" {% if request.args.get('flight_status') == 'Delayed' %}selected{% endif %}>Delayed</option>
+                    </select>
+                </div>
+                
+                <div class="search-group">
+                    <label for="time_from">Departure After</label>
+                    <input type="time" name="time_from" id="time_from" class="search-control" 
+                           value="{{ request.args.get('time_from', '') }}">
+                </div>
+                
+                <div class="search-group">
+                    <label for="time_to">Departure Before</label>
+                    <input type="time" name="time_to" id="time_to" class="search-control" 
+                           value="{{ request.args.get('time_to', '') }}">
+                </div>
+            </div>
+        </form>
     </div>
-  </div>
+
+    <!-- Search Results -->
+    {% if flights is not none %}
+    <div class="results-section">
+        <h3 class="results-header">Available Flights ({{ flights|length }})</h3>
+        
+        {% if flights %}
+        <div class="flights-list">
+            {% for flight in flights %}
+            <div class="flight-card">
+                <div class="flight-route">
+                    <div class="airport-info">
+                        <h4>{{ flight.source_airport }}</h4>
+                        <p class="airport-id">{{ flight.source_airport_id }}</p>
+                    </div>
+                    <div class="flight-arrow">→</div>
+                    <div class="airport-info">
+                        <h4>{{ flight.dest_airport }}</h4>
+                        <p class="airport-id">{{ flight.dest_airport_id }}</p>
+                    </div>
+                </div>
+                
+                <div class="flight-details">
+                    <div class="detail-item">
+                        <span class="detail-label">Departure:</span>
+                        <span class="detail-value">{{ flight.departure_time.strftime('%Y-%m-%d %H:%M') }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Duration:</span>
+                        <span class="detail-value">{{ flight.flight_duration }} min</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Status:</span>
+                        <span class="status-badge status-{{ flight.flight_status.lower() }}">
+                            {{ flight.flight_status }}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="flight-pricing">
+                    <div class="price-option">
+                        <span class="class-name">Economy</span>
+                        <span class="price">${{ flight.economy_price }}</span>
+                    </div>
+                    <div class="price-option">
+                        <span class="class-name">Business</span>
+                        <span class="price">${{ flight.business_price }}</span>
+                    </div>
+                </div>
+                
+                <div class="flight-actions">
+                    {% if flight.flight_status == 'Active' %}
+                    <a href="{{ url_for('customer.book_flight', source_id=flight.source_airport_id, dest_id=flight.dest_airport_id, departure_time=flight.departure_time.strftime('%Y-%m-%d %H:%M:%S')) }}" 
+                       class="btn btn-book">Book Flight</a>
+                    {% else %}
+                    <button class="btn btn-disabled" disabled>Unavailable</button>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="no-results">
+            <p>No flights found for your search criteria.</p>
+            <p>Try adjusting your filters or search for different dates.</p>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
 </div>
+
+<script>
+// Toggle advanced search filters
+document.getElementById('toggleAdvancedSearch').addEventListener('click', function() {
+    const advancedSearch = document.getElementById('advancedSearch');
+    const toggleText = document.getElementById('toggleSearchText');
+    
+    if (advancedSearch.style.display === 'none') {
+        advancedSearch.style.display = 'grid';
+        toggleText.textContent = 'Hide Advanced';
+    } else {
+        advancedSearch.style.display = 'none';
+        toggleText.textContent = 'Show Advanced';
+    }
+});
+
+// Show advanced filters if any advanced filter has a value
+window.addEventListener('DOMContentLoaded', function() {
+    const advancedInputs = document.querySelectorAll('#advancedSearch input, #advancedSearch select');
+    let hasValue = false;
+    
+    advancedInputs.forEach(input => {
+        if (input.value) {
+            hasValue = true;
+        }
+    });
+    
+    if (hasValue) {
+        document.getElementById('advancedSearch').style.display = 'grid';
+        document.getElementById('toggleSearchText').textContent = 'Hide Advanced';
+    }
+});
+</script>
 {% endblock %}

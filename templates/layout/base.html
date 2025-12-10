@@ -19,8 +19,7 @@
       <div class="logo">FLYTAU</div>
       <ul class="nav-links">
         <li><a href="{{ url_for('customer.index') }}">Home</a></li>
-        <li><a href="{{ url_for('customer.search_flights') }}">Search Flights</a></li>
-        <li><a href="{{ url_for('customer.order_lookup') }}">Order Lookup</a></li>
+        <li><a href="{{ url_for('customer.order_lookup') }}">Track Order</a></li>
         {% if session.get('role') == 'manager' %}
         <li>
           <a href="{{ url_for('manager.manager_dashboard') }}"

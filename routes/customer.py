@@ -7,12 +7,10 @@ customer_bp = Blueprint('customer', __name__)
 
 @customer_bp.route('/')
 def index():
-    return render_template('customer/index.html')
-
-@customer_bp.route('/search_flights')
-def search_flights():
     # Get all airports for dropdown
     airports = query_db('SELECT airport_id, airport_name FROM Airport ORDER BY airport_name')
+    if not airports:
+        airports = []
     
     # Get search parameters
     source_id = request.args.get('source')
@@ -76,7 +74,7 @@ def search_flights():
         
         flights = query_db(query, tuple(params))
     
-    return render_template('customer/search_flights.html', 
+    return render_template('customer/index.html', 
                          airports=airports, 
                          flights=flights)
 
@@ -84,7 +82,7 @@ def search_flights():
 def book_flight():
     if not (request.args.get('source_id') and request.args.get('dest_id') and request.args.get('departure_time')):
         flash('Invalid flight selection.', 'danger')
-        return redirect(url_for('customer.search_flights'))
+        return redirect(url_for('customer.index'))
     
     source_id = request.args.get('source_id')
     dest_id = request.args.get('dest_id')
@@ -117,11 +115,11 @@ def book_flight():
     
     if not flight:
         flash('Flight not found.', 'danger')
-        return redirect(url_for('customer.search_flights'))
+        return redirect(url_for('customer.index'))
     
     if flight['flight_status'] != 'Active':
         flash('This flight is not available for booking.', 'danger')
-        return redirect(url_for('customer.search_flights'))
+        return redirect(url_for('customer.index'))
     
     # Get aircraft seat layout
     economy_layout = query_db("""
@@ -182,7 +180,7 @@ def confirm_booking():
         
         if not flight:
             flash('Flight not found.', 'danger')
-            return redirect(url_for('customer.search_flights'))
+            return redirect(url_for('customer.index'))
         
         # Calculate total payment
         total_payment = 0
@@ -245,7 +243,7 @@ def confirm_booking():
     
     except Exception as e:
         flash(f'Error processing booking: {str(e)}', 'danger')
-        return redirect(url_for('customer.search_flights'))
+        return redirect(url_for('customer.index'))
 
 @customer_bp.route('/order_lookup')
 def order_lookup():
@@ -255,8 +253,10 @@ def order_lookup():
     order = None
     seats = None
     aircraft_layout = None
+    searched = False  # Flag to track if a search was performed
     
     if order_id and email:
+        searched = True  # User has submitted a search
         # Get order details
         order = query_db("""
             SELECT 
@@ -325,7 +325,8 @@ def order_lookup():
     return render_template('customer/order_lookup.html',
                          order=order,
                          seats=seats,
-                         aircraft_layout=aircraft_layout)
+                         aircraft_layout=aircraft_layout,
+                         searched=searched)
 
 @customer_bp.route('/my_orders')
 def my_orders():
