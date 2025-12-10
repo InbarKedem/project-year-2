@@ -10,7 +10,7 @@
 
     <!-- Search Form -->
     <div class="search-section">
-        <form action="{{ url_for('customer.index') }}" method="GET" class="search-form">
+        <form action="{{ url_for('customer.search_flights') }}" method="GET" class="search-form">
             <!-- Basic Search Filters -->
             <div class="basic-search">
                 <div class="search-group">
@@ -45,7 +45,7 @@
                 
                 <div class="search-actions">
                     <button type="submit" class="btn btn-primary">Search Flights</button>
-                    <a href="{{ url_for('customer.index') }}" class="btn btn-secondary">Clear</a>
+                    <a href="{{ url_for('customer.search_flights') }}" class="btn btn-secondary">Clear</a>
                     <button type="button" class="btn btn-secondary" id="toggleAdvancedSearch">
                         <span id="toggleSearchText">Show Advanced</span>
                     </button>
