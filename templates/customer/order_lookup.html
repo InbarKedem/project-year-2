@@ -1,0 +1,195 @@
+{% extends 'layout/base.html' %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/modules/orders.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/modules/seat-selection.css') }}" />
+{% endblock %}
+
+{% block content %}
+<div class="orders-container">
+    <h2 class="orders-header">Order Lookup</h2>
+    <p class="subtitle">Enter your order ID and email address to view your order details</p>
+
+    <!-- Lookup Form -->
+    <div class="filter-section">
+        <form action="{{ url_for('customer.order_lookup') }}" method="GET" class="filter-form">
+            <div class="basic-filters">
+                <div class="filter-group">
+                    <label for="order_id">Order ID *</label>
+                    <input type="number" name="order_id" id="order_id" class="filter-control" 
+                           value="{{ request.args.get('order_id', '') }}" placeholder="Enter order ID" required>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="email">Email Address *</label>
+                    <input type="email" name="email" id="email" class="filter-control" 
+                           value="{{ request.args.get('email', '') }}" placeholder="Enter your email" required>
+                </div>
+                
+                <div class="filter-actions">
+                    <button type="submit" class="btn btn-primary">Lookup Order</button>
+                    <a href="{{ url_for('customer.order_lookup') }}" class="btn btn-secondary">Clear</a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Order Details -->
+    {% if order is defined %}
+        {% if order %}
+        <div class="order-details-section">
+            <h3>Order Details</h3>
+            
+            <div class="detail-card">
+                <div class="detail-row">
+                    <span class="detail-label">Order Code:</span>
+                    <span class="detail-value">{{ order.order_code }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Order Date:</span>
+                    <span class="detail-value">{{ order.order_date.strftime('%Y-%m-%d %H:%M') if order.order_date else '' }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Flight Route:</span>
+                    <span class="detail-value flight-route">{{ order.source_airport }} → {{ order.dest_airport }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Departure Time:</span>
+                    <span class="detail-value">{{ order.departure_time.strftime('%Y-%m-%d %H:%M') if order.departure_time else '' }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Customer:</span>
+                    <span class="detail-value">{{ order.customer_name }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Email:</span>
+                    <span class="detail-value">{{ order.customer_email }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Total Seats:</span>
+                    <span class="detail-value">{{ order.seats_count }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Order Status:</span>
+                    <span class="detail-value">
+                        <span class="status-badge {% if order.order_status == 'Active' %}status-active{% elif order.order_status == 'Completed' %}status-completed{% else %}status-cancelled{% endif %}">
+                            {{ order.order_status }}
+                        </span>
+                    </span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Total Payment:</span>
+                    <span class="detail-value" style="font-size: 1.3rem; font-weight: 700; color: #007bff;">
+                        ${{ order.total_payment }}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Seat Map Visualization -->
+            {% if seats %}
+            <div class="seats-visualization-section">
+                <h3>Your Seats</h3>
+                
+                <div class="seats-list">
+                    {% for seat in seats %}
+                    <div class="seat-card {% if seat.is_business %}seat-business{% else %}seat-economy{% endif %}">
+                        <div class="seat-label">{{ seat.row_number }}{{ seat.column_letter }}</div>
+                        <div class="seat-type">{{ 'Business' if seat.is_business else 'Economy' }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                {% if aircraft_layout %}
+                <!-- Visual Seat Map -->
+                <div class="seat-map-visual">
+                    <h4>Seat Map</h4>
+                    <div class="airplane-visual">
+                        <div class="cockpit">✈ FRONT</div>
+                        <div class="seat-map-display" id="seatMapDisplay">
+                            <!-- Seats will be generated here -->
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+        {% else %}
+        <div class="no-results">
+            <p>Order not found.</p>
+            <p>Please check your order ID and email address.</p>
+        </div>
+        {% endif %}
+    {% endif %}
+</div>
+
+{% if aircraft_layout and seats %}
+<script>
+// Seat map data
+const seatData = {
+    layout: {{ aircraft_layout | tojson }},
+    selectedSeats: {{ seats | tojson }}
+};
+
+// Generate visual seat map showing user's selected seats
+function generateSeatMapDisplay() {
+    const container = document.getElementById('seatMapDisplay');
+    if (!container || !seatData.layout) return;
+    
+    // Combine both classes for display
+    const allClasses = [
+        { isBusiness: false, ...seatData.layout.economy },
+        { isBusiness: true, ...seatData.layout.business }
+    ].filter(c => c.num_rows > 0);
+    
+    allClasses.forEach(classInfo => {
+        const classDiv = document.createElement('div');
+        classDiv.className = 'class-section';
+        
+        const title = document.createElement('h5');
+        title.textContent = classInfo.isBusiness ? 'Business Class' : 'Economy Class';
+        title.className = 'class-title';
+        classDiv.appendChild(title);
+        
+        const grid = document.createElement('div');
+        grid.className = 'seat-grid-display';
+        grid.style.gridTemplateColumns = `30px repeat(${classInfo.num_columns}, 1fr)`;
+        
+        for (let row = 1; row <= classInfo.num_rows; row++) {
+            // Row label
+            const rowLabel = document.createElement('div');
+            rowLabel.className = 'row-label';
+            rowLabel.textContent = row;
+            grid.appendChild(rowLabel);
+            
+            for (let col = 1; col <= classInfo.num_columns; col++) {
+                const seatDiv = document.createElement('div');
+                seatDiv.className = 'seat-mini';
+                
+                const isUserSeat = seatData.selectedSeats.some(s =>
+                    s.is_business === classInfo.isBusiness &&
+                    s.row_number === row &&
+                    s.column_number === col
+                );
+                
+                if (isUserSeat) {
+                    seatDiv.classList.add('user-seat');
+                    seatDiv.textContent = String.fromCharCode(64 + col);
+                } else {
+                    seatDiv.classList.add('other-seat');
+                }
+                
+                grid.appendChild(seatDiv);
+            }
+        }
+        
+        classDiv.appendChild(grid);
+        container.appendChild(classDiv);
+    });
+}
+
+// Initialize on load
+document.addEventListener('DOMContentLoaded', generateSeatMapDisplay);
+</script>
+{% endif %}
+{% endblock %}

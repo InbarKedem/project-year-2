@@ -1,0 +1,324 @@
+{% extends 'layout/base.html' %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/modules/flights.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/modules/seat-selection.css') }}" />
+{% endblock %}
+
+{% block content %}
+<div class="booking-container">
+    <h2 class="booking-header">Book Your Flight</h2>
+
+    <!-- Flight Summary -->
+    <div class="flight-summary">
+        <h3>Flight Details</h3>
+        <div class="summary-content">
+            <div class="summary-row">
+                <span class="summary-label">Route:</span>
+                <span class="summary-value">{{ flight.source_airport }} → {{ flight.dest_airport }}</span>
+            </div>
+            <div class="summary-row">
+                <span class="summary-label">Departure:</span>
+                <span class="summary-value">{{ flight.departure_time.strftime('%Y-%m-%d %H:%M') }}</span>
+            </div>
+            <div class="summary-row">
+                <span class="summary-label">Duration:</span>
+                <span class="summary-value">{{ flight.flight_duration }} minutes</span>
+            </div>
+            <div class="summary-row">
+                <span class="summary-label">Aircraft:</span>
+                <span class="summary-value">{{ flight.manufacturer }} (ID: {{ flight.aircraft_id }})</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Seat Selection -->
+    <div class="seat-selection-section">
+        <h3>Select Your Seats</h3>
+        
+        <div class="seat-class-tabs">
+            <button class="tab-btn active" data-class="economy">Economy (${{ flight.economy_price }})</button>
+            <button class="tab-btn" data-class="business">Business (${{ flight.business_price }})</button>
+        </div>
+
+        <div class="seat-map-container">
+            <!-- Economy Class Seat Map -->
+            <div id="economy-seats" class="seat-map active">
+                <h4 class="seat-map-title">Economy Class</h4>
+                <div class="seat-legend">
+                    <div class="legend-item">
+                        <div class="seat-demo seat-available"></div>
+                        <span>Available</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="seat-demo seat-occupied"></div>
+                        <span>Occupied</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="seat-demo seat-selected"></div>
+                        <span>Selected</span>
+                    </div>
+                </div>
+                
+                <div class="airplane-visual">
+                    <div class="cockpit">✈ FRONT</div>
+                    <div class="seat-grid" id="economy-grid">
+                        <!-- Seats will be generated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Business Class Seat Map -->
+            <div id="business-seats" class="seat-map">
+                <h4 class="seat-map-title">Business Class</h4>
+                <div class="seat-legend">
+                    <div class="legend-item">
+                        <div class="seat-demo seat-available"></div>
+                        <span>Available</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="seat-demo seat-occupied"></div>
+                        <span>Occupied</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="seat-demo seat-selected"></div>
+                        <span>Selected</span>
+                    </div>
+                </div>
+                
+                <div class="airplane-visual">
+                    <div class="cockpit">✈ FRONT</div>
+                    <div class="seat-grid" id="business-grid">
+                        <!-- Seats will be generated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Booking Form -->
+    <div class="booking-form-section">
+        <h3>Passenger Information</h3>
+        <form action="{{ url_for('customer.confirm_booking') }}" method="POST" id="bookingForm">
+            <input type="hidden" name="source_id" value="{{ flight.source_airport_id }}">
+            <input type="hidden" name="dest_id" value="{{ flight.dest_airport_id }}">
+            <input type="hidden" name="departure_time" value="{{ flight.departure_time.strftime('%Y-%m-%d %H:%M:%S') }}">
+            <input type="hidden" name="aircraft_id" value="{{ flight.aircraft_id }}">
+            <input type="hidden" name="selected_seats" id="selectedSeatsInput">
+            
+            {% if not session.get('user_id') %}
+            <!-- Non-registered user fields -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="email">Email *</label>
+                    <input type="email" name="email" id="email" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="first_name">First Name *</label>
+                    <input type="text" name="first_name" id="first_name" class="form-control" required>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="middle_name">Middle Name</label>
+                    <input type="text" name="middle_name" id="middle_name" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="last_name">Last Name *</label>
+                    <input type="text" name="last_name" id="last_name" class="form-control" required>
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="selected-seats-summary">
+                <h4>Selected Seats</h4>
+                <div id="selectedSeatsList">No seats selected</div>
+            </div>
+            
+            <div class="total-price">
+                <h4>Total Price: $<span id="totalPrice">0.00</span></h4>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary btn-large" id="confirmBtn">Confirm Booking</button>
+                <a href="{{ url_for('customer.search_flights') }}" class="btn btn-secondary btn-large">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Flight and seat data
+const flightData = {
+    economyPrice: {{ flight.economy_price }},
+    businessPrice: {{ flight.business_price }},
+    aircraftId: {{ flight.aircraft_id }},
+    economySeats: {{ economy_layout | tojson }},
+    businessSeats: {{ business_layout | tojson }},
+    occupiedSeats: {{ occupied_seats | tojson }}
+};
+
+let selectedSeats = [];
+
+// Generate seat map
+function generateSeatMap(seatClass) {
+    const isEconomy = seatClass === 'economy';
+    const layout = isEconomy ? flightData.economySeats : flightData.businessSeats;
+    const gridId = isEconomy ? 'economy-grid' : 'business-grid';
+    const grid = document.getElementById(gridId);
+    
+    if (!layout || layout.num_rows === 0) {
+        grid.innerHTML = '<p class="no-seats">No seats available in this class</p>';
+        return;
+    }
+    
+    grid.innerHTML = '';
+    grid.style.gridTemplateColumns = `40px repeat(${layout.num_columns}, 1fr)`;
+    
+    // Generate seats
+    for (let row = 1; row <= layout.num_rows; row++) {
+        // Row number
+        const rowLabel = document.createElement('div');
+        rowLabel.className = 'row-label';
+        rowLabel.textContent = row;
+        grid.appendChild(rowLabel);
+        
+        // Seats in row
+        for (let col = 1; col <= layout.num_columns; col++) {
+            const seatDiv = document.createElement('div');
+            const seatLabel = `${row}${String.fromCharCode(64 + col)}`;
+            const seatId = `${flightData.aircraftId}-${isEconomy ? 0 : 1}-${row}-${col}`;
+            
+            seatDiv.className = 'seat';
+            seatDiv.dataset.seat = seatId;
+            seatDiv.dataset.label = seatLabel;
+            seatDiv.dataset.class = seatClass;
+            seatDiv.dataset.row = row;
+            seatDiv.dataset.col = col;
+            seatDiv.textContent = seatLabel;
+            
+            // Check if occupied
+            const isOccupied = flightData.occupiedSeats.some(s => 
+                s.aircraft_id === flightData.aircraftId &&
+                s.is_business === !isEconomy &&
+                s.row_number === row &&
+                s.column_number === col
+            );
+            
+            if (isOccupied) {
+                seatDiv.classList.add('seat-occupied');
+            } else {
+                seatDiv.classList.add('seat-available');
+                seatDiv.addEventListener('click', () => toggleSeat(seatDiv));
+            }
+            
+            // Add aisle spacing
+            if (layout.num_columns > 4 && col === Math.ceil(layout.num_columns / 2)) {
+                seatDiv.style.marginRight = '20px';
+            }
+            
+            grid.appendChild(seatDiv);
+        }
+    }
+}
+
+// Toggle seat selection
+function toggleSeat(seatDiv) {
+    const seatId = seatDiv.dataset.seat;
+    const seatLabel = seatDiv.dataset.label;
+    const seatClass = seatDiv.dataset.class;
+    
+    if (seatDiv.classList.contains('seat-selected')) {
+        // Deselect
+        seatDiv.classList.remove('seat-selected');
+        seatDiv.classList.add('seat-available');
+        selectedSeats = selectedSeats.filter(s => s.id !== seatId);
+    } else {
+        // Select
+        seatDiv.classList.remove('seat-available');
+        seatDiv.classList.add('seat-selected');
+        selectedSeats.push({
+            id: seatId,
+            label: seatLabel,
+            class: seatClass,
+            row: parseInt(seatDiv.dataset.row),
+            col: parseInt(seatDiv.dataset.col)
+        });
+    }
+    
+    updateSummary();
+}
+
+// Update booking summary
+function updateSummary() {
+    const summaryDiv = document.getElementById('selectedSeatsList');
+    const totalPriceSpan = document.getElementById('totalPrice');
+    
+    if (selectedSeats.length === 0) {
+        summaryDiv.innerHTML = 'No seats selected';
+        totalPriceSpan.textContent = '0.00';
+        document.getElementById('confirmBtn').disabled = true;
+        return;
+    }
+    
+    // Group seats by class
+    const economySeats = selectedSeats.filter(s => s.class === 'economy');
+    const businessSeats = selectedSeats.filter(s => s.class === 'business');
+    
+    let html = '';
+    if (economySeats.length > 0) {
+        html += `<div class="seat-summary-group">
+            <strong>Economy (${economySeats.length}):</strong> 
+            ${economySeats.map(s => s.label).join(', ')}
+        </div>`;
+    }
+    if (businessSeats.length > 0) {
+        html += `<div class="seat-summary-group">
+            <strong>Business (${businessSeats.length}):</strong> 
+            ${businessSeats.map(s => s.label).join(', ')}
+        </div>`;
+    }
+    
+    summaryDiv.innerHTML = html;
+    
+    // Calculate total
+    const total = (economySeats.length * flightData.economyPrice) + 
+                  (businessSeats.length * flightData.businessPrice);
+    totalPriceSpan.textContent = total.toFixed(2);
+    
+    // Update hidden input
+    document.getElementById('selectedSeatsInput').value = JSON.stringify(selectedSeats);
+    document.getElementById('confirmBtn').disabled = false;
+}
+
+// Tab switching
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const targetClass = this.dataset.class;
+        
+        // Update tabs
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        
+        // Update seat maps
+        document.querySelectorAll('.seat-map').forEach(map => map.classList.remove('active'));
+        document.getElementById(`${targetClass}-seats`).classList.add('active');
+    });
+});
+
+// Initialize
+generateSeatMap('economy');
+generateSeatMap('business');
+updateSummary();
+
+// Form validation
+document.getElementById('bookingForm').addEventListener('submit', function(e) {
+    if (selectedSeats.length === 0) {
+        e.preventDefault();
+        alert('Please select at least one seat');
+        return false;
+    }
+});
+</script>
+{% endblock %}

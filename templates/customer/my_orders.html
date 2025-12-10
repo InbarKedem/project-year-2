@@ -2,6 +2,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/modules/orders.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/modules/seat-selection.css') }}" />
 {% endblock %}
 
 {% block content %}
@@ -176,16 +177,19 @@ function openOrderModal(orderCode) {
             }
 
             // Build seats display
-            let seatsHtml = '<div class="seats-grid">';
+            let seatsHtml = '<div class="seats-list" style="max-width: 100%;">';
             if (data.seats_details && data.seats_details.length > 0) {
                 data.seats_details.forEach(seat => {
                     const seatClass = seat.is_business ? 'seat-business' : 'seat-economy';
                     const seatType = seat.is_business ? 'Business' : 'Economy';
-                    // Note: column_number is 1-indexed, so 1=A, 2=B, etc.
-                    seatsHtml += `<div class="seat-item ${seatClass}">${seat.row_number}${String.fromCharCode(64 + seat.column_number)}</div>`;
+                    const seatLabel = `${seat.row_number}${String.fromCharCode(64 + seat.column_number)}`;
+                    seatsHtml += `<div class="seat-card ${seatClass}">
+                        <div class="seat-label">${seatLabel}</div>
+                        <div class="seat-type">${seatType}</div>
+                    </div>`;
                 });
             } else {
-                seatsHtml += '<div style="color: #999;">No seats assigned</div>';
+                seatsHtml += '<div style="color: #999; grid-column: 1/-1;">No seats assigned</div>';
             }
             seatsHtml += '</div>';
 

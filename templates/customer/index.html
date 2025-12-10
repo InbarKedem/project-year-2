@@ -5,22 +5,15 @@
 
   <div class="search-box">
     <h2>Search Flights</h2>
-    <form action="#" method="GET">
-      <!-- Placeholder for search form -->
-      <div class="form-group">
-        <label>From:</label>
-        <input type="text" name="source" placeholder="Origin City" />
-      </div>
-      <div class="form-group">
-        <label>To:</label>
-        <input type="text" name="dest" placeholder="Destination City" />
-      </div>
-      <div class="form-group">
-        <label>Date:</label>
-        <input type="date" name="date" />
-      </div>
-      <button type="submit" class="btn">Search</button>
-    </form>
+    <p>Find and book your next flight with ease</p>
+    <div style="margin-top: 2rem; display: flex; gap: 1rem; justify-content: center;">
+      <a href="{{ url_for('customer.search_flights') }}" class="btn" style="background-color: #007bff; color: white; padding: 1rem 2rem; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 1.1rem;">
+        Search Flights
+      </a>
+      <a href="{{ url_for('customer.order_lookup') }}" class="btn" style="background-color: #6c757d; color: white; padding: 1rem 2rem; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 1.1rem;">
+        Track Order
+      </a>
+    </div>
   </div>
 </div>
 {% endblock %}
