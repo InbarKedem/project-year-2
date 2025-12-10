@@ -208,20 +208,43 @@ def api_order_details(order_code):
             ORDER BY is_business DESC, row_number, column_number
         """, (order_code,))
         
-        # Convert to dict for JSON serialization
-        order_dict = dict(order)
+        # Build response dict manually to handle all data types properly
+        order_dict = {
+            'order_code': int(order['order_code']) if order['order_code'] else None,
+            'order_date': order['order_date'].strftime('%Y-%m-%d %H:%M:%S') if order.get('order_date') else None,
+            'total_payment': float(order['total_payment']) if order['total_payment'] else 0.0,
+            'order_status': str(order['order_status']) if order['order_status'] else '',
+            'departure_time': order['departure_time'].strftime('%Y-%m-%d %H:%M:%S') if order.get('departure_time') else None,
+            'source_airport_id': int(order['source_airport_id']) if order['source_airport_id'] else None,
+            'dest_airport_id': int(order['dest_airport_id']) if order['dest_airport_id'] else None,
+            'source_airport': str(order['source_airport']) if order['source_airport'] else '',
+            'dest_airport': str(order['dest_airport']) if order['dest_airport'] else '',
+            'economy_price': float(order['economy_price']) if order['economy_price'] else 0.0,
+            'business_price': float(order['business_price']) if order['business_price'] else 0.0,
+            'flight_status': str(order['flight_status']) if order['flight_status'] else '',
+            'aircraft_id': int(order['aircraft_id']) if order['aircraft_id'] else None,
+            'manufacturer': str(order['manufacturer']) if order.get('manufacturer') else None,
+            'is_large': bool(order['is_large']) if order.get('is_large') is not None else False,
+            'seats': int(order['seats']) if order['seats'] else 0
+        }
         
-        # Convert datetime objects to strings for JSON serialization
-        if order_dict.get('departure_time'):
-            order_dict['departure_time'] = order_dict['departure_time'].strftime('%Y-%m-%d %H:%M:%S')
-        if order_dict.get('order_date'):
-            order_dict['order_date'] = order_dict['order_date'].strftime('%Y-%m-%d %H:%M:%S')
+        # Convert seats to list of dicts with proper type handling
+        seats_list = []
+        for seat in seats:
+            seats_list.append({
+                'aircraft_id': int(seat['aircraft_id']) if seat['aircraft_id'] else None,
+                'is_business': bool(seat['is_business']) if seat.get('is_business') is not None else False,
+                'row_number': int(seat['row_number']) if seat['row_number'] else 0,
+                'column_number': int(seat['column_number']) if seat['column_number'] else 0
+            })
         
-        # Convert seats to list of dicts
-        order_dict['seats_details'] = [dict(seat) for seat in seats]
+        order_dict['seats_details'] = seats_list
         
         return jsonify(order_dict)
     except Exception as e:
-        # Log the error for debugging
+        # Log the error for debugging with more details
+        import traceback
+        error_trace = traceback.format_exc()
         print(f"Error in api_order_details: {str(e)}")
-        return jsonify({'error': f'Error loading order details: {str(e)}'}), 500
+        print(f"Traceback: {error_trace}")
+        return jsonify({'error': f'Server error: {str(e)}'}), 500
