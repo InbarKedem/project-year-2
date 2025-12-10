@@ -153,7 +153,7 @@ function generateSeatMapDisplay() {
         
         const grid = document.createElement('div');
         grid.className = 'seat-grid-display';
-        grid.style.gridTemplateColumns = `30px repeat(${classInfo.num_columns}, 1fr)`;
+        grid.style.gridTemplateColumns = `var(--seat-row-label-width, 40px) repeat(${classInfo.num_columns}, 1fr)`;
         
         for (let row = 1; row <= classInfo.num_rows; row++) {
             // Row label

@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 from db import query_db, execute_db
 from datetime import datetime
+import json
 
 customer_bp = Blueprint('customer', __name__)
 
@@ -52,7 +53,7 @@ def search_flights():
         
         # Apply advanced filters
         if min_price:
-            query += " AND (F.economy_price >= %s OR F.business_price >= %s)"
+            query += " AND (F.economy_price >= %s AND F.business_price >= %s)"
             params.extend([min_price, min_price])
         
         if max_price:
@@ -168,7 +169,6 @@ def confirm_booking():
                                   dest_id=dest_id, 
                                   departure_time=departure_time))
         
-        import json
         selected_seats = json.loads(selected_seats_json)
         
         # Get flight prices

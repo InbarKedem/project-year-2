@@ -1,5 +1,9 @@
 /* Global Seat Selection Styles */
 
+:root {
+  --seat-row-label-width: 40px;
+}
+
 /* Seat Map Container */
 .seat-map-container {
   background: white;

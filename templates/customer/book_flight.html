@@ -174,7 +174,7 @@ function generateSeatMap(seatClass) {
     }
     
     grid.innerHTML = '';
-    grid.style.gridTemplateColumns = `40px repeat(${layout.num_columns}, 1fr)`;
+    grid.style.gridTemplateColumns = `var(--seat-row-label-width, 40px) repeat(${layout.num_columns}, 1fr)`;
     
     // Generate seats
     for (let row = 1; row <= layout.num_rows; row++) {
