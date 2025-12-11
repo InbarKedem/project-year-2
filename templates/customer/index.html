@@ -1,26 +1,30 @@
-{% extends 'layout/base.html' %} {% block content %}
-<div class="hero">
-  <h1>Welcome to FLYTAU Airline</h1>
-  <p>Your journey begins here.</p>
+{% extends 'layout/base.html' %}
 
-  <div class="search-box">
-    <h2>Search Flights</h2>
-    <form action="#" method="GET">
-      <!-- Placeholder for search form -->
-      <div class="form-group">
-        <label>From:</label>
-        <input type="text" name="source" placeholder="Origin City" />
-      </div>
-      <div class="form-group">
-        <label>To:</label>
-        <input type="text" name="dest" placeholder="Destination City" />
-      </div>
-      <div class="form-group">
-        <label>Date:</label>
-        <input type="date" name="date" />
-      </div>
-      <button type="submit" class="btn">Search</button>
-    </form>
+{% block content %}
+<div class="hero">
+  <div class="hero__content">
+    <h1 class="hero__title">Welcome to FLYTAU Airline</h1>
+    <p class="hero__subtitle">Your journey begins here.</p>
+
+    <div class="search-box">
+      <h2 class="search-box__title">Search Flights</h2>
+      <form action="#" method="GET" class="search-box__form">
+        <!-- Placeholder for search form -->
+        <div class="form-group">
+          <label class="form-label">From:</label>
+          <input type="text" name="source" placeholder="Origin City" class="form-input" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">To:</label>
+          <input type="text" name="dest" placeholder="Destination City" class="form-input" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date:</label>
+          <input type="date" name="date" class="form-input" />
+        </div>
+        <button type="submit" class="btn btn--accent">Search</button>
+      </form>
+    </div>
   </div>
 </div>
 {% endblock %}
