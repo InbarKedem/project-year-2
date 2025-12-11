@@ -1,4 +1,10 @@
-{% extends 'layout/base.html' %} {% block content %}
+{% extends 'layout/base.html' %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/modules/home.css') }}">
+{% endblock %}
+
+{% block content %}
 <div class="hero">
   <h1>Welcome to FLYTAU Airline</h1>
   <p>Your journey begins here.</p>

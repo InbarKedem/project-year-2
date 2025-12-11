@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FLYTAU Airline</title>
     <link
+      rel="icon"
+      href="{{ url_for('static', filename='images/airplane.png') }}"
+      type="image/png"
+    />
+    <link
       rel="stylesheet"
       href="{{ url_for('static', filename='css/global/base.css') }}"
     />
@@ -16,7 +21,12 @@
   </head>
   <body>
     <nav>
-      <div class="logo">FLYTAU</div>
+      <div class="logo">
+        <img
+          src="{{ url_for('static', filename='images/logo.png') }}"
+          alt="FLYTAU Logo"
+        />
+      </div>
       <ul class="nav-links">
         <li><a href="{{ url_for('customer.index') }}">Home</a></li>
         {% if session.get('role') == 'manager' %}
