@@ -1,42 +1,11 @@
 /* Flight Management Styles */
 
 .flight-route {
-  color: #007bff;
+  color: var(--color-primary-light);
   font-weight: 600;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-}
-
-/* Action Button Styles */
-.btn-cancel {
-  background-color: #dc3545;
-  color: white;
-  padding: 6px 12px;
-  font-size: 0.85rem;
-  border-radius: 6px;
-  text-decoration: none;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  display: inline-block;
-  position: relative;
-  z-index: 2;
-  border: 1px solid transparent;
-  font-weight: 500;
-  box-shadow: 0 2px 4px rgba(220, 53, 69, 0.15);
-}
-
-.btn-cancel:hover {
-  background-color: #c82333;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
-  text-decoration: none;
-  color: white;
-  cursor: pointer;
-}
-
-.btn-cancel:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 4px rgba(220, 53, 69, 0.2);
 }
 
 /* Modal Styles */
@@ -54,13 +23,13 @@
 }
 
 .modal-content {
-  background-color: #fff;
+  background-color: var(--color-white);
   margin: 5% auto;
   padding: 0;
   border: none;
   width: 90%;
   max-width: 600px;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
   animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
@@ -79,24 +48,24 @@
 
 .modal-header {
   padding: 1.5rem 2rem;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--color-border);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #fff;
-  border-top-left-radius: 16px;
-  border-top-right-radius: 16px;
+  background: var(--color-white);
+  border-top-left-radius: var(--radius-lg);
+  border-top-right-radius: var(--radius-lg);
 }
 
 .modal-header h3 {
   margin: 0;
-  color: #1a1a1a;
+  color: var(--color-text);
   font-size: 1.25rem;
   font-weight: 700;
 }
 
 .close {
-  color: #666;
+  color: var(--color-text-light);
   font-size: 24px;
   font-weight: bold;
   cursor: pointer;
@@ -111,7 +80,7 @@
 }
 
 .close:hover {
-  color: #333;
+  color: var(--color-text);
   background: #e0e0e0;
 }
 
@@ -138,14 +107,14 @@
 
 .detail-label {
   font-weight: 600;
-  color: #666;
+  color: var(--color-text-light);
   font-size: 0.9rem;
   min-width: 120px;
 }
 
 .detail-value {
   font-weight: 500;
-  color: #1a1a1a;
+  color: var(--color-text);
   text-align: right;
   flex-grow: 1;
 }
@@ -210,7 +179,7 @@
 }
 
 .badge-danger {
-  background-color: #dc3545;
+  background-color: var(--color-error);
   color: white;
 }
 
@@ -231,7 +200,7 @@
 .status-update-section h4 {
   margin-top: 0;
   margin-bottom: 1rem;
-  color: #333;
+  color: var(--color-text);
   font-size: 1rem;
   font-weight: 600;
 }
@@ -245,41 +214,18 @@
 .status-select {
   flex-grow: 1;
   padding: 0.6rem 1rem;
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   font-size: 0.95rem;
   background-color: white;
-  color: #333;
+  color: var(--color-text);
   cursor: pointer;
   transition: border-color 0.2s;
 }
 
 .status-select:focus {
   outline: none;
-  border-color: #007bff;
-}
-
-.btn-update {
-  background-color: #007bff;
-  color: white;
-  border: none;
-  padding: 0.6rem 1.5rem;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 0.95rem;
-  transition: all 0.2s;
-  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.2);
-}
-
-.btn-update:hover {
-  background-color: #0056b3;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
-}
-
-.btn-update:active {
-  transform: translateY(0);
+  border-color: var(--color-primary);
 }
 
 /* Filter Form Styles */
@@ -288,38 +234,16 @@
   gap: 15px;
   flex-wrap: wrap;
   align-items: flex-end;
-  background: #fff;
+  background: var(--color-white);
   padding: 1.5rem;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
   margin-bottom: 2rem;
-  border: 1px solid #eee;
+  border: 1px solid var(--color-border);
 }
 
 .filter-group {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-}
-
-.filter-group label {
-  font-weight: 600;
-  color: #495057;
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.filter-control {
-  padding: 0.6rem;
-  border: 1px solid #ced4da;
-  border-radius: 6px;
-  min-width: 160px;
-  font-size: 0.95rem;
-  transition: border-color 0.2s;
-}
-
-.filter-control:focus {
-  outline: none;
-  border-color: #007bff;
+  gap: 5px;
 }

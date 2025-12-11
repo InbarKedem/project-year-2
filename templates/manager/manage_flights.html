@@ -1,8 +1,6 @@
-{% extends 'layout/base.html' %} {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/modules/manager.css') }}" />
-<link rel="stylesheet" href="{{ url_for('static', filename='css/modules/reports.css') }}" />
-<link rel="stylesheet" href="{{ url_for('static', filename='css/modules/flights.css') }}" />
-{% endblock %} {% block content %}
+{% extends 'layout/base.html' %}
+
+{% block content %}
 <div class="container">
   <h2>Manage Flights</h2>
   

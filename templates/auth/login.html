@@ -1,44 +1,41 @@
-{% extends 'layout/base.html' %} {% block extra_css %}
-<link
-  rel="stylesheet"
-  href="{{ url_for('static', filename='css/modules/auth.css') }}"
-/>
-{% endblock %} {% block content %}
-<div class="auth-container">
-  <h2>Login</h2>
+{% extends 'layout/base.html' %}
 
-  <div class="login-sections">
-    <div class="login-box">
-      <h3>Customer Login</h3>
+{% block content %}
+<div class="auth-container">
+  <h2 class="auth-container__title">Login</h2>
+
+  <div class="auth-grid">
+    <div class="auth-box">
+      <h3 class="auth-box__title">Customer Login</h3>
       <form method="POST" action="{{ url_for('auth.login') }}">
         <input type="hidden" name="user_type" value="customer" />
         <div class="form-group">
-          <label>Email:</label>
-          <input type="email" name="email" required />
+          <label class="form-label">Email:</label>
+          <input type="email" name="email" required class="form-input" />
         </div>
         <div class="form-group">
-          <label>Password:</label>
-          <input type="password" name="password" required />
+          <label class="form-label">Password:</label>
+          <input type="password" name="password" required class="form-input" />
         </div>
         <button type="submit" class="btn">Login as Customer</button>
       </form>
     </div>
 
-    <div class="vertical-divider"></div>
+    <div class="auth-divider"></div>
 
-    <div class="login-box">
-      <h3>Manager Login</h3>
+    <div class="auth-box">
+      <h3 class="auth-box__title">Manager Login</h3>
       <form method="POST" action="{{ url_for('auth.login') }}">
         <input type="hidden" name="user_type" value="manager" />
         <div class="form-group">
-          <label>ID Number:</label>
-          <input type="text" name="id_number" required maxlength="9" />
+          <label class="form-label">ID Number:</label>
+          <input type="text" name="id_number" required maxlength="9" class="form-input" />
         </div>
         <div class="form-group">
-          <label>Password:</label>
-          <input type="password" name="password" required />
+          <label class="form-label">Password:</label>
+          <input type="password" name="password" required class="form-input" />
         </div>
-        <button type="submit" class="btn btn-secondary">
+        <button type="submit" class="btn btn--secondary">
           Login as Manager
         </button>
       </form>

@@ -1,0 +1,18 @@
+@import 'base/_variables.css';
+@import 'base/_reset.css';
+@import 'base/_typography.css';
+
+@import 'layout/_container.css';
+
+@import 'components/_buttons.css';
+@import 'components/_forms.css';
+@import 'components/_cards.css';
+@import 'components/_alerts.css';
+@import 'components/_tables.css';
+@import 'components/_navbar.css';
+
+@import 'pages/_home.css';
+@import 'pages/_auth.css';
+@import 'pages/_manager.css';
+@import 'pages/_flights.css';
+@import 'pages/_reports.css';

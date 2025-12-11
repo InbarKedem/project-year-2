@@ -1,13 +1,6 @@
-{% extends 'layout/base.html' %} {% block extra_css %}
-<link
-  rel="stylesheet"
-  href="{{ url_for('static', filename='css/modules/auth.css') }}"
-/>
-<link
-  rel="stylesheet"
-  href="{{ url_for('static', filename='css/modules/manager.css') }}"
-/>
-{% endblock %} {% block content %}
+{% extends 'layout/base.html' %}
+
+{% block content %}
 <div class="container">
   <h2>Add New Staff Member</h2>
   <div class="auth-container">
