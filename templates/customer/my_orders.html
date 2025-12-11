@@ -24,7 +24,7 @@
             <th>Order Date</th>
             <th>Flight</th>
             <th>Departure</th>
-            <th>Seats</th>
+            <th>Seat Details</th>
             <th>Total Payment</th>
             <th>Status</th>
         </tr>
@@ -36,9 +36,22 @@
             <td>{{ order.order_date }}</td>
             <td>{{ order.source_airport }} -> {{ order.dest_airport }}</td>
             <td>{{ order.departure_time }}</td>
-            <td>{{ order.seats }}</td>
-            <td>{{ order.total_payment }}</td>
-            <td>{{ order.order_status }}</td>
+            <td>
+                {% if order.row_number %}
+                    <span class="badge badge--info">
+                        Row {{ order.row_number }}, Seat {{ order.column_number }}
+                        {% if order.is_business %}(Business){% else %}(Economy){% endif %}
+                    </span>
+                {% else %}
+                    <span class="text-muted">No seat assigned</span>
+                {% endif %}
+            </td>
+            <td>${{ order.total_payment }}</td>
+            <td>
+                <span class="status-badge status-{{ order.order_status|lower|replace(' ', '-') }}">
+                    {{ order.order_status }}
+                </span>
+            </td>
         </tr>
         {% else %}
         <tr>
@@ -47,4 +60,14 @@
         {% endfor %}
     </tbody>
 </table>
+
+<style>
+    .status-badge {
+        padding: 0.25rem 0.5rem;
+        border-radius: 1rem;
+        font-size: 0.85rem;
+    }
+    .status-confirmed { background-color: var(--color-success); color: white; }
+    .status-cancelled { background-color: var(--color-danger); color: white; }
+</style>
 {% endblock %}

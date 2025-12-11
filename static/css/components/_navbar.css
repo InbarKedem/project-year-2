@@ -46,7 +46,7 @@
 }
 
 .nav__link::after {
-  content: '';
+  content: "";
   position: absolute;
   width: 0;
   height: 2px;
@@ -65,6 +65,6 @@
 }
 
 .nav__text {
-    font-weight: 600;
-    color: var(--color-accent);
+  font-weight: 600;
+  color: var(--color-accent);
 }

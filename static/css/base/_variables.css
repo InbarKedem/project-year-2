@@ -11,11 +11,12 @@
   --color-white: #ffffff;
   --color-error: #dc3545;
   --color-success: #28a745;
+  --color-info: #17a2b8;
   --color-border: #dddddd;
 
   /* Typography */
-  --font-heading: 'Montserrat', sans-serif;
-  --font-body: 'Open Sans', sans-serif;
+  --font-heading: "Montserrat", sans-serif;
+  --font-body: "Open Sans", sans-serif;
 
   /* Spacing */
   --spacing-xs: 0.25rem;
@@ -30,7 +31,7 @@
   --radius-lg: 16px;
 
   /* Shadows */
-  --shadow-sm: 0 2px 4px rgba(0,0,0,0.1);
-  --shadow-md: 0 4px 8px rgba(0,0,0,0.1);
-  --shadow-lg: 0 8px 16px rgba(0,0,0,0.1);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.1);
 }

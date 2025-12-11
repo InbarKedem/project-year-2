@@ -1,0 +1,73 @@
+<!-- Seat Map -->
+<div class="card seat-map-container">
+  <!-- Economy Map -->
+  <div
+    id="map-economy"
+    class="fuselage {% if not has_economy and has_business %}hidden{% endif %}"
+  >
+    <h4 style="text-align: center; margin-bottom: 1rem">Economy Class</h4>
+    <div class="cabin">
+      {% if configs[False] %} {% for r in range(1, configs[False]['rows'] + 1)
+      %}
+      <div class="seat-row">
+        <span class="row-label">{{ r }}</span>
+        {% for c in range(1, configs[False]['cols'] + 1) %} {% set is_taken =
+        (r, c) in occupied_economy %}
+        <div
+          class="seat {% if is_taken %}occupied{% else %}available{% endif %}"
+          data-row="{{ r }}"
+          data-col="{{ c }}"
+          data-class="economy"
+          onclick="selectSeat(this, false)"
+        >
+          {{ c }}
+        </div>
+        {% endfor %}
+      </div>
+      {% endfor %} {% else %}
+      <p>No Economy seats available.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Business Map -->
+  <div id="map-business" class="fuselage {% if has_economy %}hidden{% endif %}">
+    <h4 style="text-align: center; margin-bottom: 1rem">Business Class</h4>
+    <div class="cabin">
+      {% if configs[True] %} {% for r in range(1, configs[True]['rows'] + 1) %}
+      <div class="seat-row">
+        <span class="row-label">{{ r }}</span>
+        {% for c in range(1, configs[True]['cols'] + 1) %} {% set is_taken = (r,
+        c) in occupied_business %}
+        <div
+          class="seat {% if is_taken %}occupied{% else %}available{% endif %}"
+          data-row="{{ r }}"
+          data-col="{{ c }}"
+          data-class="business"
+          onclick="selectSeat(this, true)"
+        >
+          {{ c }}
+        </div>
+        {% endfor %}
+      </div>
+      {% endfor %} {% else %}
+      <p>No Business seats available.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item">
+      <div class="seat available"></div>
+      Available
+    </div>
+    <div class="legend-item">
+      <div class="seat occupied"></div>
+      Occupied
+    </div>
+    <div class="legend-item">
+      <div class="seat selected"></div>
+      Selected
+    </div>
+  </div>
+</div>

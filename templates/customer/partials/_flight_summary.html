@@ -1,0 +1,47 @@
+<!-- Flight Summary -->
+<div class="card booking-summary">
+  <h3>Flight Details</h3>
+  <p><strong>Date:</strong> {{ time }}</p>
+  <div class="class-selector">
+    <button
+      type="button"
+      class="btn btn--outline {% if has_economy %}active{% endif %}"
+      id="btn-economy"
+      onclick="showClass('economy')"
+      {%
+      if
+      not
+      has_economy
+      %}disabled
+      style="opacity: 0.5; cursor: not-allowed"
+      {%
+      endif
+      %}
+    >
+      Economy ({% if economy_price > 0 %}${{ economy_price }}{% else %}N/A{%
+      endif %})
+    </button>
+    <button
+      type="button"
+      class="btn btn--outline {% if not has_economy and has_business %}active{% endif %}"
+      id="btn-business"
+      onclick="showClass('business')"
+      {%
+      if
+      not
+      has_business
+      %}disabled
+      style="opacity: 0.5; cursor: not-allowed"
+      {%
+      endif
+      %}
+    >
+      Business ({% if business_price > 0 %}${{ business_price }}{% else %}N/A{%
+      endif %})
+    </button>
+  </div>
+  <p id="selected-price-display" style="margin-top: 1rem; font-weight: bold">
+    {% if has_economy %} Price: ${{ economy_price }} {% elif has_business %}
+    Price: ${{ business_price }} {% else %} Sold Out {% endif %}
+  </p>
+</div>

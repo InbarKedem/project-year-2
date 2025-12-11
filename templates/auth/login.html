@@ -1,6 +1,4 @@
-{% extends 'layout/base.html' %}
-
-{% block content %}
+{% extends 'layout/base.html' %} {% block content %}
 <div class="auth-container">
   <h2 class="auth-container__title">Login</h2>
 
@@ -29,7 +27,13 @@
         <input type="hidden" name="user_type" value="manager" />
         <div class="form-group">
           <label class="form-label">ID Number:</label>
-          <input type="text" name="id_number" required maxlength="9" class="form-input" />
+          <input
+            type="text"
+            name="id_number"
+            required
+            maxlength="9"
+            class="form-input"
+          />
         </div>
         <div class="form-group">
           <label class="form-label">Password:</label>

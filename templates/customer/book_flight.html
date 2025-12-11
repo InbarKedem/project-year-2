@@ -1,0 +1,83 @@
+{% extends 'layout/base.html' %} {% block extra_css %}
+<link
+  rel="stylesheet"
+  href="{{ url_for('static', filename='css/pages/_book_flight.css') }}"
+/>
+{% endblock %} {% block content %}
+<div class="container">
+  <h2>Select Your Seat</h2>
+
+  <div class="booking-container">
+    {% include 'customer/partials/_flight_summary.html' %} {% include
+    'customer/partials/_seat_map.html' %} {% include
+    'customer/partials/_booking_form.html' %}
+  </div>
+
+  {% include 'customer/partials/_success_modal.html' %}
+</div>
+
+<script>
+  const economyPrice = Number("{{ economy_price }}");
+  const businessPrice = Number("{{ business_price }}");
+  const hasEconomy = "{{ has_economy }}" === "True";
+  const hasBusiness = "{{ has_business }}" === "True";
+
+  function showClass(cls) {
+    if (cls === "economy" && !hasEconomy) return;
+    if (cls === "business" && !hasBusiness) return;
+
+    // Toggle Buttons
+    document
+      .getElementById("btn-economy")
+      .classList.toggle("active", cls === "economy");
+    document
+      .getElementById("btn-business")
+      .classList.toggle("active", cls === "business");
+
+    // Toggle Maps
+    document.getElementById("map-economy").style.display =
+      cls === "economy" ? "block" : "none";
+    document.getElementById("map-business").style.display =
+      cls === "business" ? "block" : "none";
+
+    // Update Price Display
+    let priceDisplay = "Sold Out";
+    if (cls === "economy" && hasEconomy) {
+      priceDisplay = `Price: $${economyPrice}`;
+    } else if (cls === "business" && hasBusiness) {
+      priceDisplay = `Price: $${businessPrice}`;
+    }
+
+    document.getElementById("selected-price-display").innerText = priceDisplay;
+
+    // Clear selection if switching classes
+    const current = document.querySelector(".seat.selected");
+    if (current) {
+      current.classList.remove("selected");
+      document.getElementById("confirm-btn").disabled = true;
+      document.getElementById("selected_row").value = "";
+      document.getElementById("selected_col").value = "";
+      document.getElementById("is_business").value = "";
+    }
+  }
+
+  function selectSeat(element, isBusiness) {
+    if (element.classList.contains("occupied")) return;
+
+    // Deselect currently selected
+    const current = document.querySelector(".seat.selected");
+    if (current) {
+      current.classList.remove("selected");
+    }
+
+    // Select new
+    element.classList.add("selected");
+
+    // Update form
+    document.getElementById("selected_row").value = element.dataset.row;
+    document.getElementById("selected_col").value = element.dataset.col;
+    document.getElementById("is_business").value = isBusiness;
+    document.getElementById("confirm-btn").disabled = false;
+  }
+</script>
+{% endblock %}
