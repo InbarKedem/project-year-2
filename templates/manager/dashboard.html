@@ -1,12 +1,10 @@
-{% extends 'layout/base.html' %}
-
-{% block content %}
+{% extends 'layout/base.html' %} {% block content %}
 <h2>Manager Dashboard</h2>
 <div class="grid-container">
   <div class="card">
     <h3 class="card__title">Flight Management</h3>
     <p>Add new flights, cancel existing ones, and manage schedule.</p>
-    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 1rem;">
+    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 1rem">
       <a href="{{ url_for('manager.add_flight') }}" class="btn">Add Flight</a>
       <a
         href="{{ url_for('manager.manage_flights') }}"
@@ -18,14 +16,14 @@
   <div class="card">
     <h3 class="card__title">Reports</h3>
     <p>View revenue, occupancy, and employee statistics.</p>
-    <div style="margin-top: 1rem;">
+    <div style="margin-top: 1rem">
       <a href="{{ url_for('manager.reports') }}" class="btn">View Reports</a>
     </div>
   </div>
   <div class="card">
     <h3 class="card__title">Staff Management</h3>
     <p>Add new Pilots and Flight Attendants to the system.</p>
-    <div style="margin-top: 1rem;">
+    <div style="margin-top: 1rem">
       <a href="{{ url_for('manager.add_staff') }}" class="btn">Add Staff</a>
     </div>
   </div>

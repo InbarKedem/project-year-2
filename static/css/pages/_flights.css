@@ -173,7 +173,8 @@
   letter-spacing: 0.5px;
 }
 
-.badge-info {
+.badge-info,
+.badge--info {
   background-color: #17a2b8;
   color: white;
 }

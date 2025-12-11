@@ -34,22 +34,40 @@
           />
         </a>
         <ul class="nav__list">
-          <li><a href="{{ url_for('customer.index') }}" class="nav__link">Home</a></li>
+          <li>
+            <a href="{{ url_for('customer.index') }}" class="nav__link">Home</a>
+          </li>
           {% if session.get('role') == 'manager' %}
           <li>
-            <a href="{{ url_for('manager.manager_dashboard') }}" class="nav__link"
+            <a
+              href="{{ url_for('manager.manager_dashboard') }}"
+              class="nav__link"
               >Manager Dashboard</a
             >
           </li>
           {% endif %} {% if session.get('user_id') %}
-          <li><span class="nav__text">Welcome, {{ session.get('name') }}</span></li>
+          <li>
+            <span class="nav__text">Welcome, {{ session.get('name') }}</span>
+          </li>
           {% if session.get('role') == 'customer' %}
-          <li><a href="{{ url_for('customer.my_orders') }}" class="nav__link">My Orders</a></li>
+          <li>
+            <a href="{{ url_for('customer.my_orders') }}" class="nav__link"
+              >My Orders</a
+            >
+          </li>
           {% endif %}
-          <li><a href="{{ url_for('auth.logout') }}" class="nav__link">Logout</a></li>
+          <li>
+            <a href="{{ url_for('auth.logout') }}" class="nav__link">Logout</a>
+          </li>
           {% else %}
-          <li><a href="{{ url_for('auth.login') }}" class="nav__link">Login</a></li>
-          <li><a href="{{ url_for('auth.register') }}" class="nav__link">Register</a></li>
+          <li>
+            <a href="{{ url_for('auth.login') }}" class="nav__link">Login</a>
+          </li>
+          <li>
+            <a href="{{ url_for('auth.register') }}" class="nav__link"
+              >Register</a
+            >
+          </li>
           {% endif %}
         </ul>
       </nav>

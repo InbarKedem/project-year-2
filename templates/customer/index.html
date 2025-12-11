@@ -1,4 +1,4 @@
-{% extends 'layout/base.html' %}
+{% extends 'layout/base.html' %} 
 
 {% block content %}
 <div class="hero">
@@ -7,24 +7,136 @@
     <p class="hero__subtitle">Your journey begins here.</p>
 
     <div class="search-box">
-      <h2 class="search-box__title">Search Flights</h2>
-      <form action="#" method="GET" class="search-box__form">
-        <!-- Placeholder for search form -->
-        <div class="form-group">
-          <label class="form-label">From:</label>
-          <input type="text" name="source" placeholder="Origin City" class="form-input" />
+      <h2 class="search-box__title">Find Your Next Adventure</h2>
+      <form action="{{ url_for('customer.index') }}" method="GET" class="search-box__form">
+        <div class="search-grid">
+            <div class="form-group">
+                <label class="form-label">From</label>
+                <div class="input-wrapper">
+                    <span class="input-icon">🛫</span>
+                    <select name="source" class="form-select">
+                        <option value="" disabled {% if not request.args.get('source') %}selected{% endif %}>Select Origin</option>
+                        {% for airport in airports %}
+                        <option value="{{ airport.airport_name }}" {% if request.args.get('source') == airport.airport_name %}selected{% endif %}>{{ airport.airport_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">To</label>
+                <div class="input-wrapper">
+                    <span class="input-icon">🛬</span>
+                    <select name="dest" class="form-select">
+                        <option value="" disabled {% if not request.args.get('dest') %}selected{% endif %}>Select Destination</option>
+                        {% for airport in airports %}
+                        <option value="{{ airport.airport_name }}" {% if request.args.get('dest') == airport.airport_name %}selected{% endif %}>{{ airport.airport_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Date</label>
+                <div class="input-wrapper">
+                    <span class="input-icon">📅</span>
+                    <input type="date" name="date" class="form-input" value="{{ request.args.get('date', '') }}">
+                </div>
+            </div>
+            <div class="form-group search-btn-group">
+                <label class="form-label">&nbsp;</label>
+                <button type="submit" class="btn btn--accent btn--block">Search Flights</button>
+            </div>
         </div>
-        <div class="form-group">
-          <label class="form-label">To:</label>
-          <input type="text" name="dest" placeholder="Destination City" class="form-input" />
+        
+        <details class="advanced-filters">
+            <summary>Advanced Options</summary>
+            <div class="filters-grid">
+                <div class="form-group">
+                    <label class="form-label">Class</label>
+                    <select name="class" class="form-select">
+                        <option value="Economy" {% if request.args.get('class') == 'Economy' %}selected{% endif %}>Economy</option>
+                        <option value="Business" {% if request.args.get('class') == 'Business' %}selected{% endif %}>Business</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Min Price</label>
+                    <input type="number" name="min_price" class="form-input" value="{{ request.args.get('min_price', '') }}" placeholder="$">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Max Price</label>
+                    <input type="number" name="max_price" class="form-input" value="{{ request.args.get('max_price', '') }}" placeholder="$">
+                </div>
+            </div>
+        </details>
+
+        <div class="show-all-container">
+            <a href="{{ url_for('customer.index', show_all=1) }}" class="link-show-all">View All Available Flights</a>
         </div>
-        <div class="form-group">
-          <label class="form-label">Date:</label>
-          <input type="date" name="date" class="form-input" />
-        </div>
-        <button type="submit" class="btn btn--accent">Search</button>
       </form>
     </div>
   </div>
 </div>
+
+{% if flights is not none %}
+<div class="container" style="margin-top: 2rem;">
+    <h2 style="text-align: center; margin-bottom: 2rem;">Flight Results</h2>
+    <div class="flight-results">
+        {% if flights %}
+            {% for flight in flights %}
+            <div class="card flight-card">
+                <div class="flight-info">
+                    <div class="route">
+                        <h3>{{ flight.source_airport }} <span style="color: var(--color-accent);">✈</span> {{ flight.dest_airport }}</h3>
+                        <p>{{ flight.departure_time }}</p>
+                    </div>
+                    <div class="details">
+                        <p>Duration: {{ flight.flight_duration }} mins</p>
+                        <p>Aircraft: {{ flight.manufacturer }}</p>
+                    </div>
+                    <div class="price">
+                        <p class="price-tag">${{ flight.economy_price }} <small>(Eco)</small></p>
+                        <p class="price-tag" style="font-size: 1.2rem;">${{ flight.business_price }} <small>(Biz)</small></p>
+                    </div>
+                </div>
+                <div class="actions">
+                    <a href="{{ url_for('customer.book_flight', 
+                        source_id=flight.source_airport_id, 
+                        dest_id=flight.dest_airport_id, 
+                        time=flight.departure_time) }}" class="btn btn--accent">Book Now</a>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="alert alert--info">No flights found matching your criteria.</div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<style>
+    .advanced-filters summary {
+        cursor: pointer;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+    .flight-card {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+    .price-tag {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: var(--color-success);
+    }
+    .form-row {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+    .form-group {
+        flex: 1;
+        min-width: 200px;
+    }
+</style>
 {% endblock %}
