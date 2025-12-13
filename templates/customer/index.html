@@ -77,15 +77,15 @@
 </div>
 
 {% if flights is not none %}
-<div class="container" style="margin-top: 2rem;">
-    <h2 style="text-align: center; margin-bottom: 2rem;">Flight Results</h2>
+<div class="container results-container">
+    <h2 class="results-title">Flight Results</h2>
     <div class="flight-results">
         {% if flights %}
             {% for flight in flights %}
             <div class="card flight-card">
                 <div class="flight-info">
                     <div class="route">
-                        <h3>{{ flight.source_airport }} <span style="color: var(--color-accent);">✈</span> {{ flight.dest_airport }}</h3>
+                        <h3>{{ flight.source_airport }} <span class="plane-icon">✈</span> {{ flight.dest_airport }}</h3>
                         <p>{{ flight.departure_time }}</p>
                     </div>
                     <div class="details">
@@ -94,7 +94,7 @@
                     </div>
                     <div class="price">
                         <p class="price-tag">${{ flight.economy_price }} <small>(Eco)</small></p>
-                        <p class="price-tag" style="font-size: 1.2rem;">${{ flight.business_price }} <small>(Biz)</small></p>
+                        <p class="price-tag price-tag--biz">${{ flight.business_price }} <small>(Biz)</small></p>
                     </div>
                 </div>
                 <div class="actions">
@@ -112,31 +112,4 @@
 </div>
 {% endif %}
 
-<style>
-    .advanced-filters summary {
-        cursor: pointer;
-        font-weight: 600;
-        margin-bottom: 0.5rem;
-    }
-    .flight-card {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1rem;
-    }
-    .price-tag {
-        font-size: 1.5rem;
-        font-weight: bold;
-        color: var(--color-success);
-    }
-    .form-row {
-        display: flex;
-        gap: 1rem;
-        flex-wrap: wrap;
-    }
-    .form-group {
-        flex: 1;
-        min-width: 200px;
-    }
-</style>
 {% endblock %}

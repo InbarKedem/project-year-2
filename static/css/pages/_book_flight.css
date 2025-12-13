@@ -262,3 +262,22 @@
     opacity: 1;
   }
 }
+
+/* New extracted styles */
+.seat-map-title {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.extra-passengers-container {
+  margin-top: 1rem;
+}
+
+.confirm-btn-container {
+  margin-top: 1rem;
+}
+
+.price-display {
+  margin-top: 1rem;
+  font-weight: bold;
+}

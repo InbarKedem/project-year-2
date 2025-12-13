@@ -4,11 +4,13 @@
   <form
     action="{{ url_for('customer.book_flight', source_id=source_id, dest_id=dest_id, time=time) }}"
     method="POST"
+    id="booking-form"
   >
-    <input type="hidden" name="seat_row" id="selected_row" required />
-    <input type="hidden" name="seat_col" id="selected_col" required />
-    <input type="hidden" name="is_business" id="is_business" required />
+    <!-- Hidden inputs for seats will be appended here -->
+    <div id="selected-seats-container"></div>
 
+    <!-- Main Passenger (Booker) -->
+    <h4>Main Passenger</h4>
     {% if not session.get('user_id') or session.get('role') != 'customer' %}
     <div class="form-group">
       <label class="form-label">Email</label>
@@ -30,7 +32,13 @@
     <p>Booking as: <strong>{{ session.get('user_id') }}</strong></p>
     {% endif %}
 
-    <div style="margin-top: 1rem">
+    <!-- Extra Passengers -->
+    <div
+      id="extra-passengers-container"
+      class="extra-passengers-container"
+    ></div>
+
+    <div class="confirm-btn-container">
       <button type="submit" class="btn btn--accent" id="confirm-btn" disabled>
         Confirm Booking
       </button>

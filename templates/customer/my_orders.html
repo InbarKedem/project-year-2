@@ -1,5 +1,9 @@
 {% extends 'layout/base.html' %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_my_orders.css') }}">
+{% endblock %}
+
 {% block content %}
 <h2>My Orders</h2>
 
@@ -24,7 +28,7 @@
             <th>Order Date</th>
             <th>Flight</th>
             <th>Departure</th>
-            <th>Seat Details</th>
+            <th>Seats</th>
             <th>Total Payment</th>
             <th>Status</th>
         </tr>
@@ -37,11 +41,15 @@
             <td>{{ order.source_airport }} -> {{ order.dest_airport }}</td>
             <td>{{ order.departure_time }}</td>
             <td>
-                {% if order.row_number %}
-                    <span class="badge badge--info">
-                        Row {{ order.row_number }}, Seat {{ order.column_number }}
-                        {% if order.is_business %}(Business){% else %}(Economy){% endif %}
-                    </span>
+                {% if order.seats %}
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                    {% for seat in order.seats %}
+                        <span class="badge badge--info">
+                            Row {{ seat.row }}, Seat {{ seat.col }}
+                            {% if seat.is_business %}(Business){% else %}(Economy){% endif %}
+                        </span>
+                    {% endfor %}
+                    </div>
                 {% else %}
                     <span class="text-muted">No seat assigned</span>
                 {% endif %}
@@ -61,13 +69,4 @@
     </tbody>
 </table>
 
-<style>
-    .status-badge {
-        padding: 0.25rem 0.5rem;
-        border-radius: 1rem;
-        font-size: 0.85rem;
-    }
-    .status-confirmed { background-color: var(--color-success); color: white; }
-    .status-cancelled { background-color: var(--color-danger); color: white; }
-</style>
 {% endblock %}
