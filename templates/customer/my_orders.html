@@ -7,6 +7,10 @@
 {% block content %}
 <h2>My Orders</h2>
 
+<div class="spending-summary" style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #dee2e6;">
+    <h3>Total Spending: ${{ "%.2f"|format(total_spending) }}</h3>
+</div>
+
 <div class="filter-section">
     <form action="{{ url_for('customer.my_orders') }}" method="GET">
         <label for="status">Filter by Status:</label>
@@ -31,6 +35,7 @@
             <th>Seats</th>
             <th>Total Payment</th>
             <th>Status</th>
+            <th>Actions</th>
         </tr>
     </thead>
     <tbody>
@@ -60,10 +65,17 @@
                     {{ order.order_status }}
                 </span>
             </td>
+            <td>
+                {% if order.order_status == 'Confirmed' or order.order_status == 'Active' %}
+                <form action="{{ url_for('customer.cancel_order', order_code=order.order_code) }}" method="POST" onsubmit="return confirm('Are you sure you want to cancel this order?');">
+                    <button type="submit" class="btn btn-danger btn-sm">Cancel</button>
+                </form>
+                {% endif %}
+            </td>
         </tr>
         {% else %}
         <tr>
-            <td colspan="7">No orders found.</td>
+            <td colspan="8">No orders found.</td>
         </tr>
         {% endfor %}
     </tbody>

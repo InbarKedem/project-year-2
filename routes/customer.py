@@ -134,6 +134,8 @@ def my_orders():
     
     # Group seats by order
     orders_map = {}
+    total_spending = 0
+    
     for row in raw_orders:
         code = row['order_code']
         if code not in orders_map:
@@ -147,6 +149,10 @@ def my_orders():
                 'dest_airport': row['dest_airport'],
                 'seats': []
             }
+            
+            # Add to total spending if not cancelled
+            if row['order_status'] != 'Cancelled' and row['order_status'] != 'Customer Cancelled' and row['order_status'] != 'System Cancelled':
+                total_spending += row['total_payment']
         
         if row['row_number'] is not None:
             orders_map[code]['seats'].append({
@@ -157,7 +163,37 @@ def my_orders():
     
     orders = list(orders_map.values())
     
-    return render_template('customer/my_orders.html', orders=orders)
+    return render_template('customer/my_orders.html', orders=orders, total_spending=total_spending)
+
+@customer_bp.route('/cancel_order/<int:order_code>', methods=['POST'])
+def cancel_order(order_code):
+    if session.get('role') != 'customer':
+        flash('Access denied.', 'danger')
+        return redirect(url_for('auth.login'))
+        
+    email = session.get('user_id')
+    
+    # Verify order belongs to user and is active
+    order = query_db("SELECT * FROM Order_Table WHERE order_code = %s AND customer_email = %s", (order_code, email), one=True)
+    
+    if not order:
+        flash('Order not found.', 'danger')
+        return redirect(url_for('customer.my_orders'))
+        
+    if order['order_status'] in ['Cancelled', 'Customer Cancelled', 'System Cancelled']:
+        flash('Order is already cancelled.', 'warning')
+        return redirect(url_for('customer.my_orders'))
+        
+    # Check if flight is in the future (optional but recommended)
+    # For now, just allowing cancellation as requested
+    
+    try:
+        execute_db("UPDATE Order_Table SET order_status = 'Customer Cancelled' WHERE order_code = %s", (order_code,))
+        flash('Order cancelled successfully.', 'success')
+    except Exception as e:
+        flash(f'Error cancelling order: {e}', 'danger')
+        
+    return redirect(url_for('customer.my_orders'))
 
 @customer_bp.route('/book_flight', methods=['GET', 'POST'])
 def book_flight():
