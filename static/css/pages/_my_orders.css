@@ -1,0 +1,13 @@
+.status-badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 1rem;
+  font-size: 0.85rem;
+}
+.status-confirmed {
+  background-color: var(--color-success);
+  color: white;
+}
+.status-cancelled {
+  background-color: var(--color-danger);
+  color: white;
+}

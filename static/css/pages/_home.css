@@ -178,3 +178,45 @@
   color: var(--color-primary);
   border-bottom-style: solid;
 }
+
+/* New extracted styles */
+.results-container {
+  margin-top: 2rem;
+}
+
+.results-title {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.flight-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.plane-icon {
+  color: var(--color-accent);
+}
+
+.price-tag {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--color-success);
+}
+
+.price-tag--biz {
+  font-size: 1.2rem;
+}
+
+.form-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.search-box .form-group {
+  flex: 1;
+  min-width: 200px;
+}

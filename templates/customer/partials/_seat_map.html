@@ -3,9 +3,9 @@
   <!-- Economy Map -->
   <div
     id="map-economy"
-    class="fuselage {% if not has_economy and has_business %}hidden{% endif %}"
+    class="fuselage {% if not (has_economy or not has_business) %}hidden{% endif %}"
   >
-    <h4 style="text-align: center; margin-bottom: 1rem">Economy Class</h4>
+    <h4 class="seat-map-title">Economy Class</h4>
     <div class="cabin">
       {% if configs[False] %} {% for r in range(1, configs[False]['rows'] + 1)
       %}
@@ -31,8 +31,11 @@
   </div>
 
   <!-- Business Map -->
-  <div id="map-business" class="fuselage {% if has_economy %}hidden{% endif %}">
-    <h4 style="text-align: center; margin-bottom: 1rem">Business Class</h4>
+  <div
+    id="map-business"
+    class="fuselage {% if not (not has_economy and has_business) %}hidden{% endif %}"
+  >
+    <h4 class="seat-map-title">Business Class</h4>
     <div class="cabin">
       {% if configs[True] %} {% for r in range(1, configs[True]['rows'] + 1) %}
       <div class="seat-row">

@@ -1,4 +1,9 @@
-{% extends 'layout/base.html' %} {% block content %}
+{% extends 'layout/base.html' %} {% block extra_css %}
+<link
+  rel="stylesheet"
+  href="{{ url_for('static', filename='css/pages/_track_order.css') }}"
+/>
+{% endblock %} {% block content %}
 <div class="container">
   <div class="auth-container">
     <h2 class="auth-container__title">Track Your Order</h2>
@@ -35,7 +40,7 @@
   </div>
 
   {% if order %}
-  <div class="card" style="margin-top: 2rem">
+  <div class="card order-details-card">
     <h3 class="card__title">Order Details #{{ order.order_code }}</h3>
 
     <div class="order-info">

@@ -41,13 +41,13 @@
           <label>To Date</label>
           <input type="date" name="date_to" class="filter-control" value="{{ request.args.get('date_to', '') }}">
       </div>
-      <div style="display: flex; gap: 10px; align-items: flex-end;">
+      <div class="filter-actions">
           <button type="submit" class="btn">Filter</button>
           <a href="{{ url_for('manager.manage_flights') }}" class="btn btn-secondary">Clear</a>
       </div>
   </form>
 
-  <div class="card" style="padding: 0; overflow: hidden;">
+  <div class="card table-card">
     <table class="table">
 
       <thead>
@@ -60,7 +60,7 @@
       </thead>
       <tbody>
         {% for flight in flights %}
-        <tr onclick="openFlightModal('{{ flight.source_airport_id }}', '{{ flight.dest_airport_id }}', '{{ flight.departure_time }}')" style="cursor: pointer;">
+        <tr onclick="openFlightModal('{{ flight.source_airport_id }}', '{{ flight.dest_airport_id }}', '{{ flight.departure_time }}')" class="clickable-row">
           <td class="flight-route">
               {{ flight.source }} &rarr; {{ flight.dest }}
           </td>
@@ -80,7 +80,7 @@
               Cancel
             </a>
             {% else %}
-            <span style="color: #999; font-size: 0.85rem;">Cannot Cancel (< 72h)</span>
+            <span class="cancel-disabled">Cannot Cancel (< 72h)</span>
             {% endif %}
           </td>
         </tr>
@@ -92,7 +92,7 @@
       </tbody>
     </table>
   </div>
-  <div style="margin-top: 20px">
+  <div class="back-link-container">
     <a
       href="{{ url_for('manager.manager_dashboard') }}"
       class="btn btn-secondary"
