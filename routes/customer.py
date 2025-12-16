@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from db import query_db, execute_db
+from datetime import datetime, timedelta
 
 customer_bp = Blueprint('customer', __name__)
 
@@ -167,33 +168,88 @@ def my_orders():
 
 @customer_bp.route('/cancel_order/<int:order_code>', methods=['POST'])
 def cancel_order(order_code):
-    if session.get('role') != 'customer':
-        flash('Access denied.', 'danger')
-        return redirect(url_for('auth.login'))
-        
-    email = session.get('user_id')
+    # 1. Identify User (Session or Form)
+    email = None
+    if 'user_id' in session and session.get('role') == 'customer':
+        email = session['user_id']
+    else:
+        # For guests, email must be provided in the form to verify ownership
+        email = request.form.get('email')
     
-    # Verify order belongs to user and is active
+    if not email:
+        flash('Authentication failed. Please log in or provide email.', 'danger')
+        return redirect(url_for('customer.index'))
+    
+    # 2. Verify Order
     order = query_db("SELECT * FROM Order_Table WHERE order_code = %s AND customer_email = %s", (order_code, email), one=True)
     
     if not order:
-        flash('Order not found.', 'danger')
-        return redirect(url_for('customer.my_orders'))
+        flash('Order not found or access denied.', 'danger')
+        # Redirect back to where they came from if possible, or my_orders/track_order
+        if 'user_id' in session:
+            return redirect(url_for('customer.my_orders'))
+        else:
+            return redirect(url_for('customer.track_order'))
         
     if order['order_status'] in ['Cancelled', 'Customer Cancelled', 'System Cancelled']:
         flash('Order is already cancelled.', 'warning')
-        return redirect(url_for('customer.my_orders'))
+        if 'user_id' in session:
+            return redirect(url_for('customer.my_orders'))
+        else:
+            # Re-render track order with the order details
+            return render_template('customer/track_order.html', order=order)
+
+    # 3. Check 36-hour Rule
+    departure_time = order['departure_time']
+    # Ensure departure_time is datetime object
+    if isinstance(departure_time, str):
+        departure_time = datetime.strptime(departure_time, '%Y-%m-%d %H:%M:%S')
         
-    # Check if flight is in the future (optional but recommended)
-    # For now, just allowing cancellation as requested
+    time_diff = departure_time - datetime.now()
+    hours_until_flight = time_diff.total_seconds() / 3600
+    
+    if hours_until_flight < 36:
+        flash('Cancellation is only allowed up to 36 hours before the flight.', 'danger')
+        if 'user_id' in session:
+            return redirect(url_for('customer.my_orders'))
+        else:
+            return render_template('customer/track_order.html', order=order)
+
+    # 4. Apply Cancellation Fee (5%)
+    # We don't have a refund column, so we'll just notify the user.
+    # In a real system, we would process the refund here.
+    fee = float(order['total_payment']) * 0.05
+    refund_amount = float(order['total_payment']) - fee
     
     try:
         execute_db("UPDATE Order_Table SET order_status = 'Customer Cancelled' WHERE order_code = %s", (order_code,))
-        flash('Order cancelled successfully.', 'success')
+        flash(f'Order cancelled successfully. A 5% cancellation fee (${fee:.2f}) was deducted. Refund amount: ${refund_amount:.2f}', 'success')
     except Exception as e:
         flash(f'Error cancelling order: {e}', 'danger')
         
-    return redirect(url_for('customer.my_orders'))
+    if 'user_id' in session:
+        return redirect(url_for('customer.my_orders'))
+    else:
+        # For guests, we need to show the updated status. 
+        # Since we can't easily redirect with POST data, we re-fetch and render.
+        updated_order = query_db("SELECT * FROM Order_Table WHERE order_code = %s", (order_code,), one=True)
+        # We need to join with Airport names again for the template
+        query = """
+            SELECT 
+                O.order_code, 
+                O.order_date, 
+                O.total_payment, 
+                O.order_status, 
+                O.departure_time,
+                A1.airport_name as source_airport,
+                A2.airport_name as dest_airport
+            FROM Order_Table O
+            JOIN Airport A1 ON O.source_airport_id = A1.airport_id
+            JOIN Airport A2 ON O.dest_airport_id = A2.airport_id
+            WHERE O.order_code = %s
+        """
+        updated_order = query_db(query, (order_code,), one=True)
+        return render_template('customer/track_order.html', order=updated_order)
 
 @customer_bp.route('/book_flight', methods=['GET', 'POST'])
 def book_flight():
@@ -365,6 +421,16 @@ def book_flight():
         total_biz = configs[True]['rows'] * configs[True]['cols']
         if len(occupied_business) < total_biz:
             has_business = True
+            
+    # Get user details if logged in
+    user_details = None
+    if 'user_id' in session and session.get('role') == 'customer':
+        user_details = query_db("""
+            SELECT U.email, U.first_name, U.last_name, P.phone_number 
+            FROM User U 
+            LEFT JOIN Phone P ON U.email = P.email 
+            WHERE U.email = %s
+        """, (session['user_id'],), one=True)
     
     return render_template('customer/book_flight.html', 
                            configs=configs,
@@ -379,4 +445,5 @@ def book_flight():
                            time=time_str,
                            booking_success=booking_success,
                            new_order_code=new_order_code,
-                           flight_details=flight_details)
+                           flight_details=flight_details,
+                           user_details=user_details)

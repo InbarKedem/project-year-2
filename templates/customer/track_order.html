@@ -71,6 +71,15 @@
         <span class="detail-value">${{ order.total_payment }}</span>
       </div>
     </div>
+
+    {% if order.order_status == 'Confirmed' or order.order_status == 'Active' %}
+    <div class="order-actions" style="margin-top: 20px; text-align: right;">
+        <form action="{{ url_for('customer.cancel_order', order_code=order.order_code) }}" method="POST" onsubmit="return confirm('Are you sure you want to cancel this order? A 5% cancellation fee will be applied.');">
+            <input type="hidden" name="email" value="{{ request.form.get('email') or session.get('user_id') }}">
+            <button type="submit" class="btn btn-danger">Cancel Order</button>
+        </form>
+    </div>
+    {% endif %}
   </div>
   {% endif %}
 </div>
