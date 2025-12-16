@@ -55,25 +55,40 @@ def register():
         dob = request.form.get('dob')
         password = request.form.get('password')
         
-        # Check if email exists
-        if query_db('SELECT email FROM User WHERE email = %s', (email,), one=True):
+        # Check if email exists in Registered_Customer
+        if query_db('SELECT email FROM Registered_Customer WHERE email = %s', (email,), one=True):
             flash('Email already registered.', 'danger')
             return redirect(url_for('auth.register'))
             
         try:
-            # Insert into User
-            execute_db('INSERT INTO User (email, first_name, middle_name, last_name) VALUES (%s, %s, %s, %s)',
-                       (email, first_name, middle_name, last_name))
+            # Check if email exists in User (Guest)
+            existing_user = query_db('SELECT email FROM User WHERE email = %s', (email,), one=True)
+            
+            if existing_user:
+                # Update User details
+                execute_db('UPDATE User SET first_name=%s, middle_name=%s, last_name=%s WHERE email=%s',
+                           (first_name, middle_name, last_name, email))
+                flash_message = 'Registration successful! We found previous bookings linked to your email.'
+            else:
+                # Insert into User
+                execute_db('INSERT INTO User (email, first_name, middle_name, last_name) VALUES (%s, %s, %s, %s)',
+                           (email, first_name, middle_name, last_name))
+                flash_message = 'Registration successful! Please log in.'
             
             # Insert into Phone
             if phone:
-                execute_db('INSERT INTO Phone (email, phone_number) VALUES (%s, %s)', (email, phone))
+                # Check if phone exists for this user to avoid duplicates if guest provided it (though schema says PK is email, phone)
+                # But guest booking might not capture phone in Phone table? Need to check booking logic.
+                # Assuming we just insert. If it fails due to PK, we might need to handle it.
+                # Let's check if phone exists first to be safe.
+                if not query_db('SELECT * FROM Phone WHERE email = %s AND phone_number = %s', (email, phone), one=True):
+                    execute_db('INSERT INTO Phone (email, phone_number) VALUES (%s, %s)', (email, phone))
                 
             # Insert into Registered_Customer
             execute_db('INSERT INTO Registered_Customer (email, passport_number, birth_date, registration_date, password) VALUES (%s, %s, %s, %s, %s)',
                        (email, passport, dob, datetime.date.today(), password))
             
-            flash('Registration successful! Please log in.', 'success')
+            flash(flash_message, 'success')
             return redirect(url_for('auth.login'))
         except Exception as e:
             flash(f'An error occurred: {str(e)}', 'danger')
