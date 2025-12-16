@@ -40,6 +40,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function updateCrewLists(data) {
+        // Update Aircraft List
+        updateAircraftList(data.aircrafts);
+
         // Clear current lists
         pilotsContainer.innerHTML = '';
         attendantsContainer.innerHTML = '';
@@ -52,6 +55,58 @@ document.addEventListener('DOMContentLoaded', function() {
 
         renderCrewList(pilots, pilotsContainer, requirements.pilots, 'pilots'); 
         renderCrewList(attendants, attendantsContainer, requirements.attendants, 'attendants');
+    }
+
+    function updateAircraftList(aircrafts) {
+        if (!aircrafts) return;
+
+        const currentSelection = aircraftSelect.value;
+        aircraftSelect.innerHTML = ''; // Clear existing options
+
+        // Sort: Available first
+        aircrafts.sort((a, b) => (a.is_available === b.is_available) ? 0 : a.is_available ? -1 : 1);
+
+        aircrafts.forEach(ac => {
+            const option = document.createElement('option');
+            option.value = ac.aircraft_id;
+            
+            let text = `${ac.manufacturer} (ID: ${ac.aircraft_id})`;
+            if (ac.is_large) text += " [Large]";
+            
+            if (!ac.is_available) {
+                text += ` - UNAVAILABLE: ${ac.reason}`;
+                option.disabled = true;
+            }
+            
+            option.textContent = text;
+            aircraftSelect.appendChild(option);
+        });
+
+        // Restore selection if possible and valid
+        if (currentSelection) {
+            const optionToSelect = aircraftSelect.querySelector(`option[value="${currentSelection}"]`);
+            if (optionToSelect && !optionToSelect.disabled) {
+                aircraftSelect.value = currentSelection;
+            } else {
+                // If previously selected is now invalid, select the first available
+                const firstAvailable = aircraftSelect.querySelector('option:not([disabled])');
+                if (firstAvailable) {
+                    aircraftSelect.value = firstAvailable.value;
+                    // Trigger change to update crew requirements
+                    aircraftSelect.dispatchEvent(new Event('change'));
+                } else {
+                    aircraftSelect.value = "";
+                }
+            }
+        } else {
+             // Select first available
+            const firstAvailable = aircraftSelect.querySelector('option:not([disabled])');
+            if (firstAvailable) {
+                aircraftSelect.value = firstAvailable.value;
+                // Trigger change to update crew requirements
+                aircraftSelect.dispatchEvent(new Event('change'));
+            }
+        }
     }
 
     function renderCrewList(crewList, container, requiredCount, type) {

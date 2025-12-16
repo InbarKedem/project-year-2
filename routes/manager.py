@@ -10,7 +10,7 @@ from services.employee_service import add_new_staff
 from services.flight_service import (
     get_all_airports, get_all_aircrafts, get_all_pilots, get_all_attendants,
     create_flight, get_active_flights, cancel_flight, get_flight_details, update_flight_status, get_flights,
-    get_crew_availability
+    get_crew_availability, get_aircraft_availability
 )
 from datetime import datetime
 
@@ -52,6 +52,11 @@ def check_availability():
         
     try:
         result = get_crew_availability(source_id, dest_id, departure_time, aircraft_id)
+        
+        # Also get aircraft availability
+        aircrafts = get_aircraft_availability(source_id, dest_id, departure_time)
+        result['aircrafts'] = aircrafts
+        
         return jsonify(result)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
