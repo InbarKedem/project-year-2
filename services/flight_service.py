@@ -1,4 +1,5 @@
 import db
+from datetime import datetime, timedelta
 
 def get_all_airports():
     return db.query_db("SELECT * FROM Airport ORDER BY airport_name")
@@ -8,7 +9,7 @@ def get_all_aircrafts():
 
 def get_all_pilots():
     return db.query_db("""
-        SELECT E.id_number, E.first_name, E.last_name 
+        SELECT E.id_number, E.first_name, E.last_name, FC.trained_for_long_flights
         FROM Employee E 
         JOIN Flight_Crew FC ON E.id_number = FC.id_number 
         WHERE FC.is_pilot = 1
@@ -16,11 +17,211 @@ def get_all_pilots():
 
 def get_all_attendants():
     return db.query_db("""
-        SELECT E.id_number, E.first_name, E.last_name 
+        SELECT E.id_number, E.first_name, E.last_name, FC.trained_for_long_flights
         FROM Employee E 
         JOIN Flight_Crew FC ON E.id_number = FC.id_number 
         WHERE FC.is_pilot = 0
     """)
+
+def get_flight_duration(source_id, dest_id):
+    result = db.query_db("""
+        SELECT flight_duration FROM Flight_Route 
+        WHERE source_airport_id = %s AND dest_airport_id = %s
+    """, (source_id, dest_id), one=True)
+    return result['flight_duration'] if result else 0
+
+def get_aircraft_availability(source_id, dest_id, departure_time_str):
+    # Convert string to datetime if needed
+    if isinstance(departure_time_str, str):
+        try:
+            departure_time = datetime.strptime(departure_time_str, '%Y-%m-%dT%H:%M')
+        except ValueError:
+            try:
+                departure_time = datetime.strptime(departure_time_str, '%Y-%m-%dT%H:%M:%S')
+            except ValueError:
+                return []
+    else:
+        departure_time = departure_time_str
+
+    duration = get_flight_duration(source_id, dest_id)
+    arrival_time = departure_time + timedelta(minutes=duration)
+    is_long_flight = duration > 360 # 6 hours
+
+    # Get airport names
+    source_airport = db.query_db("SELECT airport_name FROM Airport WHERE airport_id = %s", (source_id,), one=True)
+    dest_airport = db.query_db("SELECT airport_name FROM Airport WHERE airport_id = %s", (dest_id,), one=True)
+    source_name = source_airport['airport_name'] if source_airport else "Unknown"
+    dest_name = dest_airport['airport_name'] if dest_airport else "Unknown"
+
+    aircrafts = get_all_aircrafts()
+    
+    for aircraft in aircrafts:
+        aircraft['is_available'] = True
+        aircraft['reason'] = ""
+
+        # Check Size for Long Flights
+        if is_long_flight and not aircraft['is_large']:
+            aircraft['is_available'] = False
+            aircraft['reason'] = "Small aircraft cannot be used for long flights (> 6 hours)"
+            continue
+
+        # Check Previous Flight
+        prev_flight = db.query_db("""
+            SELECT F.dest_airport_id, F.departure_time, COALESCE(FR.flight_duration, 0) as flight_duration, A.airport_name
+            FROM Flight F
+            LEFT JOIN Flight_Route FR ON F.source_airport_id = FR.source_airport_id 
+                AND F.dest_airport_id = FR.dest_airport_id
+            JOIN Airport A ON F.dest_airport_id = A.airport_id
+            WHERE F.aircraft_id = %s 
+                AND F.departure_time < %s
+                AND F.flight_status = 'Active'
+            ORDER BY F.departure_time DESC
+            LIMIT 1
+        """, (aircraft['aircraft_id'], departure_time), one=True)
+
+        if prev_flight:
+            prev_arrival = prev_flight['departure_time'] + timedelta(minutes=prev_flight['flight_duration'])
+            if prev_arrival > departure_time:
+                aircraft['is_available'] = False
+                aircraft['reason'] = f"Busy until {prev_arrival.strftime('%Y-%m-%d %H:%M')}"
+            elif str(prev_flight['dest_airport_id']) != str(source_id):
+                aircraft['is_available'] = False
+                aircraft['reason'] = f"Located at {prev_flight['airport_name']}. Flight departs from {source_name}."
+        
+        # Check Next Flight
+        if aircraft['is_available']:
+            next_flight = db.query_db("""
+                SELECT F.source_airport_id, F.departure_time, A.airport_name
+                FROM Flight F
+                JOIN Airport A ON F.source_airport_id = A.airport_id
+                WHERE F.aircraft_id = %s
+                    AND F.departure_time >= %s
+                    AND F.flight_status = 'Active'
+                ORDER BY F.departure_time ASC
+                LIMIT 1
+            """, (aircraft['aircraft_id'], departure_time), one=True)
+
+            if next_flight:
+                if arrival_time > next_flight['departure_time']:
+                    aircraft['is_available'] = False
+                    aircraft['reason'] = f"Conflict with next flight at {next_flight['departure_time'].strftime('%Y-%m-%d %H:%M')}"
+                elif str(next_flight['source_airport_id']) != str(dest_id):
+                    aircraft['is_available'] = False
+                    aircraft['reason'] = f"Next flight departs from {next_flight['airport_name']}. This flight arrives at {dest_name}."
+
+    return aircrafts
+
+def get_crew_availability(source_id, dest_id, departure_time_str, aircraft_id=None):
+    # Convert string to datetime if needed
+    if isinstance(departure_time_str, str):
+        try:
+            departure_time = datetime.strptime(departure_time_str, '%Y-%m-%dT%H:%M')
+        except ValueError:
+            try:
+                departure_time = datetime.strptime(departure_time_str, '%Y-%m-%dT%H:%M:%S')
+            except ValueError:
+                # Fallback or error
+                return {'crew': [], 'requirements': {'pilots': 0, 'attendants': 0}}
+    else:
+        departure_time = departure_time_str
+
+    duration = get_flight_duration(source_id, dest_id)
+    arrival_time = departure_time + timedelta(minutes=duration)
+    is_long_flight = duration > 360 # 6 hours
+
+    # Determine Requirements
+    requirements = {'pilots': 2, 'attendants': 3} # Default / Small
+    
+    if aircraft_id:
+        aircraft = db.query_db("SELECT is_large FROM Aircraft WHERE aircraft_id = %s", (aircraft_id,), one=True)
+        if aircraft:
+            if aircraft['is_large']:
+                requirements = {'pilots': 3, 'attendants': 6}
+            else:
+                # Small aircraft
+                if is_long_flight:
+                    # This shouldn't happen based on business rules, but we can flag it or just return empty
+                    # For now, we'll proceed but maybe the UI should block it.
+                    pass
+
+    # Get airport names for better messages
+    source_airport = db.query_db("SELECT airport_name FROM Airport WHERE airport_id = %s", (source_id,), one=True)
+    dest_airport = db.query_db("SELECT airport_name FROM Airport WHERE airport_id = %s", (dest_id,), one=True)
+    source_name = source_airport['airport_name'] if source_airport else "Unknown"
+    dest_name = dest_airport['airport_name'] if dest_airport else "Unknown"
+
+    # Get all crew
+    pilots = get_all_pilots()
+    attendants = get_all_attendants()
+    
+    all_crew = []
+    for p in pilots:
+        p['role'] = 'Pilot'
+        all_crew.append(p)
+    for a in attendants:
+        a['role'] = 'Attendant'
+        all_crew.append(a)
+
+    for crew in all_crew:
+        crew['is_available'] = True
+        crew['reason'] = ""
+
+        # Check Training for Long Flights
+        if is_long_flight and not crew['trained_for_long_flights']:
+            crew['is_available'] = False
+            crew['reason'] = "Not trained for long flights (> 6 hours)"
+            continue
+
+        # Check Previous Flight
+        prev_flight = db.query_db("""
+            SELECT F.dest_airport_id, F.departure_time, COALESCE(FR.flight_duration, 0) as flight_duration, A.airport_name
+            FROM Employee_Flight_Assignment EFA
+            JOIN Flight F ON EFA.source_airport_id = F.source_airport_id 
+                AND EFA.dest_airport_id = F.dest_airport_id 
+                AND EFA.departure_time = F.departure_time
+            LEFT JOIN Flight_Route FR ON F.source_airport_id = FR.source_airport_id 
+                AND F.dest_airport_id = FR.dest_airport_id
+            JOIN Airport A ON F.dest_airport_id = A.airport_id
+            WHERE EFA.employee_id = %s 
+                AND F.departure_time < %s
+            ORDER BY F.departure_time DESC
+            LIMIT 1
+        """, (crew['id_number'], departure_time), one=True)
+
+        if prev_flight:
+            prev_arrival = prev_flight['departure_time'] + timedelta(minutes=prev_flight['flight_duration'])
+            if prev_arrival > departure_time:
+                crew['is_available'] = False
+                crew['reason'] = f"Busy until {prev_arrival.strftime('%Y-%m-%d %H:%M')}"
+            elif str(prev_flight['dest_airport_id']) != str(source_id):
+                crew['is_available'] = False
+                crew['reason'] = f"Located at {prev_flight['airport_name']}. Flight departs from {source_name}."
+        
+        # Check Next Flight
+        if crew['is_available']:
+            next_flight = db.query_db("""
+                SELECT F.source_airport_id, F.departure_time, A.airport_name
+                FROM Employee_Flight_Assignment EFA
+                JOIN Flight F ON EFA.source_airport_id = F.source_airport_id 
+                    AND EFA.dest_airport_id = F.dest_airport_id 
+                    AND EFA.departure_time = F.departure_time
+                JOIN Airport A ON F.source_airport_id = A.airport_id
+                WHERE EFA.employee_id = %s
+                    AND F.departure_time >= %s
+                ORDER BY F.departure_time ASC
+                LIMIT 1
+            """, (crew['id_number'], departure_time), one=True)
+
+            if next_flight:
+                if arrival_time > next_flight['departure_time']:
+                    crew['is_available'] = False
+                    crew['reason'] = f"Conflict with next flight at {next_flight['departure_time'].strftime('%Y-%m-%d %H:%M')}"
+                elif str(next_flight['source_airport_id']) != str(dest_id):
+                    crew['is_available'] = False
+                    crew['reason'] = f"Next flight departs from {next_flight['airport_name']}. This flight arrives at {dest_name}."
+
+    return {'crew': all_crew, 'requirements': requirements}
+
 
 def create_flight(source_id, dest_id, departure_time, aircraft_id, economy_price, business_price, crew_ids):
     try:

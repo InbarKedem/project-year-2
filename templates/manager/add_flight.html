@@ -12,7 +12,7 @@
       <div class="staff-form-grid">
         <div class="form-group">
           <label>Source Airport: <span style="color: red">*</span></label>
-          <select name="source_id" required class="form-select">
+          <select name="source_id" id="source_id" required class="form-select">
             {% for airport in airports %}
             <option value="{{ airport.airport_id }}">
               {{ airport.airport_name }}
@@ -22,9 +22,9 @@
         </div>
         <div class="form-group">
           <label>Destination Airport: <span style="color: red">*</span></label>
-          <select name="dest_id" required class="form-select">
+          <select name="dest_id" id="dest_id" required class="form-select">
             {% for airport in airports %}
-            <option value="{{ airport.airport_id }}">
+            <option value="{{ airport.airport_id }}" {% if loop.index == 2 %}selected{% endif %}>
               {{ airport.airport_name }}
             </option>
             {% endfor %}
@@ -32,7 +32,7 @@
         </div>
         <div class="form-group">
           <label>Departure Time: <span style="color: red">*</span></label>
-          <input type="datetime-local" name="departure_time" required />
+          <input type="datetime-local" name="departure_time" id="departure_time" required />
         </div>
       </div>
 
@@ -40,7 +40,7 @@
       <h3>Aircraft</h3>
       <div class="form-group">
         <label>Select Aircraft: <span style="color: red">*</span></label>
-        <select name="aircraft_id" required class="form-select">
+        <select name="aircraft_id" id="aircraft_id" required class="form-select">
           {% for aircraft in aircrafts %}
           <option value="{{ aircraft.aircraft_id }}">
             {{ aircraft.manufacturer }} (ID: {{ aircraft.aircraft_id }})
@@ -55,6 +55,7 @@
         <div class="form-group">
           <label>Pilots:</label>
           <div
+            id="pilots_container"
             class="checkbox-list"
             style="
               max-height: 150px;
@@ -63,6 +64,7 @@
               padding: 5px;
             "
           >
+            <p class="text-muted small">Select flight details to see availability</p>
             {% for pilot in pilots %}
             <label class="checkbox-label">
               <input
@@ -78,6 +80,7 @@
         <div class="form-group">
           <label>Flight Attendants:</label>
           <div
+            id="attendants_container"
             class="checkbox-list"
             style="
               max-height: 150px;
@@ -86,6 +89,7 @@
               padding: 5px;
             "
           >
+            <p class="text-muted small">Select flight details to see availability</p>
             {% for attendant in attendants %}
             <label class="checkbox-label">
               <input
@@ -124,4 +128,6 @@
     </form>
   </div>
 </div>
+
+<script src="{{ url_for('static', filename='js/add_flight.js') }}"></script>
 {% endblock %}

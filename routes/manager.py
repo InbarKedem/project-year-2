@@ -9,7 +9,8 @@ from services.reports_service import (
 from services.employee_service import add_new_staff
 from services.flight_service import (
     get_all_airports, get_all_aircrafts, get_all_pilots, get_all_attendants,
-    create_flight, get_active_flights, cancel_flight, get_flight_details, update_flight_status, get_flights
+    create_flight, get_active_flights, cancel_flight, get_flight_details, update_flight_status, get_flights,
+    get_crew_availability
 )
 from datetime import datetime
 
@@ -35,6 +36,25 @@ def reports():
                            cancellation_report=get_cancellation_report(),
                            plane_activity_report=get_plane_activity_report())
 
+
+@manager_bp.route('/api/check_availability')
+def check_availability():
+    if session.get('role') != 'manager':
+        return jsonify({'error': 'Unauthorized'}), 401
+        
+    source_id = request.args.get('source_id')
+    dest_id = request.args.get('dest_id')
+    departure_time = request.args.get('departure_time')
+    aircraft_id = request.args.get('aircraft_id')
+    
+    if not all([source_id, dest_id, departure_time]):
+        return jsonify({'error': 'Missing parameters'}), 400
+        
+    try:
+        result = get_crew_availability(source_id, dest_id, departure_time, aircraft_id)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @manager_bp.route('/add_staff', methods=['GET', 'POST'])
 def add_staff():
@@ -89,7 +109,9 @@ def add_flight():
         # Get list of selected crew members
         crew_ids = request.form.getlist('crew_ids')
 
-        if not crew_ids:
+        if source_id == dest_id:
+            flash('Source and Destination airports cannot be the same.', 'danger')
+        elif not crew_ids:
             flash('Please assign at least one crew member.', 'danger')
         else:
             success, message = create_flight(
