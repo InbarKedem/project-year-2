@@ -1,0 +1,11 @@
+Site URL: https://inbarkedem.pythonanywhere.com
+
+Login Credentials:
+
+1. Manager:
+   Username: 111111111
+   Password: admin123
+
+2. Regular User (Customer):
+   Email: reg1@test.com
+   Password: pass1
