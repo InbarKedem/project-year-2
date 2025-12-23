@@ -1,6 +1,8 @@
 from db import query_db
+from services.flight_service import update_all_flight_statuses
 
 def get_occupancy_report():
+    update_all_flight_statuses()
     return query_db("""
         SELECT 
             A1.airport_name as source, 
@@ -20,6 +22,7 @@ def get_occupancy_report():
     """)
 
 def get_revenue_report():
+    update_all_flight_statuses()
     return query_db("""
         SELECT 
             AC.manufacturer, 
@@ -37,6 +40,7 @@ def get_revenue_report():
     """)
 
 def get_employee_hours_report():
+    update_all_flight_statuses()
     return query_db("""
         SELECT 
             E.first_name, 
@@ -69,6 +73,7 @@ def get_cancellation_report():
     """)
 
 def get_plane_activity_report():
+    update_all_flight_statuses()
     return query_db("""
         SELECT 
             F.aircraft_id,

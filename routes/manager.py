@@ -10,7 +10,7 @@ from services.employee_service import add_new_staff
 from services.flight_service import (
     get_all_airports, get_all_aircrafts, get_all_pilots, get_all_attendants,
     create_flight, get_active_flights, cancel_flight, get_flight_details, update_flight_status, get_flights,
-    get_crew_availability, get_aircraft_availability, get_flight_duration
+    get_crew_availability, get_aircraft_availability, get_flight_duration, update_all_flight_statuses
 )
 from db import query_db
 from datetime import datetime
@@ -97,6 +97,7 @@ def reports():
 
 @manager_bp.route('/api/check_availability')
 def check_availability():
+    update_all_flight_statuses()
     if session.get('role') != 'manager':
         return jsonify({'error': 'Unauthorized'}), 401
         
@@ -207,6 +208,7 @@ def add_flight():
 
 @manager_bp.route('/manage_flights')
 def manage_flights():
+    update_all_flight_statuses()
     if session.get('role') != 'manager':
         flash('Access denied. Managers only.', 'danger')
         return redirect(url_for('auth.login'))
@@ -251,6 +253,7 @@ def cancel_flight_route(source_id, dest_id, departure_time):
 
 @manager_bp.route('/api/flight_details/<int:source_id>/<int:dest_id>/<departure_time>')
 def api_flight_details(source_id, dest_id, departure_time):
+    update_all_flight_statuses()
     if session.get('role') != 'manager':
         return jsonify({'error': 'Access denied'}), 403
     

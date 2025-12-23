@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from db import query_db, execute_db
 from datetime import datetime, timedelta
+from services.flight_service import update_all_flight_statuses
 
 customer_bp = Blueprint('customer', __name__)
 
@@ -11,6 +12,7 @@ def index():
         flash('Managers cannot access customer pages. Please use the manager dashboard.', 'warning')
         return redirect(url_for('manager.manager_dashboard'))
     
+    update_all_flight_statuses()
     airports = query_db("SELECT airport_name FROM Airport")
     
     # Search Logic
@@ -355,6 +357,7 @@ def cancel_order(order_code):
 
 @customer_bp.route('/book_flight', methods=['GET', 'POST'])
 def book_flight():
+    update_all_flight_statuses()
     if 'user_id' in session and session.get('role') == 'manager':
         flash("Managers cannot book flights. Please log in as a customer.", "danger")
         return redirect(url_for('manager.manager_dashboard'))

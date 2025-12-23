@@ -23,3 +23,14 @@
   color: #0c5460;
   border-left: 5px solid var(--color-primary-light);
 }
+
+.alert--warning {
+  background-color: #fff3cd;
+  color: #856404;
+  border-left: 5px solid #ffc107;
+}
+
+/* Progressive enhancement: keep flash messages visible without JS. */
+.popups-enabled .flash-messages {
+  display: none;
+}
