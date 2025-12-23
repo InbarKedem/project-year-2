@@ -10,11 +10,69 @@ from services.employee_service import add_new_staff
 from services.flight_service import (
     get_all_airports, get_all_aircrafts, get_all_pilots, get_all_attendants,
     create_flight, get_active_flights, cancel_flight, get_flight_details, update_flight_status, get_flights,
-    get_crew_availability, get_aircraft_availability, update_all_flight_statuses
+    get_crew_availability, get_aircraft_availability, get_flight_duration, update_all_flight_statuses
 )
+from db import query_db
 from datetime import datetime
 
 manager_bp = Blueprint('manager', __name__)
+
+def validate_crew_count(crew_ids, aircraft_id, source_id, dest_id, departure_time):
+    """
+    Validates that the selected crew count matches the requirements.
+    Returns (is_valid, message)
+    """
+    if not crew_ids:
+        return False, "No crew members selected."
+    
+    # Get aircraft type
+    aircraft = query_db("SELECT is_large FROM Aircraft WHERE aircraft_id = %s", (aircraft_id,), one=True)
+    if not aircraft:
+        return False, "Invalid aircraft selected."
+    
+    # Get flight duration to determine requirements
+    duration = get_flight_duration(source_id, dest_id)
+    
+    # Determine requirements based on aircraft size
+    if aircraft['is_large']:
+        required_pilots = 3
+        required_attendants = 6
+    else:
+        required_pilots = 2
+        required_attendants = 3
+    
+    # Count selected pilots and attendants
+    selected_pilots = []
+    selected_attendants = []
+    
+    for crew_id in crew_ids:
+        # Check if it's a pilot or attendant
+        pilot_check = query_db("""
+            SELECT id_number FROM Flight_Crew 
+            WHERE id_number = %s AND is_pilot = 1
+        """, (crew_id,), one=True)
+        
+        if pilot_check:
+            selected_pilots.append(crew_id)
+        else:
+            attendant_check = query_db("""
+                SELECT id_number FROM Flight_Crew 
+                WHERE id_number = %s AND is_pilot = 0
+            """, (crew_id,), one=True)
+            if attendant_check:
+                selected_attendants.append(crew_id)
+    
+    # Validate counts
+    pilot_count = len(selected_pilots)
+    attendant_count = len(selected_attendants)
+    
+    if pilot_count != required_pilots:
+        return False, f"Invalid number of pilots. Required: {required_pilots}, Selected: {pilot_count}"
+    
+    if attendant_count != required_attendants:
+        return False, f"Invalid number of attendants. Required: {required_attendants}, Selected: {attendant_count}"
+    
+    return True, "Crew count is valid"
 
 @manager_bp.route('/manager')
 def manager_dashboard():
@@ -120,16 +178,21 @@ def add_flight():
         elif not crew_ids:
             flash('Please assign at least one crew member.', 'danger')
         else:
-            success, message = create_flight(
-                source_id, dest_id, departure_time, aircraft_id, 
-                economy_price, business_price, crew_ids
-            )
-            
-            if success:
-                flash(message, 'success')
-                return redirect(url_for('manager.manager_dashboard'))
+            # Validate crew count matches requirements
+            validation_result = validate_crew_count(crew_ids, aircraft_id, source_id, dest_id, departure_time)
+            if not validation_result[0]:
+                flash(validation_result[1], 'danger')
             else:
-                flash(message, 'danger')
+                success, message = create_flight(
+                    source_id, dest_id, departure_time, aircraft_id, 
+                    economy_price, business_price, crew_ids
+                )
+                
+                if success:
+                    flash(message, 'success')
+                    return redirect(url_for('manager.manager_dashboard'))
+                else:
+                    flash(message, 'danger')
 
     # Fetch data for dropdowns
     airports = get_all_airports()

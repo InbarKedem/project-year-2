@@ -7,6 +7,11 @@ customer_bp = Blueprint('customer', __name__)
 
 @customer_bp.route('/')
 def index():
+    # Prevent managers from accessing customer pages
+    if session.get('role') == 'manager':
+        flash('Managers cannot access customer pages. Please use the manager dashboard.', 'warning')
+        return redirect(url_for('manager.manager_dashboard'))
+    
     update_all_flight_statuses()
     airports = query_db("SELECT airport_name FROM Airport")
     
@@ -70,6 +75,11 @@ def index():
 
 @customer_bp.route('/track_order', methods=['GET', 'POST'])
 def track_order():
+    # Prevent managers from tracking orders
+    if session.get('role') == 'manager':
+        flash('Managers cannot track orders. Please log in as a customer.', 'warning')
+        return redirect(url_for('manager.manager_dashboard'))
+    
     order = None
     if request.method == 'POST':
         order_code = request.form.get('order_code')
@@ -106,6 +116,18 @@ def my_orders():
     
     email = session.get('user_id')
     status_filter = request.args.get('status')
+    date_from = request.args.get('date_from')
+    date_to = request.args.get('date_to')
+    departure_from = request.args.get('departure_from')
+    departure_to = request.args.get('departure_to')
+    source_airport = request.args.get('source_airport')
+    dest_airport = request.args.get('dest_airport')
+    min_price = request.args.get('min_price')
+    max_price = request.args.get('max_price')
+    order_code_filter = request.args.get('order_code')
+    seat_class_filter = request.args.get('seat_class')
+    sort_by = request.args.get('sort_by', 'order_date')
+    sort_order = request.args.get('sort_order', 'DESC')
     
     query = """
         SELECT 
@@ -130,8 +152,69 @@ def my_orders():
     if status_filter:
         query += " AND O.order_status = %s"
         params.append(status_filter)
-        
-    query += " ORDER BY O.order_date DESC"
+    
+    if date_from:
+        query += " AND DATE(O.order_date) >= %s"
+        params.append(date_from)
+    
+    if date_to:
+        query += " AND DATE(O.order_date) <= %s"
+        params.append(date_to)
+    
+    if departure_from:
+        query += " AND DATE(O.departure_time) >= %s"
+        params.append(departure_from)
+    
+    if departure_to:
+        query += " AND DATE(O.departure_time) <= %s"
+        params.append(departure_to)
+    
+    if source_airport:
+        query += " AND A1.airport_name = %s"
+        params.append(source_airport)
+    
+    if dest_airport:
+        query += " AND A2.airport_name = %s"
+        params.append(dest_airport)
+    
+    if order_code_filter:
+        try:
+            query += " AND O.order_code = %s"
+            params.append(int(order_code_filter))
+        except ValueError:
+            pass
+    
+    if seat_class_filter:
+        # Filter by seat class - need to check if order has seats of that class
+        if seat_class_filter == 'business':
+            query += " AND EXISTS (SELECT 1 FROM Order_Seats OS2 WHERE OS2.order_code = O.order_code AND OS2.is_business = 1)"
+        elif seat_class_filter == 'economy':
+            query += " AND EXISTS (SELECT 1 FROM Order_Seats OS2 WHERE OS2.order_code = O.order_code AND OS2.is_business = 0)"
+    
+    if min_price:
+        try:
+            query += " AND O.total_payment >= %s"
+            params.append(float(min_price))
+        except ValueError:
+            pass
+    
+    if max_price:
+        try:
+            query += " AND O.total_payment <= %s"
+            params.append(float(max_price))
+        except ValueError:
+            pass
+    
+    # Validate sort_by to prevent SQL injection
+    valid_sort_columns = ['order_date', 'departure_time', 'total_payment', 'order_code']
+    if sort_by not in valid_sort_columns:
+        sort_by = 'order_date'
+    
+    # Validate sort_order
+    if sort_order.upper() not in ['ASC', 'DESC']:
+        sort_order = 'DESC'
+    
+    query += f" ORDER BY O.{sort_by} {sort_order}"
     
     raw_orders = query_db(query, tuple(params))
     
@@ -153,8 +236,16 @@ def my_orders():
                 'seats': []
             }
             
-            # Add to total spending if not cancelled
-            if row['order_status'] != 'Cancelled' and row['order_status'] != 'Customer Cancelled' and row['order_status'] != 'System Cancelled':
+            # Add to total spending:
+            # - Active/Confirmed orders: full payment
+            # - Customer Cancelled: 5% cancellation fee (stored in total_payment)
+            # - System Cancelled: 0 (full refund)
+            # - Cancelled (legacy): 0
+            if row['order_status'] == 'Customer Cancelled':
+                # Customer cancelled orders have the 5% fee stored in total_payment
+                total_spending += row['total_payment']
+            elif row['order_status'] not in ['Cancelled', 'System Cancelled']:
+                # Active, Confirmed orders - full payment
                 total_spending += row['total_payment']
         
         if row['row_number'] is not None:
@@ -166,10 +257,21 @@ def my_orders():
     
     orders = list(orders_map.values())
     
-    return render_template('customer/my_orders.html', orders=orders, total_spending=total_spending)
+    # Get airports for filter dropdown
+    airports = query_db("SELECT airport_name FROM Airport ORDER BY airport_name")
+    
+    return render_template('customer/my_orders.html', 
+                          orders=orders, 
+                          total_spending=total_spending,
+                          airports=airports)
 
 @customer_bp.route('/cancel_order/<int:order_code>', methods=['POST'])
 def cancel_order(order_code):
+    # Prevent managers from canceling orders
+    if session.get('role') == 'manager':
+        flash('Managers cannot cancel orders. Please log in as a customer.', 'warning')
+        return redirect(url_for('manager.manager_dashboard'))
+    
     # 1. Identify User (Session or Form)
     email = None
     if 'user_id' in session and session.get('role') == 'customer':
@@ -258,7 +360,7 @@ def book_flight():
     update_all_flight_statuses()
     if 'user_id' in session and session.get('role') == 'manager':
         flash("Managers cannot book flights. Please log in as a customer.", "danger")
-        return redirect(url_for('customer.index'))
+        return redirect(url_for('manager.manager_dashboard'))
 
     import random
     from datetime import datetime
@@ -398,7 +500,7 @@ def book_flight():
         FROM Order_Seats OS
         JOIN Order_Table O ON OS.order_code = O.order_code
         WHERE O.source_airport_id = %s AND O.dest_airport_id = %s AND O.departure_time = %s
-        AND O.order_status != 'Cancelled'
+        AND O.order_status NOT IN ('Cancelled', 'Customer Cancelled', 'System Cancelled')
     """
     occupied_seats = query_db(occupied_query, (source_id, dest_id, time_str))
     

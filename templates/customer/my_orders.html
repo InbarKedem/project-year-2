@@ -4,26 +4,205 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_my_orders.css') }}">
 {% endblock %}
 
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/my_orders.js') }}"></script>
+{% endblock %}
+
 {% block content %}
 <h2>My Orders</h2>
 
-<div class="spending-summary" style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #dee2e6;">
+<div class="spending-summary">
     <h3>Total Spending: ${{ "%.2f"|format(total_spending) }}</h3>
 </div>
 
 <div class="filter-section">
-    <form action="{{ url_for('customer.my_orders') }}" method="GET">
-        <label for="status">Filter by Status:</label>
-        <select name="status" id="status">
-            <option value="">All</option>
-            <option value="Active" {% if request.args.get('status') == 'Active' %}selected{% endif %}>Active</option>
-            <option value="Completed" {% if request.args.get('status') == 'Completed' %}selected{% endif %}>Completed</option>
-            <option value="Customer Cancelled" {% if request.args.get('status') == 'Customer Cancelled' %}selected{% endif %}>Customer Cancelled</option>
-            <option value="System Cancelled" {% if request.args.get('status') == 'System Cancelled' %}selected{% endif %}>System Cancelled</option>
-        </select>
-        <button type="submit" class="btn">Filter</button>
+    <div class="filter-header">
+        <h3 class="filter-title">
+            <span class="filter-icon">🔍</span>
+            Filter Orders
+            {% set active_filters = [] %}
+            {% for key, value in request.args.items() %}
+                {% if value %}
+                    {% set _ = active_filters.append(1) %}
+                {% endif %}
+            {% endfor %}
+            {% if active_filters|length > 0 %}
+            <span class="active-filters-count">({{ active_filters|length }} active)</span>
+            {% endif %}
+        </h3>
+        <button type="button" class="filter-toggle" id="filterToggle">
+            <span id="toggle-text">Collapse</span>
+            <span class="toggle-icon">▼</span>
+        </button>
+    </div>
+    
+    <form action="{{ url_for('customer.my_orders') }}" method="GET" class="filter-form" id="filterForm">
+        <!-- Filters Section -->
+        <div class="filter-category basic-filters">
+            <h4 class="category-title">Filters</h4>
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label for="status">Order Status:</label>
+                    <select name="status" id="status">
+                        <option value="">All Statuses</option>
+                        <option value="Confirmed" {% if request.args.get('status') == 'Confirmed' %}selected{% endif %}>Confirmed</option>
+                        <option value="Active" {% if request.args.get('status') == 'Active' %}selected{% endif %}>Active</option>
+                        <option value="Customer Cancelled" {% if request.args.get('status') == 'Customer Cancelled' %}selected{% endif %}>Customer Cancelled</option>
+                        <option value="System Cancelled" {% if request.args.get('status') == 'System Cancelled' %}selected{% endif %}>System Cancelled</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group filter-actions-inline">
+                    <button type="submit" class="btn btn-primary">
+                        <span>✓</span> Apply Filters
+                    </button>
+                    <a href="{{ url_for('customer.my_orders') }}" class="btn btn--secondary">
+                        <span>✕</span> Clear
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sort Options Section -->
+        <div class="filter-category sort-options">
+            <h4 class="category-title">Sort Options</h4>
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label for="sort_by">Sort By:</label>
+                    <select name="sort_by" id="sort_by">
+                        <option value="order_date" {% if request.args.get('sort_by') == 'order_date' or not request.args.get('sort_by') %}selected{% endif %}>Order Date</option>
+                        <option value="departure_time" {% if request.args.get('sort_by') == 'departure_time' %}selected{% endif %}>Departure Time</option>
+                        <option value="total_payment" {% if request.args.get('sort_by') == 'total_payment' %}selected{% endif %}>Total Payment</option>
+                        <option value="order_code" {% if request.args.get('sort_by') == 'order_code' %}selected{% endif %}>Order Code</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="sort_order">Sort Order:</label>
+                    <select name="sort_order" id="sort_order">
+                        <option value="DESC" {% if request.args.get('sort_order') == 'DESC' or not request.args.get('sort_order') %}selected{% endif %}>Newest First</option>
+                        <option value="ASC" {% if request.args.get('sort_order') == 'ASC' %}selected{% endif %}>Oldest First</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Advanced Filters (Hidden by Default) -->
+        <div class="advanced-filters-container" id="advancedFilters" style="display: none;">
+            <div class="advanced-filters-grid">
+                <div class="filter-category">
+                    <h4 class="category-title">Search & Details</h4>
+                    <div class="filter-row">
+                        <div class="filter-group">
+                            <label for="order_code">Order Code:</label>
+                            <input type="number" name="order_code" id="order_code" 
+                                   placeholder="Search by order code..."
+                                   value="{{ request.args.get('order_code', '') }}">
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label for="seat_class">Seat Class:</label>
+                            <select name="seat_class" id="seat_class">
+                                <option value="">All Classes</option>
+                                <option value="business" {% if request.args.get('seat_class') == 'business' %}selected{% endif %}>Business</option>
+                                <option value="economy" {% if request.args.get('seat_class') == 'economy' %}selected{% endif %}>Economy</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="filter-category">
+                    <h4 class="category-title">Flight Details</h4>
+                    <div class="filter-row">
+                        <div class="filter-group">
+                            <label for="source_airport">Source Airport:</label>
+                            <select name="source_airport" id="source_airport">
+                                <option value="">All Airports</option>
+                                {% for airport in airports %}
+                                <option value="{{ airport.airport_name }}" {% if request.args.get('source_airport') == airport.airport_name %}selected{% endif %}>{{ airport.airport_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label for="dest_airport">Destination Airport:</label>
+                            <select name="dest_airport" id="dest_airport">
+                                <option value="">All Airports</option>
+                                {% for airport in airports %}
+                                <option value="{{ airport.airport_name }}" {% if request.args.get('dest_airport') == airport.airport_name %}selected{% endif %}>{{ airport.airport_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="filter-category">
+                    <h4 class="category-title">Order Date Range</h4>
+                    <div class="filter-row">
+                        <div class="filter-group">
+                            <label for="date_from">From:</label>
+                            <input type="date" name="date_from" id="date_from" 
+                                   value="{{ request.args.get('date_from', '') }}">
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label for="date_to">To:</label>
+                            <input type="date" name="date_to" id="date_to" 
+                                   value="{{ request.args.get('date_to', '') }}">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="filter-category">
+                    <h4 class="category-title">Departure Date Range</h4>
+                    <div class="filter-row">
+                        <div class="filter-group">
+                            <label for="departure_from">From:</label>
+                            <input type="date" name="departure_from" id="departure_from" 
+                                   value="{{ request.args.get('departure_from', '') }}">
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label for="departure_to">To:</label>
+                            <input type="date" name="departure_to" id="departure_to" 
+                                   value="{{ request.args.get('departure_to', '') }}">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="filter-category">
+                    <h4 class="category-title">Price Range</h4>
+                    <div class="filter-row">
+                        <div class="filter-group">
+                            <label for="min_price">Min Price ($):</label>
+                            <input type="number" name="min_price" id="min_price" 
+                                   step="0.01" min="0" 
+                                   placeholder="0.00"
+                                   value="{{ request.args.get('min_price', '') }}">
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label for="max_price">Max Price ($):</label>
+                            <input type="number" name="max_price" id="max_price" 
+                                   step="0.01" min="0" 
+                                   placeholder="0.00"
+                                   value="{{ request.args.get('max_price', '') }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Toggle Advanced Filters Button -->
+        <div class="filter-toggle-section">
+            <button type="button" class="btn btn--secondary btn-toggle-advanced" id="toggleAdvancedBtn">
+                <span id="toggle-advanced-text">Show Advanced Filters</span>
+                <span class="toggle-icon">▼</span>
+            </button>
+        </div>
     </form>
 </div>
+
 
 <table class="table">
     <thead>
@@ -47,7 +226,7 @@
             <td>{{ order.departure_time }}</td>
             <td>
                 {% if order.seats %}
-                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                    <div class="seats-container">
                     {% for seat in order.seats %}
                         <span class="badge badge--info">
                             Row {{ seat.row }}, Seat {{ seat.col }}
@@ -67,9 +246,11 @@
             </td>
             <td>
                 {% if order.order_status == 'Confirmed' or order.order_status == 'Active' %}
-                <form action="{{ url_for('customer.cancel_order', order_code=order.order_code) }}" method="POST" onsubmit="return confirm('Are you sure you want to cancel this order? A 5% cancellation fee will be applied.');">
-                    <button type="submit" class="btn btn-danger btn-sm">Cancel</button>
+                <form action="{{ url_for('customer.cancel_order', order_code=order.order_code) }}" method="POST" class="cancel-order-form">
+                    <button type="submit" class="btn btn-danger btn-sm">Cancel Order</button>
                 </form>
+                {% else %}
+                <span class="text-muted">No actions available</span>
                 {% endif %}
             </td>
         </tr>
