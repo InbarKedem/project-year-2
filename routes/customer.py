@@ -222,7 +222,7 @@ def cancel_order(order_code):
     refund_amount = float(order['total_payment']) - fee
     
     try:
-        execute_db("UPDATE Order_Table SET order_status = 'Customer Cancelled' WHERE order_code = %s", (order_code,))
+        execute_db("UPDATE Order_Table SET order_status = 'Customer Cancelled', total_payment = %s WHERE order_code = %s", (fee, order_code))
         flash(f'Order cancelled successfully. A 5% cancellation fee (${fee:.2f}) was deducted. Refund amount: ${refund_amount:.2f}', 'success')
     except Exception as e:
         flash(f'Error cancelling order: {e}', 'danger')
