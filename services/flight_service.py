@@ -336,17 +336,37 @@ def cancel_flight(source_id, dest_id, departure_time):
         """, (source_id, dest_id, departure_time), one=True)
         
         if updated_flight['flight_status'] == 'Cancelled':
-            # Update all related orders to 'System Cancelled' if they're not already cancelled
-            db.execute_db("""
-                UPDATE Order_Table 
-                SET order_status = 'System Cancelled'
+            # Get affected orders and total refund amount before updating
+            affected_orders = db.query_db("""
+                SELECT order_code, total_payment, customer_email
+                FROM Order_Table 
                 WHERE source_airport_id = %s 
                 AND dest_airport_id = %s 
                 AND departure_time = %s
                 AND order_status NOT IN ('Cancelled', 'Customer Cancelled', 'System Cancelled')
             """, (source_id, dest_id, departure_time))
             
-            return True, "Flight cancelled successfully. All related orders have been cancelled."
+            total_refund = sum(float(order['total_payment']) for order in affected_orders)
+            order_count = len(affected_orders)
+            
+            # Update all related orders to 'System Cancelled' and set total_payment to 0 (full refund)
+            db.execute_db("""
+                UPDATE Order_Table 
+                SET order_status = 'System Cancelled',
+                    total_payment = 0.00
+                WHERE source_airport_id = %s 
+                AND dest_airport_id = %s 
+                AND departure_time = %s
+                AND order_status NOT IN ('Cancelled', 'Customer Cancelled', 'System Cancelled')
+            """, (source_id, dest_id, departure_time))
+            
+            # Build detailed refund message
+            if order_count > 0:
+                refund_message = f"Flight cancelled successfully. {order_count} order(s) cancelled with full refund of ${total_refund:.2f} processed. All customers will receive their full payment back."
+            else:
+                refund_message = "Flight cancelled successfully. No active orders were affected."
+            
+            return True, refund_message
         else:
             return False, "Could not cancel flight (less than 72 hours before departure or already cancelled)"
 
