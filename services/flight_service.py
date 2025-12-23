@@ -1,6 +1,25 @@
 import db
 from datetime import datetime, timedelta
 
+def update_all_flight_statuses():
+    """
+    Updates flight statuses based on current time and departure time.
+    Flights that have already departed (departure_time < NOW()) and are still 'Active'
+    will be updated to 'Completed'.
+    This function should be called before any flight-related queries to ensure
+    flight statuses are always up-to-date.
+    """
+    try:
+        db.execute_db("""
+            UPDATE Flight 
+            SET flight_status = 'Completed'
+            WHERE flight_status = 'Active' 
+            AND departure_time < NOW()
+        """)
+    except Exception as e:
+        # Log error but don't fail the request
+        print(f"Error updating flight statuses: {e}")
+
 def get_all_airports():
     return db.query_db("SELECT * FROM Airport ORDER BY airport_name")
 
@@ -31,6 +50,7 @@ def get_flight_duration(source_id, dest_id):
     return result['flight_duration'] if result else 0
 
 def get_aircraft_availability(source_id, dest_id, departure_time_str):
+    update_all_flight_statuses()
     # Convert string to datetime if needed
     if isinstance(departure_time_str, str):
         try:
@@ -112,6 +132,7 @@ def get_aircraft_availability(source_id, dest_id, departure_time_str):
     return aircrafts
 
 def get_crew_availability(source_id, dest_id, departure_time_str, aircraft_id=None):
+    update_all_flight_statuses()
     # Convert string to datetime if needed
     if isinstance(departure_time_str, str):
         try:
@@ -243,6 +264,7 @@ def create_flight(source_id, dest_id, departure_time, aircraft_id, economy_price
         return False, str(e)
 
 def get_flights(status=None, source_id=None, dest_id=None, date_from=None, date_to=None):
+    update_all_flight_statuses()
     query = """
         SELECT F.*, A1.airport_name as source, A2.airport_name as dest 
         FROM Flight F
@@ -277,6 +299,7 @@ def get_flights(status=None, source_id=None, dest_id=None, date_from=None, date_
     return db.query_db(query, tuple(params))
 
 def get_active_flights():
+    update_all_flight_statuses()
     return db.query_db("""
         SELECT F.*, A1.airport_name as source, A2.airport_name as dest 
         FROM Flight F
@@ -287,6 +310,7 @@ def get_active_flights():
     """)
 
 def cancel_flight(source_id, dest_id, departure_time):
+    update_all_flight_statuses()
     try:
         # Check 72 hours rule
         flight = db.query_db("""
@@ -327,6 +351,7 @@ def cancel_flight(source_id, dest_id, departure_time):
         return False, str(e)
 
 def get_flight_details(source_id, dest_id, departure_time):
+    update_all_flight_statuses()
     # Get flight info + aircraft info
     flight = db.query_db("""
         SELECT F.*, 
