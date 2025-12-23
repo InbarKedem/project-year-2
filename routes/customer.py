@@ -234,8 +234,16 @@ def my_orders():
                 'seats': []
             }
             
-            # Add to total spending if not cancelled
-            if row['order_status'] != 'Cancelled' and row['order_status'] != 'Customer Cancelled' and row['order_status'] != 'System Cancelled':
+            # Add to total spending:
+            # - Active/Confirmed orders: full payment
+            # - Customer Cancelled: 5% cancellation fee (stored in total_payment)
+            # - System Cancelled: 0 (full refund)
+            # - Cancelled (legacy): 0
+            if row['order_status'] == 'Customer Cancelled':
+                # Customer cancelled orders have the 5% fee stored in total_payment
+                total_spending += row['total_payment']
+            elif row['order_status'] not in ['Cancelled', 'System Cancelled']:
+                # Active, Confirmed orders - full payment
                 total_spending += row['total_payment']
         
         if row['row_number'] is not None:
