@@ -6,6 +6,11 @@ customer_bp = Blueprint('customer', __name__)
 
 @customer_bp.route('/')
 def index():
+    # Prevent managers from accessing customer pages
+    if session.get('role') == 'manager':
+        flash('Managers cannot access customer pages. Please use the manager dashboard.', 'warning')
+        return redirect(url_for('manager.manager_dashboard'))
+    
     airports = query_db("SELECT airport_name FROM Airport")
     
     # Search Logic
@@ -68,6 +73,11 @@ def index():
 
 @customer_bp.route('/track_order', methods=['GET', 'POST'])
 def track_order():
+    # Prevent managers from tracking orders
+    if session.get('role') == 'manager':
+        flash('Managers cannot track orders. Please log in as a customer.', 'warning')
+        return redirect(url_for('manager.manager_dashboard'))
+    
     order = None
     if request.method == 'POST':
         order_code = request.form.get('order_code')
@@ -168,6 +178,11 @@ def my_orders():
 
 @customer_bp.route('/cancel_order/<int:order_code>', methods=['POST'])
 def cancel_order(order_code):
+    # Prevent managers from canceling orders
+    if session.get('role') == 'manager':
+        flash('Managers cannot cancel orders. Please log in as a customer.', 'warning')
+        return redirect(url_for('manager.manager_dashboard'))
+    
     # 1. Identify User (Session or Form)
     email = None
     if 'user_id' in session and session.get('role') == 'customer':
@@ -255,7 +270,7 @@ def cancel_order(order_code):
 def book_flight():
     if 'user_id' in session and session.get('role') == 'manager':
         flash("Managers cannot book flights. Please log in as a customer.", "danger")
-        return redirect(url_for('customer.index'))
+        return redirect(url_for('manager.manager_dashboard'))
 
     import random
     from datetime import datetime
@@ -395,7 +410,7 @@ def book_flight():
         FROM Order_Seats OS
         JOIN Order_Table O ON OS.order_code = O.order_code
         WHERE O.source_airport_id = %s AND O.dest_airport_id = %s AND O.departure_time = %s
-        AND O.order_status != 'Cancelled'
+        AND O.order_status NOT IN ('Cancelled', 'Customer Cancelled', 'System Cancelled')
     """
     occupied_seats = query_db(occupied_query, (source_id, dest_id, time_str))
     

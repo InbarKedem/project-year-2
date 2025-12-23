@@ -45,6 +45,11 @@ def login():
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
+    # Prevent managers from registering as customers
+    if session.get('role') == 'manager':
+        flash('Managers cannot register as customers. Please log out first if you want to create a customer account.', 'warning')
+        return redirect(url_for('manager.manager_dashboard'))
+    
     if request.method == 'POST':
         email = request.form.get('email')
         first_name = request.form.get('first_name')

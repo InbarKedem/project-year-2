@@ -297,13 +297,7 @@ def cancel_flight(source_id, dest_id, departure_time):
         if not flight:
             return False, "Flight not found"
 
-        # Calculate time difference
-        # Note: In a real app, we'd do this check in Python with datetime objects
-        # But for now, let's assume the UI handles the initial check or we do it here
-        # Let's do a simple SQL check or Python check.
-        # Since departure_time is a string or datetime depending on the driver...
-        
-        # Let's just update status for now, assuming the controller checks the time or we check it in SQL
+        # Update flight status to Cancelled (only if >= 72 hours before departure)
         db.execute_db("""
             UPDATE Flight 
             SET flight_status = 'Cancelled'
@@ -311,15 +305,24 @@ def cancel_flight(source_id, dest_id, departure_time):
             AND TIMESTAMPDIFF(HOUR, NOW(), departure_time) >= 72
         """, (source_id, dest_id, departure_time))
         
-        # Check if it was actually updated (row count) - execute_db returns lastrowid, not rowcount usually in this helper
-        # We might need to check the status again
+        # Check if flight was actually updated
         updated_flight = db.query_db("""
             SELECT flight_status FROM Flight 
             WHERE source_airport_id = %s AND dest_airport_id = %s AND departure_time = %s
         """, (source_id, dest_id, departure_time), one=True)
         
         if updated_flight['flight_status'] == 'Cancelled':
-            return True, "Flight cancelled successfully"
+            # Update all related orders to 'System Cancelled' if they're not already cancelled
+            db.execute_db("""
+                UPDATE Order_Table 
+                SET order_status = 'System Cancelled'
+                WHERE source_airport_id = %s 
+                AND dest_airport_id = %s 
+                AND departure_time = %s
+                AND order_status NOT IN ('Cancelled', 'Customer Cancelled', 'System Cancelled')
+            """, (source_id, dest_id, departure_time))
+            
+            return True, "Flight cancelled successfully. All related orders have been cancelled."
         else:
             return False, "Could not cancel flight (less than 72 hours before departure or already cancelled)"
 
@@ -366,6 +369,19 @@ def update_flight_status(source_id, dest_id, departure_time, new_status):
             SET flight_status = %s
             WHERE source_airport_id = %s AND dest_airport_id = %s AND departure_time = %s
         """, (new_status, source_id, dest_id, departure_time))
+        
+        # If status is set to 'Cancelled', update all related orders to 'System Cancelled'
+        if new_status == 'Cancelled':
+            db.execute_db("""
+                UPDATE Order_Table 
+                SET order_status = 'System Cancelled'
+                WHERE source_airport_id = %s 
+                AND dest_airport_id = %s 
+                AND departure_time = %s
+                AND order_status NOT IN ('Cancelled', 'Customer Cancelled', 'System Cancelled')
+            """, (source_id, dest_id, departure_time))
+            return True, "Flight status updated to Cancelled. All related orders have been cancelled."
+        
         return True, "Status updated successfully"
     except Exception as e:
         return False, str(e)

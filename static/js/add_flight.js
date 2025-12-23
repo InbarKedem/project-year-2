@@ -5,6 +5,9 @@ document.addEventListener("DOMContentLoaded", function () {
   const aircraftSelect = document.getElementById("aircraft_id");
   const pilotsContainer = document.getElementById("pilots_container");
   const attendantsContainer = document.getElementById("attendants_container");
+  
+  // Store current requirements for form validation
+  let currentRequirements = { pilots: 2, attendants: 3 };
 
   function checkAvailability() {
     const sourceId = sourceSelect.value;
@@ -51,6 +54,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const crewData = data.crew;
     const requirements = data.requirements;
+    
+    // Store requirements for form validation
+    currentRequirements = requirements;
 
     const pilots = crewData.filter((c) => c.role === "Pilot");
     const attendants = crewData.filter((c) => c.role === "Attendant");
@@ -143,6 +149,15 @@ document.addEventListener("DOMContentLoaded", function () {
     reqText.className = "text-muted small";
     reqText.textContent = `Required: ${requiredCount}`;
     header.appendChild(reqText);
+    
+    // Add selected count display
+    const countDisplay = document.createElement("span");
+    countDisplay.className = "selected-count";
+    countDisplay.style.marginLeft = "10px";
+    countDisplay.style.fontWeight = "bold";
+    countDisplay.textContent = `Selected: 0/${requiredCount}`;
+    countDisplay.style.color = "orange";
+    header.appendChild(countDisplay);
 
     if (availableCount < requiredCount) {
       const warning = document.createElement("span");
@@ -191,8 +206,8 @@ document.addEventListener("DOMContentLoaded", function () {
       }
 
       // Add change listener for enforcement
-      input.addEventListener("change", function () {
-        validateSelection(container, requiredCount, type);
+      input.addEventListener("change", function (event) {
+        validateSelection(container, requiredCount, type, event.target);
       });
 
       const textSpan = document.createElement("span");
@@ -211,9 +226,13 @@ document.addEventListener("DOMContentLoaded", function () {
       label.appendChild(textSpan);
       container.appendChild(label);
     });
+    
+    // Update selected count display after rendering
+    const checkedBoxes = container.querySelectorAll(`input[data-type="${type}"]:checked`);
+    updateSelectedCount(container, checkedBoxes.length, requiredCount, type);
   }
 
-  function validateSelection(container, maxCount, type) {
+  function validateSelection(container, maxCount, type, changedCheckbox) {
     const checkboxes = container.querySelectorAll(`input[data-type="${type}"]`);
     let checkedCount = 0;
     checkboxes.forEach((cb) => {
@@ -221,9 +240,40 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     if (checkedCount > maxCount) {
-      alert(`You can only select ${maxCount} ${type}.`);
-      // Uncheck the last one
-      event.target.checked = false;
+      alert(`You can only select ${maxCount} ${type}. Please uncheck one.`);
+      // Uncheck the checkbox that was just checked
+      if (changedCheckbox) {
+        changedCheckbox.checked = false;
+      }
+      return false;
+    }
+    
+    // Update the selected count display
+    updateSelectedCount(container, checkedCount, maxCount, type);
+    return true;
+  }
+  
+  function updateSelectedCount(container, selected, required, type) {
+    // Find or create the count display
+    let countDisplay = container.querySelector('.selected-count');
+    if (!countDisplay) {
+      countDisplay = document.createElement('span');
+      countDisplay.className = 'selected-count';
+      countDisplay.style.marginLeft = '10px';
+      countDisplay.style.fontWeight = 'bold';
+      const header = container.querySelector('.text-muted');
+      if (header) {
+        header.appendChild(countDisplay);
+      }
+    }
+    
+    countDisplay.textContent = `Selected: ${selected}/${required}`;
+    if (selected > required) {
+      countDisplay.style.color = 'red';
+    } else if (selected === required) {
+      countDisplay.style.color = 'green';
+    } else {
+      countDisplay.style.color = 'orange';
     }
   }
 
@@ -235,5 +285,32 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Check on load if values are pre-filled (e.g. browser cache or edit mode)
     checkAvailability();
+    
+    // Add form validation before submission
+    const form = document.querySelector('.staff-form');
+    if (form) {
+      form.addEventListener("submit", function(event) {
+        const pilotCheckboxes = pilotsContainer.querySelectorAll('input[data-type="pilots"]:checked');
+        const attendantCheckboxes = attendantsContainer.querySelectorAll('input[data-type="attendants"]:checked');
+        
+        // Use stored requirements
+        const pilotRequired = currentRequirements.pilots || 2;
+        const attendantRequired = currentRequirements.attendants || 3;
+        
+        if (pilotCheckboxes.length !== pilotRequired) {
+          event.preventDefault();
+          alert(`Please select exactly ${pilotRequired} pilot(s). Currently selected: ${pilotCheckboxes.length}`);
+          return false;
+        }
+        
+        if (attendantCheckboxes.length !== attendantRequired) {
+          event.preventDefault();
+          alert(`Please select exactly ${attendantRequired} attendant(s). Currently selected: ${attendantCheckboxes.length}`);
+          return false;
+        }
+        
+        return true;
+      });
+    }
   }
 });
