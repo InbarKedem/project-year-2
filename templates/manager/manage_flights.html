@@ -213,6 +213,9 @@
         console.error(err);
         document.getElementById("loadingMessage").innerText =
           "Error loading details.";
+        if (window.popupManager) {
+          window.popupManager.error("Error loading flight details.");
+        }
       });
   }
 
@@ -238,15 +241,27 @@
       .then((response) => response.json())
       .then((data) => {
         if (data.success) {
-          alert("Status updated successfully!");
+          if (window.popupManager) {
+            window.popupManager.success("Status updated successfully!");
+          } else {
+            alert("Status updated successfully!");
+          }
           location.reload(); // Reload to reflect changes in the table
         } else {
-          alert("Error updating status: " + data.message);
+          if (window.popupManager) {
+            window.popupManager.error("Error updating status: " + data.message);
+          } else {
+            alert("Error updating status: " + data.message);
+          }
         }
       })
       .catch((err) => {
         console.error(err);
-        alert("Error updating status.");
+        if (window.popupManager) {
+          window.popupManager.error("Error updating status.");
+        } else {
+          alert("Error updating status.");
+        }
       });
   }
 

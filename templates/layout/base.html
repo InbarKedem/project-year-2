@@ -76,8 +76,11 @@
     <div class="container">
       {% with messages = get_flashed_messages(with_categories=true) %} {% if
       messages %} {% for category, message in messages %}
-      <div class="alert alert--{{ category }}">{{ message }}</div>
+      <div class="alert alert--{{ category }}" style="display: none;">{{ message }}</div>
       {% endfor %} {% endif %} {% endwith %} {% block content %}{% endblock %}
     </div>
+
+    <!-- Popup Notification System -->
+    <script src="{{ url_for('static', filename='js/popups.js') }}"></script>
   </body>
 </html>
