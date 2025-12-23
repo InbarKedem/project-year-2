@@ -1,184 +1,327 @@
-{% extends 'layout/base.html' %} {% block content %}
+{% extends 'layout/base.html' %}
+
+{% block extra_js %}
+<!-- Plotly.js for interactive charts -->
+<script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+{% endblock %}
+
+{% block content %}
 <div class="container">
   <h2>Manager Reports</h2>
 
   <div class="reports-container">
   <!-- 1. Average Occupancy -->
-  <div class="card">
+  <div class="card report-card">
     <h3>Average Flight Occupancy</h3>
     <p>Average occupancy of flights that took place.</p>
-    <table class="table">
-      <thead>
-        <tr>
-          <th>Flight ID (Source -> Dest)</th>
-          <th>Date</th>
-          <th>Occupancy (%)</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for row in occupancy_report %}
-        <tr>
-          <td>{{ row.source }} -> {{ row.dest }}</td>
-          <td>{{ row.departure_time }}</td>
-          <td>{{ row.occupancy_percentage }}%</td>
-        </tr>
-        {% else %}
-        <tr>
-          <td colspan="3" class="empty-state">
-            <div class="reports-empty-state">
-              <p><strong>No data available</strong></p>
-              <p>No occupancy data found for the selected period.</p>
-            </div>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    {% if occupancy_chart %}
+    <div class="chart-container" id="occupancy-chart"></div>
+    {% elif occupancy_report %}
+    <div class="reports-empty-state">
+      <p><strong>No chart data available</strong></p>
+      <p>Chart could not be generated, but data exists.</p>
+    </div>
+    {% else %}
+    <div class="reports-empty-state">
+      <p><strong>No data available</strong></p>
+      <p>No occupancy data found for the selected period.</p>
+    </div>
+    {% endif %}
   </div>
 
-  <!-- 2. Total Revenue -->
-  <div class="card">
-    <h3>Total Revenue Analysis</h3>
-    <p>Revenue by Aircraft Size, Manufacturer, and Class.</p>
-    <table class="table">
-      <thead>
-        <tr>
-          <th>Manufacturer</th>
-          <th>Size (Large/Small)</th>
-          <th>Class</th>
-          <th>Total Revenue</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for row in revenue_report %}
-        <tr>
-          <td>{{ row.manufacturer }}</td>
-          <td>{{ 'Large' if row.is_large else 'Small' }}</td>
-          <td>{{ 'Business' if row.is_business else 'Economy' }}</td>
-          <td>{{ row.total_revenue }}</td>
-        </tr>
-        {% else %}
-        <tr>
-          <td colspan="4" class="empty-state">
-            <div class="reports-empty-state">
-              <p><strong>No data available</strong></p>
-              <p>No revenue data found for the selected period.</p>
-            </div>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  <!-- 2. Total Revenue with Filters -->
+  <div class="card report-card">
+    <h3>Revenue Analysis</h3>
+    <p>Filter revenue by aircraft manufacturer, size, and class</p>
+    {% if revenue_report %}
+    <div class="revenue-filters">
+      <div class="filter-group">
+        <label for="manufacturer-filter">Manufacturer</label>
+        <select id="manufacturer-filter" class="form-input filter-select">
+          <option value="all">All</option>
+          {% set manufacturers = revenue_report|map(attribute='manufacturer')|unique|list|sort %}
+          {% for manufacturer in manufacturers %}
+          <option value="{{ manufacturer }}">{{ manufacturer }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="size-filter">Size</label>
+        <select id="size-filter" class="form-input filter-select">
+          <option value="all">All</option>
+          <option value="large">Large</option>
+          <option value="small">Small</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="class-filter">Class</label>
+        <select id="class-filter" class="form-input filter-select">
+          <option value="all">All</option>
+          <option value="economy">Economy</option>
+          <option value="business">Business</option>
+        </select>
+      </div>
+    </div>
+    <div class="chart-container" id="revenue-chart"></div>
+    {% else %}
+    <div class="reports-empty-state">
+      <p><strong>No data available</strong></p>
+      <p>No revenue data found for the selected period.</p>
+    </div>
+    {% endif %}
   </div>
 
   <!-- 3. Employee Flight Hours -->
-  <div class="card">
+  <div class="card report-card">
     <h3>Employee Flight Hours</h3>
     <p>Accumulated flight hours (Long vs Short flights).</p>
-    <table class="table">
-      <thead>
-        <tr>
-          <th>Employee Name</th>
-          <th>Role</th>
-          <th>Long Flight Hours</th>
-          <th>Short Flight Hours</th>
-          <th>Total Hours</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for row in employee_hours_report %}
-        <tr>
-          <td>{{ row.first_name }} {{ row.last_name }}</td>
-          <td>{{ row.role }}</td>
-          <td>{{ row.long_hours }}</td>
-          <td>{{ row.short_hours }}</td>
-          <td>{{ row.total_hours }}</td>
-        </tr>
-        {% else %}
-        <tr>
-          <td colspan="5" class="empty-state">
-            <div class="reports-empty-state">
-              <p><strong>No data available</strong></p>
-              <p>No employee flight hours data found.</p>
-            </div>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    {% if employee_hours_chart %}
+    <div class="chart-container" id="employee-hours-chart"></div>
+    {% elif employee_hours_report %}
+    <div class="reports-empty-state">
+      <p><strong>No chart data available</strong></p>
+      <p>Chart could not be generated, but data exists.</p>
+    </div>
+    {% else %}
+    <div class="reports-empty-state">
+      <p><strong>No data available</strong></p>
+      <p>No employee flight hours data found.</p>
+    </div>
+    {% endif %}
   </div>
 
   <!-- 4. Cancellation Rate -->
-  <div class="card">
+  <div class="card report-card">
     <h3>Monthly Cancellation Rate</h3>
-    <table class="table">
-      <thead>
-        <tr>
-          <th>Month</th>
-          <th>Total Orders</th>
-          <th>Cancelled Orders</th>
-          <th>Cancellation Rate (%)</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for row in cancellation_report %}
-        <tr>
-          <td>{{ row.month }}</td>
-          <td>{{ row.total_orders }}</td>
-          <td>{{ row.cancelled_orders }}</td>
-          <td>{{ row.cancellation_rate }}%</td>
-        </tr>
-        {% else %}
-        <tr>
-          <td colspan="4" class="empty-state">
-            <div class="reports-empty-state">
-              <p><strong>No data available</strong></p>
-              <p>No cancellation data found for the selected period.</p>
-            </div>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    <p>Monthly analysis of order cancellations and cancellation rates.</p>
+    {% if cancellation_chart %}
+    <div class="chart-container" id="cancellation-chart"></div>
+    {% elif cancellation_report %}
+    <div class="reports-empty-state">
+      <p><strong>No chart data available</strong></p>
+      <p>Chart could not be generated, but data exists.</p>
+    </div>
+    {% else %}
+    <div class="reports-empty-state">
+      <p><strong>No data available</strong></p>
+      <p>No cancellation data found for the selected period.</p>
+    </div>
+    {% endif %}
   </div>
 
   <!-- 5. Plane Monthly Activity -->
-  <div class="card">
+  <div class="card report-card">
     <h3>Plane Monthly Activity</h3>
-    <table class="table">
-      <thead>
-        <tr>
-          <th>Aircraft ID</th>
-          <th>Month</th>
-          <th>Flights Performed</th>
-          <th>Flights Cancelled</th>
-          <th>Utilization (%)</th>
-          <th>Dominant Route</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for row in plane_activity_report %}
-        <tr>
-          <td>{{ row.aircraft_id }}</td>
-          <td>{{ row.month }}</td>
-          <td>{{ row.flights_performed }}</td>
-          <td>{{ row.flights_cancelled }}</td>
-          <td>{{ row.utilization }}%</td>
-          <td>{{ row.dominant_route }}</td>
-        </tr>
-        {% else %}
-        <tr>
-          <td colspan="6" class="empty-state">
-            <div class="reports-empty-state">
-              <p><strong>No data available</strong></p>
-              <p>No plane activity data found for the selected period.</p>
-            </div>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    <p>Monthly flight activity by aircraft.</p>
+    {% if plane_activity_chart %}
+    <div class="chart-container" id="plane-activity-chart"></div>
+    {% elif plane_activity_report %}
+    <div class="reports-empty-state">
+      <p><strong>No chart data available</strong></p>
+      <p>Chart could not be generated, but data exists.</p>
+    </div>
+    {% else %}
+    <div class="reports-empty-state">
+      <p><strong>No data available</strong></p>
+      <p>No plane activity data found for the selected period.</p>
+    </div>
+    {% endif %}
   </div>
 </div>
 </div>
+
+<script>
+  // Render Plotly charts with responsive configuration
+  var plotlyConfig = {
+    responsive: true,
+    displayModeBar: true,
+    displaylogo: false,
+    modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d'],
+    toImageButtonOptions: {
+      format: 'png',
+      filename: 'chart',
+      height: 600,
+      width: 1200,
+      scale: 2
+    },
+    doubleClick: 'reset',
+    showTips: true
+  };
+
+  {% if occupancy_chart %}
+  var occupancyData = {{ occupancy_chart|safe }};
+  Plotly.newPlot('occupancy-chart', occupancyData.data, occupancyData.layout, plotlyConfig);
+  {% endif %}
+
+  {% if revenue_report %}
+  // Revenue data for filtering
+  var revenueRawData = {{ revenue_report|tojson|safe }};
+  
+  function updateRevenueChart() {
+    var manufacturer = document.getElementById('manufacturer-filter').value;
+    var size = document.getElementById('size-filter').value;
+    var classType = document.getElementById('class-filter').value;
+    
+    // Filter data
+    var filtered = revenueRawData.filter(function(row) {
+      if (manufacturer !== 'all' && row.manufacturer !== manufacturer) return false;
+      if (size !== 'all') {
+        var isLarge = size === 'large';
+        if (row.is_large != isLarge) return false;
+      }
+      if (classType !== 'all') {
+        var isBusiness = classType === 'business';
+        if (row.is_business != isBusiness) return false;
+      }
+      return true;
+    });
+    
+    if (filtered.length === 0) {
+      document.getElementById('revenue-chart').innerHTML = '<div class="reports-empty-state"><p><strong>No data available</strong></p><p>No data matches the selected filters.</p></div>';
+      return;
+    }
+    
+    // Organize filtered data
+    var dataDict = {};
+    filtered.forEach(function(row) {
+      var key = row.manufacturer + '_' + (row.is_large ? 'Large' : 'Small');
+      if (!dataDict[key]) {
+        dataDict[key] = {economy: 0, business: 0, manufacturer: row.manufacturer, is_large: row.is_large};
+      }
+      var revenue = parseFloat(row.total_revenue) || 0;
+      if (row.is_business) {
+        dataDict[key].business += revenue;
+      } else {
+        dataDict[key].economy += revenue;
+      }
+    });
+    
+    // Prepare chart data
+    var xLabels = [];
+    var economyValues = [];
+    var businessValues = [];
+    
+    Object.keys(dataDict).sort().forEach(function(key) {
+      var values = dataDict[key];
+      var sizeLabel = values.is_large ? 'Large' : 'Small';
+      xLabels.push(values.manufacturer + ' (' + sizeLabel + ')');
+      economyValues.push(values.economy);
+      businessValues.push(values.business);
+    });
+    
+    // Create traces based on class filter
+    var traces = [];
+    
+    // Show economy only if class filter is 'all' or 'economy'
+    if (classType === 'all' || classType === 'economy') {
+      traces.push({
+        x: xLabels,
+        y: economyValues,
+        name: 'Economy',
+        type: 'bar',
+        marker: {color: '#3498db', line: {color: 'white', width: 1.5}},
+        text: economyValues.map(function(v) { return v > 0 ? '$' + v.toLocaleString('en-US', {maximumFractionDigits: 0}) : ''; }),
+        textposition: 'outside',
+        hovertemplate: '<b>%{x}</b><br>Economy: $%{y:,.2f}<extra></extra>'
+      });
+    }
+    
+    // Show business only if class filter is 'all' or 'business'
+    if (classType === 'all' || classType === 'business') {
+      traces.push({
+        x: xLabels,
+        y: businessValues,
+        name: 'Business',
+        type: 'bar',
+        marker: {color: '#9b59b6', line: {color: 'white', width: 1.5}},
+        text: businessValues.map(function(v) { return v > 0 ? '$' + v.toLocaleString('en-US', {maximumFractionDigits: 0}) : ''; }),
+        textposition: 'outside',
+        hovertemplate: '<b>%{x}</b><br>Business: $%{y:,.2f}<extra></extra>'
+      });
+    }
+    
+    // If only one trace, adjust barmode
+    var barmode = traces.length > 1 ? 'group' : 'overlay';
+    
+    var layout = {
+      title: {
+        text: 'Revenue by Aircraft Type',
+        x: 0.5,
+        xanchor: 'center',
+        font: {size: 18, family: 'Montserrat, sans-serif'}
+      },
+      barmode: barmode,
+      plot_bgcolor: 'white',
+      paper_bgcolor: 'white',
+      font: {family: 'Open Sans, sans-serif', size: 11},
+      margin: {l: 80, r: 80, t: 100, b: 100},
+      height: 550,
+      legend: {
+        orientation: 'h',
+        yanchor: 'bottom',
+        y: 1.02,
+        xanchor: 'right',
+        x: 1
+      },
+      hovermode: 'x unified',
+      hoverlabel: {
+        bgcolor: 'white',
+        bordercolor: '#2c3e50',
+        font_size: 12,
+        font_family: 'Open Sans, sans-serif'
+      },
+      xaxis: {
+        title: {text: 'Aircraft Type', font: {size: 13, family: 'Open Sans, sans-serif', color: '#2c3e50'}}
+      },
+      yaxis: {
+        title: {text: 'Revenue ($)', font: {size: 13, family: 'Open Sans, sans-serif', color: '#2c3e50'}}
+      }
+    };
+    
+    Plotly.newPlot('revenue-chart', traces, layout, plotlyConfig);
+  }
+  
+  // Initialize chart
+  updateRevenueChart();
+  
+  // Add event listeners for filters
+  document.getElementById('manufacturer-filter').addEventListener('change', updateRevenueChart);
+  document.getElementById('size-filter').addEventListener('change', updateRevenueChart);
+  document.getElementById('class-filter').addEventListener('change', updateRevenueChart);
+  {% endif %}
+
+  {% if employee_hours_chart %}
+  var employeeHoursData = {{ employee_hours_chart|safe }};
+  Plotly.newPlot('employee-hours-chart', employeeHoursData.data, employeeHoursData.layout, plotlyConfig);
+  {% endif %}
+
+  {% if cancellation_chart %}
+  var cancellationData = {{ cancellation_chart|safe }};
+  Plotly.newPlot('cancellation-chart', cancellationData.data, cancellationData.layout, plotlyConfig);
+  {% endif %}
+
+  {% if plane_activity_chart %}
+  var planeActivityData = {{ plane_activity_chart|safe }};
+  Plotly.newPlot('plane-activity-chart', planeActivityData.data, planeActivityData.layout, plotlyConfig);
+  {% endif %}
+
+  // Make charts responsive on window resize
+  window.addEventListener('resize', function() {
+    {% if occupancy_chart %}
+    Plotly.Plots.resize('occupancy-chart');
+    {% endif %}
+    {% if revenue_chart %}
+    Plotly.Plots.resize('revenue-chart');
+    {% endif %}
+    {% if employee_hours_chart %}
+    Plotly.Plots.resize('employee-hours-chart');
+    {% endif %}
+    {% if cancellation_chart %}
+    Plotly.Plots.resize('cancellation-chart');
+    {% endif %}
+    {% if plane_activity_chart %}
+    Plotly.Plots.resize('plane-activity-chart');
+    {% endif %}
+  });
+</script>
 {% endblock %}

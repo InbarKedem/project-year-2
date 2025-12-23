@@ -1,23 +1,108 @@
 .reports-container {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
-  gap: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
   margin-top: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+  max-width: 100%;
 }
 
-.reports-container .card {
+.reports-container .report-card {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-bottom: 0;
+  overflow: visible;
 }
 
-.reports-container .card h3 {
+.reports-container .report-card h3 {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+  margin-top: 0;
+  padding-top: 0;
 }
 
-.reports-container .card h3::before {
+.reports-container .report-card h3::before {
   content: '📊';
   font-size: 1.5rem;
+}
+
+.reports-container .report-card > p {
+  margin-bottom: var(--spacing-md);
+  margin-top: 0;
+  color: var(--color-text-light);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+/* Chart Container Styling */
+.chart-container {
+  width: 100%;
+  margin: var(--spacing-md) 0 var(--spacing-lg) 0;
+  padding: var(--spacing-lg);
+  background: white;
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  min-height: 500px;
+  position: relative;
+  overflow: visible;
+  box-sizing: border-box;
+}
+
+.chart-container .js-plotly-plot {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Ensure Plotly charts are responsive and properly sized */
+.chart-container > div {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 500px;
+  position: relative;
+  overflow: visible;
+}
+
+/* Prevent Plotly modebar from overlapping */
+.chart-container .modebar {
+  position: absolute !important;
+  top: 10px !important;
+  right: 10px !important;
+  z-index: 10;
+}
+
+/* Ensure x-axis labels don't overlap */
+.chart-container .xtick {
+  text-anchor: end !important;
+}
+
+/* Improve Plotly chart appearance */
+.chart-container .plotly {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Better hover tooltip styling */
+.chart-container .js-plotly-plot .hoverlayer {
+  pointer-events: all;
+  z-index: 100;
+}
+
+/* Ensure tooltips don't get cut off */
+.chart-container .hovertext {
+  pointer-events: none;
+  z-index: 1000;
+}
+
+/* Fix any overlapping elements in Plotly charts */
+.chart-container .plotly .modebar-container {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 20;
 }
 
 /* CSS Bar Charts for Occupancy */
@@ -98,9 +183,87 @@
   margin-top: var(--spacing-md);
 }
 
+/* Table spacing after charts */
+.report-card .table {
+  margin-top: var(--spacing-md);
+}
+
+/* Additional spacing fixes */
+.reports-container .report-card:last-child {
+  margin-bottom: var(--spacing-xl);
+}
+
+/* Ensure proper spacing between elements */
+.reports-container .report-card h3 + p {
+  margin-top: 0;
+}
+
+.reports-container .report-card p + .chart-container {
+  margin-top: var(--spacing-md);
+}
+
+/* Revenue Filters Styling */
+.revenue-filters {
+  display: flex;
+  gap: var(--spacing-md);
+  margin: var(--spacing-md) 0;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  flex: 1;
+  min-width: 140px;
+}
+
+.filter-group label {
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: var(--color-text);
+  margin-bottom: 0;
+}
+
+.filter-select {
+  padding: 0.5rem 0.75rem;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  background: white;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.filter-select:hover {
+  border-color: var(--color-primary);
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(0, 51, 102, 0.1);
+}
+
+/* Responsive Design */
 @media (max-width: 768px) {
   .reports-container {
-    grid-template-columns: 1fr;
+    gap: var(--spacing-lg);
+  }
+
+  .chart-container {
+    padding: var(--spacing-md);
+    min-height: 400px;
+    margin-bottom: var(--spacing-md);
+  }
+
+  .chart-container > div {
+    min-height: 400px;
   }
 
   .occupancy-bar {
