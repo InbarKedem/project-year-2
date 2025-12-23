@@ -241,28 +241,16 @@
       .then((response) => response.json())
       .then((data) => {
         if (data.success) {
-          if (window.popupManager) {
-            // Persist the success message across reload (popups are non-blocking).
-            window.popupManager.queueForNextLoad("Status updated successfully!", "success");
-          } else {
-            alert("Status updated successfully!");
-          }
+          // Persist the success message across reload (popups are non-blocking).
+          window.popupManager.queueForNextLoad("Status updated successfully!", "success");
           location.reload(); // Reload to reflect changes in the table
         } else {
-          if (window.popupManager) {
-            window.popupManager.error("Error updating status: " + data.message);
-          } else {
-            alert("Error updating status: " + data.message);
-          }
+          window.popupManager.error("Error updating status: " + data.message);
         }
       })
       .catch((err) => {
         console.error(err);
-        if (window.popupManager) {
-          window.popupManager.error("Error updating status.");
-        } else {
-          alert("Error updating status.");
-        }
+        window.popupManager.error("Error updating status.");
       });
   }
 
