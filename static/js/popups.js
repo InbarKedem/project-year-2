@@ -24,8 +24,13 @@ class PopupManager {
   }
 
   processFlashMessages() {
-    // Find all alert divs that Flask created
-    const alerts = document.querySelectorAll('.alert');
+    // Find flash alerts that Flask rendered (progressive enhancement)
+    const alerts = document.querySelectorAll('.flash-messages .alert');
+    if (alerts.length > 0) {
+      // Only hide the inline flash area once popups JS is actually running
+      document.documentElement.classList.add('popups-enabled');
+    }
+
     alerts.forEach(alert => {
       const category = this.extractCategory(alert.className);
       const message = alert.textContent.trim();

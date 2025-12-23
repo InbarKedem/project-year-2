@@ -74,10 +74,19 @@
     </header>
 
     <div class="container">
-      {% with messages = get_flashed_messages(with_categories=true) %} {% if
-      messages %} {% for category, message in messages %}
-      <div class="alert alert--{{ category }}" style="display: none;">{{ message }}</div>
-      {% endfor %} {% endif %} {% endwith %} {% block content %}{% endblock %}
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-messages" aria-live="polite" aria-atomic="true">
+            {% for category, message in messages %}
+              <div class="alert alert--{{ category }}" role="alert">
+                {{ message }}
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
     </div>
 
     <!-- Popup Notification System -->
