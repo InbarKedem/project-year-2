@@ -1,0 +1,90 @@
+/* Empty State Component - Consistent across all pages */
+.empty-state {
+  text-align: center;
+  padding: var(--spacing-xxl) var(--spacing-lg);
+  background: var(--color-white);
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  margin: var(--spacing-xl) auto;
+  max-width: 600px;
+  box-shadow: var(--shadow-sm);
+}
+
+.empty-state__icon {
+  font-size: 4rem;
+  display: block;
+  margin-bottom: var(--spacing-md);
+  opacity: 0.5;
+  line-height: 1;
+}
+
+.empty-state__title {
+  font-size: 1.5rem;
+  color: var(--color-primary);
+  margin-bottom: var(--spacing-md);
+  font-weight: 700;
+  font-family: var(--font-heading);
+}
+
+.empty-state__message {
+  font-size: 1rem;
+  color: var(--color-text-light);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.empty-state__link {
+  color: var(--color-primary);
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+.empty-state__link:hover {
+  color: var(--color-primary-light);
+}
+
+/* Empty state variants */
+.empty-state--small {
+  padding: var(--spacing-lg);
+  max-width: 400px;
+}
+
+.empty-state--small .empty-state__icon {
+  font-size: 2.5rem;
+}
+
+.empty-state--small .empty-state__title {
+  font-size: 1.25rem;
+}
+
+.empty-state--large {
+  padding: var(--spacing-xxl) var(--spacing-xl);
+  max-width: 800px;
+}
+
+.empty-state--large .empty-state__icon {
+  font-size: 5rem;
+}
+
+.empty-state--large .empty-state__title {
+  font-size: 2rem;
+}
+
+@media (max-width: 768px) {
+  .empty-state {
+    padding: var(--spacing-lg) var(--spacing-md);
+    margin: var(--spacing-lg) auto;
+  }
+
+  .empty-state__icon {
+    font-size: 3rem;
+  }
+
+  .empty-state__title {
+    font-size: 1.25rem;
+  }
+
+  .empty-state__message {
+    font-size: 0.9rem;
+  }
+}

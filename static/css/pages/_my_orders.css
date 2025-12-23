@@ -12,34 +12,14 @@ h2 {
 }
 
 .spending-summary {
-  background: linear-gradient(
-    135deg,
-    var(--color-primary) 0%,
-    var(--color-primary-light) 100%
-  );
+  background: var(--color-primary);
   padding: 25px 35px;
   border-radius: var(--radius-lg);
   margin-bottom: 30px;
-  box-shadow: 0 8px 24px rgba(0, 51, 102, 0.2);
+  box-shadow: var(--shadow-md);
   color: var(--color-white);
   border: none;
   position: relative;
-  overflow: hidden;
-}
-
-.spending-summary::before {
-  content: "";
-  position: absolute;
-  top: -50%;
-  right: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(
-    circle,
-    rgba(255, 255, 255, 0.1) 0%,
-    transparent 70%
-  );
-  pointer-events: none;
 }
 
 .spending-summary h3 {
@@ -73,15 +53,14 @@ h2 {
   justify-content: space-between;
   align-items: center;
   padding: 12px 20px;
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  background: var(--color-white);
   border-bottom: 2px solid var(--color-primary);
   cursor: pointer;
   user-select: none;
 }
 
 .filter-header:hover {
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  box-shadow: inset 0 -3px 0 var(--color-primary-light);
+  background: var(--color-gray-light);
 }
 
 .filter-title {
@@ -103,15 +82,11 @@ h2 {
 .active-filters-count {
   font-size: 0.8rem;
   color: var(--color-white);
-  background: linear-gradient(
-    135deg,
-    var(--color-primary) 0%,
-    var(--color-primary-light) 100%
-  );
+  background: var(--color-primary);
   padding: 4px 12px;
   border-radius: 20px;
   font-weight: 600;
-  box-shadow: 0 2px 8px rgba(0, 51, 102, 0.3);
+  box-shadow: var(--shadow-sm);
   margin-left: 8px;
 }
 
@@ -138,7 +113,6 @@ h2 {
 
 .toggle-icon {
   font-size: 0.9rem;
-  transition: transform 0.3s ease;
 }
 
 .filter-form {
@@ -146,7 +120,7 @@ h2 {
   flex-direction: column;
   gap: 0;
   padding: 15px 20px;
-  background: linear-gradient(to bottom, #ffffff 0%, #fafbfc 100%);
+  background: var(--color-white);
 }
 
 .filter-category {
@@ -376,7 +350,7 @@ h2 {
 
 .filter-group select:not([value=""]) {
   border-color: var(--color-primary);
-  background: linear-gradient(to bottom, #ffffff 0%, #f8f9fa 100%);
+  background: var(--color-white);
 }
 
 .filter-group input:not(:placeholder-shown) {
@@ -416,20 +390,12 @@ h2 {
 }
 
 .filter-actions .btn-primary {
-  background: linear-gradient(
-    135deg,
-    var(--color-primary) 0%,
-    var(--color-primary-light) 100%
-  );
+  background: var(--color-primary);
   color: var(--color-white);
 }
 
 .filter-actions .btn-primary:hover {
-  background: linear-gradient(
-    135deg,
-    var(--color-primary-light) 0%,
-    var(--color-primary) 100%
-  );
+  background: var(--color-primary-light);
 }
 
 .filter-actions .btn span {
@@ -437,33 +403,7 @@ h2 {
   font-weight: 700;
 }
 
-/* Status Badge Styling */
-.status-badge {
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  text-transform: capitalize;
-  display: inline-block;
-  letter-spacing: 0.3px;
-}
-
-.status-confirmed,
-.status-active {
-  background-color: #28a745;
-  color: white;
-}
-
-.status-customer-cancelled {
-  background-color: #ffc107;
-  color: #212529;
-}
-
-.status-system-cancelled,
-.status-cancelled {
-  background-color: #dc3545;
-  color: white;
-}
+/* Status Badge styles moved to components/_badges.css */
 
 /* Table Enhancements */
 .table {
@@ -476,11 +416,7 @@ h2 {
 }
 
 .table th {
-  background: linear-gradient(
-    135deg,
-    var(--color-primary) 0%,
-    var(--color-primary-dark) 100%
-  );
+  background: var(--color-primary);
   color: var(--color-white);
   font-weight: 600;
   text-transform: uppercase;
@@ -506,20 +442,7 @@ h2 {
   border-bottom: none;
 }
 
-/* Seat Badge Styling */
-.badge {
-  display: inline-block;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-
-.badge--info {
-  background-color: #e7f3ff;
-  color: #0066cc;
-  border: 1px solid #b3d9ff;
-}
+/* Badge styles moved to components/_badges.css */
 
 /* Button Styling */
 .btn-sm {
@@ -553,7 +476,7 @@ h2 {
   color: #6c757d;
   font-style: italic;
   font-size: 1.1rem;
-  background: linear-gradient(to bottom, #f8f9fa 0%, #ffffff 100%);
+  background: var(--color-white);
 }
 
 .table tbody tr:only-child td[colspan]::before {
@@ -753,22 +676,4 @@ h2 {
   color: var(--color-white);
 }
 
-/* Status Badge Improvements */
-.status-badge {
-  padding: 8px 14px;
-  border-radius: 25px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  text-transform: capitalize;
-  display: inline-block;
-  letter-spacing: 0.3px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-/* Badge Improvements */
-.badge--info {
-  background: linear-gradient(135deg, #e7f3ff 0%, #d0e7ff 100%);
-  color: #0066cc;
-  border: 1px solid #b3d9ff;
-  box-shadow: 0 1px 3px rgba(0, 102, 204, 0.2);
-}
+/* Badge styles moved to components/_badges.css */

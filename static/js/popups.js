@@ -27,24 +27,28 @@ class PopupManager {
   }
 
   processFlashMessages() {
-    // Find flash alerts that Flask rendered (progressive enhancement)
-    const alerts = document.querySelectorAll('.flash-messages .alert');
-    if (alerts.length > 0) {
-      // Only hide the inline flash area once popups JS is actually running
-      document.documentElement.classList.add('popups-enabled');
+    // Find flash messages that Flask rendered (progressive enhancement)
+    const flashMessages = document.querySelectorAll('.flash-messages .flash-message');
+    if (flashMessages.length > 0) {
+      // Hide the flash messages container
+      const container = document.querySelector('.flash-messages');
+      if (container) {
+        container.style.display = 'none';
+      }
     }
 
-    alerts.forEach(alert => {
-      const category = this.extractCategory(alert.className);
-      const message = alert.textContent.trim();
+    flashMessages.forEach(flashMsg => {
+      const category = flashMsg.getAttribute('data-category') || 'info';
+      const message = flashMsg.getAttribute('data-message') || '';
       
       if (message) {
         this.show(message, category);
       }
       
-      // Remove the original alert
-      alert.remove();
+      // Remove the original flash message element
+      flashMsg.remove();
     });
+
   }
 
   processQueuedMessages() {
@@ -83,11 +87,19 @@ class PopupManager {
     popup.className = `popup popup--${category}`;
     
     // Auto-dismiss behavior:
-    // - Default durations: 5s (most), 8s for danger (errors).
+    // - Default durations: Success/Info: 5s, Warning: 7s, Error: 10s
     // - To keep a popup sticky, pass duration as 0 / false / null.
     let effectiveDuration = duration;
     if (effectiveDuration === undefined) {
-      effectiveDuration = category === 'danger' ? 8000 : 5000;
+      if (category === 'danger') {
+        effectiveDuration = 10000; // 10 seconds for errors
+      } else if (category === 'warning') {
+        effectiveDuration = 7000; // 7 seconds for warnings
+      } else if (category === 'info') {
+        effectiveDuration = 5000; // 5 seconds for info
+      } else {
+        effectiveDuration = 5000; // 5 seconds default (success)
+      }
     }
 
     const autoDismiss = typeof effectiveDuration === 'number' && effectiveDuration > 0;

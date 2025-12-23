@@ -11,7 +11,7 @@
       <h3>Flight Details</h3>
       <div class="staff-form-grid">
         <div class="form-group">
-          <label>Source Airport: <span style="color: red">*</span></label>
+          <label class="form-label form-label--required">Source Airport:</label>
           <select name="source_id" id="source_id" required class="form-select">
             {% for airport in airports %}
             <option value="{{ airport.airport_id }}">
@@ -21,7 +21,7 @@
           </select>
         </div>
         <div class="form-group">
-          <label>Destination Airport: <span style="color: red">*</span></label>
+          <label class="form-label form-label--required">Destination Airport:</label>
           <select name="dest_id" id="dest_id" required class="form-select">
             {% for airport in airports %}
             <option value="{{ airport.airport_id }}" {% if loop.index == 2 %}selected{% endif %}>
@@ -31,15 +31,15 @@
           </select>
         </div>
         <div class="form-group">
-          <label>Departure Time: <span style="color: red">*</span></label>
-          <input type="datetime-local" name="departure_time" id="departure_time" required />
+          <label class="form-label form-label--required">Departure Time:</label>
+          <input type="datetime-local" name="departure_time" id="departure_time" required class="form-input" />
         </div>
       </div>
 
       <!-- Aircraft -->
       <h3>Aircraft</h3>
       <div class="form-group">
-        <label>Select Aircraft: <span style="color: red">*</span></label>
+        <label class="form-label form-label--required">Select Aircraft:</label>
         <select name="aircraft_id" id="aircraft_id" required class="form-select">
           {% for aircraft in aircrafts %}
           <option value="{{ aircraft.aircraft_id }}">
@@ -53,17 +53,8 @@
       <h3>Crew Assignment <span style="color: red">*</span></h3>
       <div class="staff-form-grid">
         <div class="form-group">
-          <label>Pilots:</label>
-          <div
-            id="pilots_container"
-            class="checkbox-list"
-            style="
-              max-height: 150px;
-              overflow-y: auto;
-              border: 1px solid #ddd;
-              padding: 5px;
-            "
-          >
+          <label class="form-label">Pilots:</label>
+          <div id="pilots_container" class="checkbox-list">
             <p class="text-muted small">Select flight details to see availability</p>
             {% for pilot in pilots %}
             <label class="checkbox-label">
@@ -71,24 +62,18 @@
                 type="checkbox"
                 name="crew_ids"
                 value="{{ pilot.id_number }}"
+                data-type="pilots"
               />
-              {{ pilot.first_name }} {{ pilot.last_name }}
+              <span>{{ pilot.first_name }} {{ pilot.last_name }}</span>
             </label>
             {% endfor %}
           </div>
+          <div id="pilots_counter" class="crew-counter"></div>
+          <div id="pilots_error" class="crew-error-message" style="display: none;"></div>
         </div>
         <div class="form-group">
-          <label>Flight Attendants:</label>
-          <div
-            id="attendants_container"
-            class="checkbox-list"
-            style="
-              max-height: 150px;
-              overflow-y: auto;
-              border: 1px solid #ddd;
-              padding: 5px;
-            "
-          >
+          <label class="form-label">Flight Attendants:</label>
+          <div id="attendants_container" class="checkbox-list">
             <p class="text-muted small">Select flight details to see availability</p>
             {% for attendant in attendants %}
             <label class="checkbox-label">
@@ -96,11 +81,14 @@
                 type="checkbox"
                 name="crew_ids"
                 value="{{ attendant.id_number }}"
+                data-type="attendants"
               />
-              {{ attendant.first_name }} {{ attendant.last_name }}
+              <span>{{ attendant.first_name }} {{ attendant.last_name }}</span>
             </label>
             {% endfor %}
           </div>
+          <div id="attendants_counter" class="crew-counter"></div>
+          <div id="attendants_error" class="crew-error-message" style="display: none;"></div>
         </div>
       </div>
 
@@ -108,12 +96,12 @@
       <h3>Ticket Pricing</h3>
       <div class="staff-form-grid">
         <div class="form-group">
-          <label>Economy Price ($): <span style="color: red">*</span></label>
-          <input type="number" name="economy_price" step="0.01" required />
+          <label class="form-label form-label--required">Economy Price ($):</label>
+          <input type="number" name="economy_price" step="0.01" required class="form-input" />
         </div>
         <div class="form-group">
-          <label>Business Price ($): <span style="color: red">*</span></label>
-          <input type="number" name="business_price" step="0.01" required />
+          <label class="form-label form-label--required">Business Price ($):</label>
+          <input type="number" name="business_price" step="0.01" required class="form-input" />
         </div>
       </div>
 

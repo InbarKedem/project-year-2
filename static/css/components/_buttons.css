@@ -8,22 +8,36 @@
   cursor: pointer;
   font-size: 1rem;
   font-weight: 600;
-  transition: all 0.3s ease;
   text-align: center;
   box-shadow: var(--shadow-sm);
   background-color: var(--color-primary);
   color: var(--color-white);
+  min-height: 44px;
+  font-family: var(--font-body);
 }
 
 .btn:hover {
   background-color: var(--color-primary-light);
-  transform: translateY(-2px);
   box-shadow: var(--shadow-md);
   color: var(--color-white);
 }
 
-.btn:active {
-  transform: translateY(0);
+.btn:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.btn:disabled,
+.btn[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.btn:disabled:hover,
+.btn[disabled]:hover {
+  background-color: var(--color-primary);
+  box-shadow: none;
 }
 
 .btn--secondary {
@@ -37,6 +51,7 @@
 .btn--accent {
   background-color: var(--color-accent);
   color: var(--color-primary-dark);
+  /* Ensure WCAG AA contrast: Gold (#ffd700) on dark blue (#001122) meets 4.5:1 ratio */
 }
 
 .btn--accent:hover {
@@ -44,10 +59,45 @@
   color: var(--color-primary-dark);
 }
 
+.btn--accent:focus {
+  outline: 2px solid var(--color-primary-dark);
+  outline-offset: 2px;
+}
+
 .btn--danger {
   background-color: var(--color-error);
 }
 
 .btn--danger:hover {
-  background-color: #c82333;
+  background-color: var(--color-error-dark);
+}
+
+.btn--outline {
+  background-color: transparent;
+  border: 2px solid var(--color-primary);
+  color: var(--color-primary);
+  box-shadow: none;
+}
+
+.btn--outline:hover {
+  background-color: var(--color-primary);
+  color: var(--color-white);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn--outline.active {
+  background-color: var(--color-primary);
+  color: var(--color-white);
+}
+
+.btn--block {
+  width: 100%;
+  display: flex;
+}
+
+/* Loading state for buttons */
+.btn--loading {
+  position: relative;
+  color: transparent;
+  pointer-events: none;
 }

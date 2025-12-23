@@ -1,3 +1,181 @@
+.track-form {
+  max-width: 500px;
+  margin: 0 auto;
+}
+
 .order-details-card {
   margin-top: 2rem;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.order-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-sm) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.detail-row:last-child {
+  border-bottom: none;
+}
+
+.detail-label {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.detail-value {
+  color: var(--color-text-light);
+  text-align: right;
+}
+
+/* Status Indicator */
+.status-indicator {
+  margin: var(--spacing-lg) 0;
+  padding: var(--spacing-lg);
+  background: var(--color-gray-light);
+  border-radius: var(--radius-md);
+}
+
+.status-steps {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  margin-bottom: var(--spacing-md);
+}
+
+.status-steps::before {
+  content: "";
+  position: absolute;
+  top: 20px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--color-border);
+  z-index: 1;
+}
+
+.status-step {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+}
+
+.status-step__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-white);
+  border: 3px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 1.1rem;
+  color: var(--color-text-light);
+}
+
+.status-step__label {
+  margin-top: var(--spacing-sm);
+  font-size: 0.875rem;
+  color: var(--color-text-light);
+  text-align: center;
+  font-weight: 500;
+}
+
+/* Active Step */
+.status-step--active .status-step__icon {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-white);
+  box-shadow: 0 0 0 4px rgba(0, 31, 63, 0.1);
+}
+
+.status-step--active .status-step__label {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+/* Completed Step */
+.status-step--completed .status-step__icon {
+  background: var(--color-success);
+  border-color: var(--color-success);
+  color: var(--color-white);
+}
+
+.status-step--completed .status-step__label {
+  color: var(--color-success);
+}
+
+.status-step--completed::after {
+  content: "";
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  width: 100%;
+  height: 3px;
+  background: var(--color-success);
+  z-index: 1;
+}
+
+.status-step:first-child.status-step--completed::after {
+  display: none;
+}
+
+.status-step:not(:first-child).status-step--completed::after {
+  left: -50%;
+}
+
+.order-actions {
+  margin-top: var(--spacing-lg);
+  text-align: right;
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--color-border);
+}
+
+/* Badge styles moved to components/_badges.css */
+
+/* Error State */
+.track-form--error .form-group--error .form-input {
+  border-color: var(--color-error);
+}
+
+@media (max-width: 768px) {
+  .status-steps {
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+
+  .status-steps::before {
+    display: none;
+  }
+
+  .status-step {
+    width: 100%;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: var(--spacing-md);
+  }
+
+  .status-step__label {
+    margin-top: 0;
+    text-align: left;
+  }
+
+  .status-step--completed::after {
+    display: none;
+  }
 }

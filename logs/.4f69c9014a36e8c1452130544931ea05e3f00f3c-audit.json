@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "C:\\Users\\inked\\PycharmProjects\\project\\logs\\.4f69c9014a36e8c1452130544931ea05e3f00f3c-audit.json",
+    "files": [
+        {
+            "date": 1766499000476,
+            "name": "C:\\Users\\inked\\PycharmProjects\\project\\logs\\mcp-puppeteer-2025-12-23.log",
+            "hash": "745a34b18af4fa7f836efdc6f12a6edd94b54043e61c7acfcb9e11d51ee50ddd"
+        }
+    ],
+    "hashType": "sha256"
+}

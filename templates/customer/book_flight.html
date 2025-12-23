@@ -8,9 +8,13 @@
   <h2>Select Your Seat</h2>
 
   <div class="booking-container">
-    {% include 'customer/partials/_flight_summary.html' %} {% include
-    'customer/partials/_seat_map.html' %} {% include
-    'customer/partials/_booking_form.html' %}
+    <div class="booking-left-column">
+      {% include 'customer/partials/_seat_map.html' %}
+      {% include 'customer/partials/_booking_form.html' %}
+    </div>
+    <div class="booking-right-column">
+      {% include 'customer/partials/_flight_summary.html' %}
+    </div>
   </div>
 
   {% include 'customer/partials/_success_modal.html' %}
@@ -23,30 +27,38 @@
   const hasBusiness = "{{ has_business }}" === "True";
 
   let selectedSeats = [];
+  let classToggleTimeout = null;
 
   function showClass(cls) {
-    // Toggle Buttons
-    document
-      .getElementById("btn-economy")
-      .classList.toggle("active", cls === "economy");
-    document
-      .getElementById("btn-business")
-      .classList.toggle("active", cls === "business");
-
-    // Toggle Maps
-    const mapEconomy = document.getElementById("map-economy");
-    const mapBusiness = document.getElementById("map-business");
-
-    if (cls === "economy") {
-      mapEconomy.classList.remove("hidden");
-      mapBusiness.classList.add("hidden");
-    } else {
-      mapEconomy.classList.add("hidden");
-      mapBusiness.classList.remove("hidden");
+    // Debounce rapid clicks to prevent UI lag
+    if (classToggleTimeout) {
+      clearTimeout(classToggleTimeout);
     }
+    
+    classToggleTimeout = setTimeout(() => {
+      // Toggle Buttons
+      document
+        .getElementById("btn-economy")
+        .classList.toggle("active", cls === "economy");
+      document
+        .getElementById("btn-business")
+        .classList.toggle("active", cls === "business");
 
-    // Update Price Display (Initial)
-    updatePriceDisplay(cls);
+      // Toggle Maps
+      const mapEconomy = document.getElementById("map-economy");
+      const mapBusiness = document.getElementById("map-business");
+
+      if (cls === "economy") {
+        mapEconomy.classList.remove("hidden");
+        mapBusiness.classList.add("hidden");
+      } else {
+        mapEconomy.classList.add("hidden");
+        mapBusiness.classList.remove("hidden");
+      }
+
+      // Update Price Display (Initial)
+      updatePriceDisplay(cls);
+    }, 100); // 100ms debounce
   }
 
   function updatePriceDisplay(cls) {
@@ -143,10 +155,11 @@
     if (selectedSeats.length >= 2) {
       const div = document.createElement("div");
       div.className = "form-group";
+      const passengerId = `passenger-2-name-${selectedSeats.length}`;
       div.innerHTML = `
             <h4>Passenger 2 Details</h4>
-            <label class="form-label">Full Name</label>
-            <input type="text" name="passenger_2_name" class="form-input" required />
+            <label class="form-label" for="${passengerId}">Full Name</label>
+            <input type="text" name="passenger_2_name" id="${passengerId}" class="form-input" required aria-required="true" />
           `;
       extraContainer.appendChild(div);
     }
