@@ -180,7 +180,7 @@
   height: 100%;
   width: 100%;
   background: currentColor;
-  animation: progressBar 5s linear forwards;
+  animation: progressBar var(--popup-duration, 5000ms) linear forwards;
 }
 
 .popup--success .popup__progress-bar::after {

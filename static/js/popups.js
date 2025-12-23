@@ -52,15 +52,24 @@ class PopupManager {
     return 'info'; // default
   }
 
-  show(message, category = 'info', duration = 5000) {
+  show(message, category = 'info', duration) {
     const popup = document.createElement('div');
     popup.className = `popup popup--${category}`;
     
-    // Determine if we should auto-dismiss (danger messages stay longer)
-    const autoDismiss = category !== 'danger';
+    // Auto-dismiss behavior:
+    // - Default durations: 5s (most), 8s for danger (errors).
+    // - To keep a popup sticky, pass duration as 0 / false / null.
+    let effectiveDuration = duration;
+    if (effectiveDuration === undefined) {
+      effectiveDuration = category === 'danger' ? 8000 : 5000;
+    }
+
+    const autoDismiss = typeof effectiveDuration === 'number' && effectiveDuration > 0;
     if (!autoDismiss) {
       popup.classList.add('popup--no-auto-dismiss');
-      duration = 8000; // Danger messages stay longer
+    } else {
+      // Keep the progress bar in sync with the actual dismiss duration (see CSS var usage).
+      popup.style.setProperty('--popup-duration', `${effectiveDuration}ms`);
     }
 
     // Get icon based on category
@@ -91,11 +100,11 @@ class PopupManager {
       this.close(popup);
     });
 
-    // Auto-dismiss for non-danger messages
+    // Auto-dismiss (unless explicitly disabled via duration)
     if (autoDismiss) {
       setTimeout(() => {
         this.close(popup);
-      }, duration);
+      }, effectiveDuration);
     }
 
     // Click outside to close (optional - can be removed if not desired)
