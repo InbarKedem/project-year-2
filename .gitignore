@@ -15,6 +15,10 @@ env/
 
 # Logs
 *.log
+logs/
+
+# Cursor
+.cursorrules
 
 # OS
 .DS_Store
