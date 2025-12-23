@@ -1,6 +1,7 @@
 import os
 from flask import Flask
 from flask_session import Session
+from datetime import timedelta
 from db import close_db
 from routes.auth import auth_bp
 from routes.customer import customer_bp
@@ -15,8 +16,14 @@ if not os.path.exists(session_dir):
     os.makedirs(session_dir)
 
 # Configure Session
-app.config['SESSION_TYPE'] = 'filesystem'
-app.config['SESSION_FILE_DIR'] = session_dir
+app.config.update(
+    SESSION_TYPE='filesystem',
+    SESSION_FILE_DIR=session_dir,
+    SESSION_PERMANENT=True,
+    PERMANENT_SESSION_LIFETIME=timedelta(minutes=30),
+    SESSION_REFRESH_EACH_REQUEST=True,
+    SESSION_COOKIE_SECURE=False
+)
 Session(app)
 
 # Register the teardown context to close DB connection
