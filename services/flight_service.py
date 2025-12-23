@@ -336,10 +336,11 @@ def cancel_flight(source_id, dest_id, departure_time):
         """, (source_id, dest_id, departure_time), one=True)
         
         if updated_flight['flight_status'] == 'Cancelled':
-            # Update all related orders to 'System Cancelled' if they're not already cancelled
+            # Update all related orders to 'System Cancelled' and set total_payment to 0 (full refund)
             db.execute_db("""
                 UPDATE Order_Table 
-                SET order_status = 'System Cancelled'
+                SET order_status = 'System Cancelled',
+                    total_payment = 0.00
                 WHERE source_airport_id = %s 
                 AND dest_airport_id = %s 
                 AND departure_time = %s
