@@ -1,7 +1,7 @@
 /* Modern Popup Notification System */
 .popup-container {
   position: fixed;
-  top: 20px;
+  top: 80px;
   right: 20px;
   z-index: 10000;
   display: flex;
@@ -14,75 +14,67 @@
 
 .popup {
   background: white;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 20px 24px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15), 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-md);
   display: flex;
   align-items: flex-start;
   gap: 16px;
   pointer-events: auto;
   position: relative;
   overflow: hidden;
-  animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  transform-origin: top right;
-  border-left: 4px solid;
-  transition: transform 0.3s ease, opacity 0.3s ease;
-}
-
-.popup:hover {
-  transform: translateX(-4px);
-  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.2), 0 6px 16px rgba(0, 0, 0, 0.15);
+  border-left: 5px solid;
 }
 
 .popup--success {
-  border-left-color: #10b981;
-  background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+  border-left-color: var(--color-success);
+  background: var(--color-white);
 }
 
 .popup--danger {
-  border-left-color: #ef4444;
-  background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%);
+  border-left-color: var(--color-error);
+  background: var(--color-white);
 }
 
 .popup--warning {
-  border-left-color: #f59e0b;
-  background: linear-gradient(135deg, #ffffff 0%, #fffbeb 100%);
+  border-left-color: var(--color-warning);
+  background: var(--color-white);
 }
 
 .popup--info {
-  border-left-color: #3b82f6;
-  background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
+  border-left-color: var(--color-info);
+  background: var(--color-white);
 }
 
 .popup__icon {
   flex-shrink: 0;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: bold;
 }
 
 .popup--success .popup__icon {
-  background: #10b981;
+  background: var(--color-success);
   color: white;
 }
 
 .popup--danger .popup__icon {
-  background: #ef4444;
+  background: var(--color-error);
   color: white;
 }
 
 .popup--warning .popup__icon {
-  background: #f59e0b;
+  background: var(--color-warning);
   color: white;
 }
 
 .popup--info .popup__icon {
-  background: #3b82f6;
+  background: var(--color-info);
   color: white;
 }
 
@@ -141,8 +133,10 @@
 
 .popup__close {
   flex-shrink: 0;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
   border: none;
   background: transparent;
   cursor: pointer;
@@ -150,16 +144,20 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   color: #6b7280;
-  transition: all 0.2s ease;
-  font-size: 18px;
+  font-size: 20px;
   line-height: 1;
 }
 
 .popup__close:hover {
-  background: rgba(0, 0, 0, 0.05);
+  background: rgba(0, 0, 0, 0.08);
   color: #1f2937;
+}
+
+.popup__close:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .popup__progress-bar {
@@ -180,69 +178,36 @@
   height: 100%;
   width: 100%;
   background: currentColor;
-  animation: progressBar var(--popup-duration, 5000ms) linear forwards;
 }
 
 .popup--success .popup__progress-bar::after {
-  background: #10b981;
+  background: var(--color-success);
 }
 
 .popup--danger .popup__progress-bar::after {
-  background: #ef4444;
+  background: var(--color-error);
 }
 
 .popup--warning .popup__progress-bar::after {
-  background: #f59e0b;
+  background: var(--color-warning);
 }
 
 .popup--info .popup__progress-bar::after {
-  background: #3b82f6;
+  background: var(--color-info);
 }
 
 .popup--no-auto-dismiss .popup__progress-bar {
   display: none;
 }
 
-/* Animations */
-@keyframes slideInRight {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
-@keyframes slideOutRight {
-  from {
-    transform: translateX(0);
-    opacity: 1;
-  }
-  to {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-}
-
-@keyframes progressBar {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-100%);
-  }
-}
-
 .popup--exiting {
-  animation: slideOutRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
 }
 
 /* Responsive */
 @media (max-width: 768px) {
   .popup-container {
-    top: 10px;
+    top: 70px;
     right: 10px;
     left: 10px;
     max-width: none;
@@ -250,6 +215,14 @@
   
   .popup {
     padding: 16px 20px;
+  }
+
+  .popup__close {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    min-height: 32px;
+    font-size: 22px;
   }
 }
 

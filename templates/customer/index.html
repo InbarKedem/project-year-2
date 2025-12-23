@@ -11,10 +11,10 @@
       <form action="{{ url_for('customer.index') }}" method="GET" class="search-box__form">
         <div class="search-grid">
             <div class="form-group">
-                <label class="form-label">From</label>
+                <label class="form-label" for="source-airport">From</label>
                 <div class="input-wrapper">
                     <span class="input-icon">🛫</span>
-                    <select name="source" class="form-select">
+                    <select name="source" id="source-airport" class="form-select" aria-label="Select departure airport">
                         <option value="" disabled {% if not request.args.get('source') %}selected{% endif %}>Select Origin</option>
                         {% for airport in airports %}
                         <option value="{{ airport.airport_name }}" {% if request.args.get('source') == airport.airport_name %}selected{% endif %}>{{ airport.airport_name }}</option>
@@ -23,10 +23,10 @@
                 </div>
             </div>
             <div class="form-group">
-                <label class="form-label">To</label>
+                <label class="form-label" for="dest-airport">To</label>
                 <div class="input-wrapper">
                     <span class="input-icon">🛬</span>
-                    <select name="dest" class="form-select">
+                    <select name="dest" id="dest-airport" class="form-select" aria-label="Select destination airport">
                         <option value="" disabled {% if not request.args.get('dest') %}selected{% endif %}>Select Destination</option>
                         {% for airport in airports %}
                         <option value="{{ airport.airport_name }}" {% if request.args.get('dest') == airport.airport_name %}selected{% endif %}>{{ airport.airport_name }}</option>
@@ -35,15 +35,14 @@
                 </div>
             </div>
             <div class="form-group">
-                <label class="form-label">Date</label>
+                <label class="form-label" for="flight-date">Date</label>
                 <div class="input-wrapper">
                     <span class="input-icon">📅</span>
-                    <input type="date" name="date" class="form-input" value="{{ request.args.get('date', '') }}">
+                    <input type="date" name="date" id="flight-date" class="form-input" value="{{ request.args.get('date', '') }}" aria-label="Select flight date">
                 </div>
             </div>
             <div class="form-group search-btn-group">
-                <label class="form-label">&nbsp;</label>
-                <button type="submit" class="btn btn--accent btn--block">Search Flights</button>
+                <button type="submit" class="btn btn--accent btn--block" aria-label="Search for flights">Search Flights</button>
             </div>
         </div>
         
@@ -51,19 +50,19 @@
             <summary>Advanced Options</summary>
             <div class="filters-grid">
                 <div class="form-group">
-                    <label class="form-label">Class</label>
-                    <select name="class" class="form-select">
+                    <label class="form-label" for="flight-class">Class</label>
+                    <select name="class" id="flight-class" class="form-select" aria-label="Select flight class">
                         <option value="Economy" {% if request.args.get('class') == 'Economy' %}selected{% endif %}>Economy</option>
                         <option value="Business" {% if request.args.get('class') == 'Business' %}selected{% endif %}>Business</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Min Price</label>
-                    <input type="number" name="min_price" class="form-input" value="{{ request.args.get('min_price', '') }}" placeholder="$">
+                    <label class="form-label" for="min-price">Min Price</label>
+                    <input type="number" name="min_price" id="min-price" class="form-input" value="{{ request.args.get('min_price', '') }}" placeholder="$" aria-label="Minimum price">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Max Price</label>
-                    <input type="number" name="max_price" class="form-input" value="{{ request.args.get('max_price', '') }}" placeholder="$">
+                    <label class="form-label" for="max-price">Max Price</label>
+                    <input type="number" name="max_price" id="max-price" class="form-input" value="{{ request.args.get('max_price', '') }}" placeholder="$" aria-label="Maximum price">
                 </div>
             </div>
         </details>
@@ -106,7 +105,11 @@
             </div>
             {% endfor %}
         {% else %}
-            <div class="alert alert--info">No flights found matching your criteria.</div>
+            <div class="empty-state">
+                <div class="empty-state__icon">✈</div>
+                <h3 class="empty-state__title">No flights found</h3>
+                <p class="empty-state__message">No flights match your search criteria. Try adjusting your filters or <a href="{{ url_for('customer.index', show_all=1) }}" class="empty-state__link">view all available flights</a>.</p>
+            </div>
         {% endif %}
     </div>
 </div>

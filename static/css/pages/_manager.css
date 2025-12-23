@@ -2,42 +2,223 @@
   /* Styles specific to manager dashboard */
 }
 
-.staff-form__title {
-  margin-top: 1.5rem;
-  margin-bottom: 1rem;
-  border-bottom: 1px solid var(--color-border);
-  padding-bottom: 0.5rem;
-  color: var(--color-primary);
-}
-
-.staff-form__grid {
+.grid-container {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--spacing-lg);
+  margin-top: var(--spacing-lg);
 }
 
-.staff-form__actions {
-  margin-top: 2rem;
+.grid-container .card {
   display: flex;
-  gap: 1rem;
+  flex-direction: column;
+  padding: var(--spacing-xl);
+  background: var(--color-white);
+  border-top: 4px solid var(--color-primary);
+  position: relative;
 }
 
-/* New extracted styles */
-.dashboard-actions {
+.grid-container .card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.grid-container .card__title {
+  font-size: 1.5rem;
+  margin-bottom: var(--spacing-md);
   display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-top: 1rem;
+  align-items: center;
+  gap: var(--spacing-sm);
 }
 
+.grid-container .card__title::before {
+  content: '✈';
+  font-size: 1.8rem;
+}
+
+.grid-container .card:nth-child(2) .card__title::before {
+  content: '📊';
+}
+
+.grid-container .card:nth-child(3) .card__title::before {
+  content: '👥';
+}
+
+.grid-container .card p {
+  color: var(--color-text-light);
+  line-height: 1.6;
+  margin-bottom: var(--spacing-lg);
+  flex: 1;
+}
+
+.dashboard-actions,
 .card-actions {
-  margin-top: 1rem;
+  display: flex;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+  margin-top: auto;
+}
+
+.dashboard-actions .btn,
+.card-actions .btn {
+  flex: 1;
+  min-width: 140px;
+}
+
+.staff-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+}
+
+.staff-form h3 {
+  margin-top: 2.5rem;
+  margin-bottom: var(--spacing-md);
+  padding-top: var(--spacing-lg);
+  border-top: 3px solid var(--color-primary);
+  color: var(--color-primary);
+  font-size: 1.3rem;
+  position: relative;
+}
+
+.staff-form h3:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.staff-form h3::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: 2px;
+}
+
+.staff-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.staff-form-grid .form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+.staff-form__actions,
+.form-actions {
+  margin-top: var(--spacing-xl);
+  display: flex;
+  gap: var(--spacing-md);
+  padding-top: var(--spacing-lg);
+  border-top: 2px solid var(--color-border);
+}
+
+/* Crew Grid - Selectable Cards */
+.checkbox-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.checkbox-list--error {
+  border-color: var(--color-error);
+  background: var(--color-error-light);
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  background: var(--color-white);
+  position: relative;
+  min-height: 44px;
+}
+
+.checkbox-label:hover {
+  border-color: var(--color-primary-light);
+}
+
+.checkbox-label input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  cursor: pointer;
+}
+
+.checkbox-label span {
+  flex: 1;
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.checkbox-label:has(input[type="checkbox"]:checked) {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-white);
+}
+
+.checkbox-label:has(input[type="checkbox"]:checked) span {
+  color: var(--color-white);
+}
+
+.checkbox-label:has(input[type="checkbox"]:checked)::after {
+  content: '✓';
+  color: var(--color-white);
+  font-size: 1rem;
+  font-weight: bold;
+  margin-left: var(--spacing-sm);
+}
+
+.crew-error-message {
+  margin-top: var(--spacing-sm);
+  color: var(--color-error);
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.crew-error-message::before {
+  content: '✕';
+}
+
+.crew-counter {
+  margin-top: var(--spacing-sm);
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  display: inline-block;
+}
+
+.crew-counter--valid {
+  color: var(--color-success);
+  background: var(--color-success-light);
+}
+
+.crew-counter--invalid {
+  color: var(--color-error);
+  background: var(--color-error-light);
 }
 
 .filter-actions {
   display: flex;
-  gap: 10px;
+  gap: var(--spacing-sm);
   align-items: flex-end;
 }
 
@@ -50,11 +231,41 @@
   cursor: pointer;
 }
 
+.clickable-row:hover {
+  background-color: #f8f9fa;
+}
+
 .cancel-disabled {
-  color: #999;
+  color: var(--color-text-light);
   font-size: 0.85rem;
+  font-style: italic;
 }
 
 .back-link-container {
-  margin-top: 20px;
+  margin-top: var(--spacing-lg);
+}
+
+@media (max-width: 768px) {
+  .grid-container {
+    grid-template-columns: 1fr;
+  }
+
+  .staff-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .checkbox-list {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-actions,
+  .card-actions,
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .dashboard-actions .btn,
+  .card-actions .btn {
+    width: 100%;
+  }
 }

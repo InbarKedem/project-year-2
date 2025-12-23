@@ -9,9 +9,10 @@
 {% endblock %}
 
 {% block content %}
-<h2>My Orders</h2>
+<div class="container">
+  <h2>My Orders</h2>
 
-<div class="spending-summary">
+  <div class="spending-summary">
     <h3>Total Spending: ${{ "%.2f"|format(total_spending) }}</h3>
 </div>
 
@@ -256,10 +257,17 @@
         </tr>
         {% else %}
         <tr>
-            <td colspan="8">No orders found.</td>
+            <td colspan="8" class="empty-state-cell">
+                <div class="empty-state empty-state--small">
+                    <div class="empty-state__icon">📋</div>
+                    <h3 class="empty-state__title">No orders found</h3>
+                    <p class="empty-state__message">You don't have any orders yet. <a href="{{ url_for('customer.index') }}" class="empty-state__link">Start booking your first flight</a>!</p>
+                </div>
+            </td>
         </tr>
         {% endfor %}
     </tbody>
 </table>
+</div>
 
 {% endblock %}

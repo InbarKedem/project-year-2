@@ -1,0 +1,110 @@
+/* Badge Component - Consistent across all pages */
+.badge {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1;
+  text-transform: capitalize;
+  letter-spacing: 0.3px;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Badge Variants */
+.badge--success,
+.badge-success {
+  background: var(--color-success);
+  color: var(--color-white);
+  border: 1px solid var(--color-success);
+}
+
+.badge--danger,
+.badge-danger {
+  background: var(--color-error);
+  color: var(--color-white);
+  border: 1px solid var(--color-error);
+}
+
+.badge--info,
+.badge-info,
+.badge--info {
+  background: var(--color-info);
+  color: var(--color-white);
+  border: 1px solid var(--color-info);
+}
+
+.badge--warning {
+  background: var(--color-warning);
+  color: var(--color-primary-dark);
+  border: 1px solid var(--color-warning);
+}
+
+.badge--secondary,
+.badge-secondary {
+  background: var(--color-gray-medium);
+  color: var(--color-white);
+  border: 1px solid var(--color-gray-medium);
+}
+
+/* Badge Sizes */
+.badge--small {
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+}
+
+.badge--large {
+  padding: 0.75rem 1.25rem;
+  font-size: 1rem;
+}
+
+/* Status Badge (for order status, flight status, etc.) */
+.status-badge {
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  display: inline-block;
+  letter-spacing: 0.3px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.status-confirmed,
+.status-active {
+  background-color: var(--color-success);
+  color: white;
+}
+
+.status-customer-cancelled {
+  background-color: var(--color-warning);
+  color: var(--color-gray-dark);
+}
+
+.status-system-cancelled,
+.status-cancelled {
+  background-color: var(--color-error);
+  color: white;
+}
+
+/* Pilot/Attendant Badges */
+.pilot-badge,
+.attendant-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-left: 0.5rem;
+}
+
+.pilot-badge {
+  background-color: var(--color-primary-light);
+  color: white;
+}
+
+.attendant-badge {
+  background-color: var(--color-info);
+  color: white;
+}
+

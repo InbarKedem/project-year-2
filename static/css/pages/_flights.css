@@ -19,7 +19,6 @@
   height: 100%;
   overflow: auto;
   background-color: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
 }
 
 .modal-content {
@@ -30,20 +29,8 @@
   width: 90%;
   max-width: 600px;
   border-radius: var(--radius-lg);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-  animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: var(--shadow-lg);
   position: relative;
-}
-
-@keyframes slideIn {
-  from {
-    transform: translateY(20px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
 }
 
 .modal-header {
@@ -75,7 +62,6 @@
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  transition: all 0.2s;
   background: #f5f5f5;
 }
 
@@ -139,55 +125,7 @@
   margin-bottom: 0;
 }
 
-/* Badges */
-.badge {
-  padding: 0.35em 0.65em;
-  font-size: 0.75em;
-  font-weight: 700;
-  line-height: 1;
-  text-align: center;
-  white-space: nowrap;
-  vertical-align: baseline;
-  border-radius: 0.25rem;
-}
-
-.pilot-badge {
-  background-color: #e3f2fd;
-  color: #0d47a1;
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.attendant-badge {
-  background-color: #e8f5e9;
-  color: #1b5e20;
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.badge-info,
-.badge--info {
-  background-color: #17a2b8;
-  color: white;
-}
-
-.badge-danger {
-  background-color: var(--color-error);
-  color: white;
-}
-
-.badge-secondary {
-  background-color: #6c757d;
-  color: white;
-}
+/* Badge styles moved to components/_badges.css */
 
 /* Status Update Section */
 .status-update-section {
@@ -221,7 +159,6 @@
   background-color: white;
   color: var(--color-text);
   cursor: pointer;
-  transition: border-color 0.2s;
 }
 
 .status-select:focus {

@@ -1,0 +1,54 @@
+/* Page Header Component - Consistent across all pages */
+.page-header {
+  margin-bottom: var(--spacing-xl);
+  padding-bottom: var(--spacing-md);
+  border-bottom: 3px solid var(--color-primary);
+  position: relative;
+}
+
+.page-header::after {
+  content: '';
+  position: absolute;
+  bottom: -3px;
+  left: 0;
+  width: 80px;
+  height: 3px;
+  background: var(--color-accent);
+}
+
+.page-header h2 {
+  margin-bottom: 0;
+  font-size: clamp(1.75rem, 4vw, 2.25rem);
+  color: var(--color-primary);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.page-header__subtitle {
+  margin-top: var(--spacing-sm);
+  color: var(--color-text-light);
+  font-size: 1rem;
+  font-weight: 400;
+}
+
+/* Ensure all h2 on pages follow consistent styling */
+.container > h2:first-child {
+  margin-bottom: var(--spacing-xl);
+  padding-bottom: var(--spacing-md);
+  border-bottom: 3px solid var(--color-primary);
+  position: relative;
+  font-size: clamp(1.75rem, 4vw, 2.25rem);
+}
+
+.container > h2:first-child::after {
+  content: '';
+  position: absolute;
+  bottom: -3px;
+  left: 0;
+  width: 80px;
+  height: 3px;
+  background: var(--color-accent);
+}
+

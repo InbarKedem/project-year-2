@@ -19,6 +19,11 @@
           data-col="{{ c }}"
           data-class="economy"
           onclick="selectSeat(this, false)"
+          role="button"
+          tabindex="0"
+          aria-label="{% if is_taken %}Seat {{ r }}{{ c }} - Occupied{% else %}Seat {{ r }}{{ c }} - Available, click to select{% endif %}"
+          {% if is_taken %}aria-disabled="true"{% endif %}
+          onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectSeat(this, false);}"
         >
           {{ c }}
         </div>
@@ -48,6 +53,11 @@
           data-col="{{ c }}"
           data-class="business"
           onclick="selectSeat(this, true)"
+          role="button"
+          tabindex="0"
+          aria-label="{% if is_taken %}Seat {{ r }}{{ c }} - Occupied{% else %}Seat {{ r }}{{ c }} - Available, click to select{% endif %}"
+          {% if is_taken %}aria-disabled="true"{% endif %}
+          onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectSeat(this, true);}"
         >
           {{ c }}
         </div>

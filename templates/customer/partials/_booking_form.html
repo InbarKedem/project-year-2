@@ -13,25 +13,29 @@
     <h4>Main Passenger</h4>
     
     <div class="form-group">
-      <label class="form-label">Email</label>
-      <input type="email" name="email" class="form-input" required 
+      <label class="form-label" for="booking-email">Email</label>
+      <input type="email" name="email" id="booking-email" class="form-input" required 
              value="{{ user_details.email if user_details else (session.get('user_id') if session.get('user_id') else '') }}"
-             {% if session.get('user_id') %}readonly{% endif %} />
+             {% if session.get('user_id') %}readonly{% endif %}
+             aria-required="true" />
     </div>
     <div class="form-group">
-      <label class="form-label">First Name</label>
-      <input type="text" name="first_name" class="form-input" required 
-             value="{{ user_details.first_name if user_details else '' }}" />
+      <label class="form-label" for="booking-first-name">First Name</label>
+      <input type="text" name="first_name" id="booking-first-name" class="form-input" required 
+             value="{{ user_details.first_name if user_details else '' }}"
+             aria-required="true" />
     </div>
     <div class="form-group">
-      <label class="form-label">Last Name</label>
-      <input type="text" name="last_name" class="form-input" required 
-             value="{{ user_details.last_name if user_details else '' }}" />
+      <label class="form-label" for="booking-last-name">Last Name</label>
+      <input type="text" name="last_name" id="booking-last-name" class="form-input" required 
+             value="{{ user_details.last_name if user_details else '' }}"
+             aria-required="true" />
     </div>
     <div class="form-group">
-      <label class="form-label">Phone</label>
-      <input type="tel" name="phone" class="form-input" required 
-             value="{{ user_details.phone_number if user_details else '' }}" />
+      <label class="form-label" for="booking-phone">Phone</label>
+      <input type="tel" name="phone" id="booking-phone" class="form-input" required 
+             value="{{ user_details.phone_number if user_details else '' }}"
+             aria-required="true" />
     </div>
 
     <!-- Extra Passengers -->

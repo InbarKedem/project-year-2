@@ -1,6 +1,7 @@
 {% extends 'layout/base.html' %} {% block content %}
-<h2>Manager Dashboard</h2>
-<div class="grid-container">
+<div class="container">
+  <h2>Manager Dashboard</h2>
+  <div class="grid-container">
   <div class="card">
     <h3 class="card__title">Flight Management</h3>
     <p>Add new flights, cancel existing ones, and manage schedule.</p>
@@ -27,5 +28,6 @@
       <a href="{{ url_for('manager.add_staff') }}" class="btn">Add Staff</a>
     </div>
   </div>
+</div>
 </div>
 {% endblock %}

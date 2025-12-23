@@ -1,7 +1,8 @@
 {% extends 'layout/base.html' %} {% block content %}
-<h2>Manager Reports</h2>
+<div class="container">
+  <h2>Manager Reports</h2>
 
-<div class="reports-container">
+  <div class="reports-container">
   <!-- 1. Average Occupancy -->
   <div class="card">
     <h3>Average Flight Occupancy</h3>
@@ -23,7 +24,12 @@
         </tr>
         {% else %}
         <tr>
-          <td colspan="3">No data available</td>
+          <td colspan="3" class="empty-state">
+            <div class="reports-empty-state">
+              <p><strong>No data available</strong></p>
+              <p>No occupancy data found for the selected period.</p>
+            </div>
+          </td>
         </tr>
         {% endfor %}
       </tbody>
@@ -53,7 +59,12 @@
         </tr>
         {% else %}
         <tr>
-          <td colspan="4">No data available</td>
+          <td colspan="4" class="empty-state">
+            <div class="reports-empty-state">
+              <p><strong>No data available</strong></p>
+              <p>No revenue data found for the selected period.</p>
+            </div>
+          </td>
         </tr>
         {% endfor %}
       </tbody>
@@ -85,7 +96,12 @@
         </tr>
         {% else %}
         <tr>
-          <td colspan="5">No data available</td>
+          <td colspan="5" class="empty-state">
+            <div class="reports-empty-state">
+              <p><strong>No data available</strong></p>
+              <p>No employee flight hours data found.</p>
+            </div>
+          </td>
         </tr>
         {% endfor %}
       </tbody>
@@ -114,7 +130,12 @@
         </tr>
         {% else %}
         <tr>
-          <td colspan="4">No data available</td>
+          <td colspan="4" class="empty-state">
+            <div class="reports-empty-state">
+              <p><strong>No data available</strong></p>
+              <p>No cancellation data found for the selected period.</p>
+            </div>
+          </td>
         </tr>
         {% endfor %}
       </tbody>
@@ -147,11 +168,17 @@
         </tr>
         {% else %}
         <tr>
-          <td colspan="6">No data available</td>
+          <td colspan="6" class="empty-state">
+            <div class="reports-empty-state">
+              <p><strong>No data available</strong></p>
+              <p>No plane activity data found for the selected period.</p>
+            </div>
+          </td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
+</div>
 </div>
 {% endblock %}

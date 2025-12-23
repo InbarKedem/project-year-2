@@ -1,6 +1,6 @@
 {% extends 'layout/base.html' %} {% block content %}
 <div class="container">
-  <h2>Add New Staff Member</h2>
+  <h2 class="page-header__title">Add New Staff Member</h2>
   <div class="auth-container">
     <form
       method="POST"
@@ -10,64 +10,65 @@
       <h3>Personal Information</h3>
       <div class="staff-form-grid">
         <div class="form-group">
-          <label>ID Number (9 digits):</label>
+          <label class="form-label form-label--required">ID Number (9 digits):</label>
           <input
             type="text"
             name="id_number"
             required
             pattern="\d{9}"
             title="9 digit ID number"
+            class="form-input"
           />
         </div>
 
         <div class="form-group">
-          <label>First Name:</label>
-          <input type="text" name="first_name" required />
+          <label class="form-label form-label--required">First Name:</label>
+          <input type="text" name="first_name" required class="form-input" />
         </div>
 
         <div class="form-group">
-          <label>Middle Name:</label>
-          <input type="text" name="middle_name" />
+          <label class="form-label">Middle Name:</label>
+          <input type="text" name="middle_name" class="form-input" />
         </div>
 
         <div class="form-group">
-          <label>Last Name:</label>
-          <input type="text" name="last_name" required />
+          <label class="form-label form-label--required">Last Name:</label>
+          <input type="text" name="last_name" required class="form-input" />
         </div>
       </div>
 
       <h3>Contact Information</h3>
       <div class="staff-form-grid">
         <div class="form-group">
-          <label>City:</label>
-          <input type="text" name="city" required />
+          <label class="form-label form-label--required">City:</label>
+          <input type="text" name="city" required class="form-input" />
         </div>
 
         <div class="form-group">
-          <label>Street:</label>
-          <input type="text" name="street" required />
+          <label class="form-label form-label--required">Street:</label>
+          <input type="text" name="street" required class="form-input" />
         </div>
 
         <div class="form-group">
-          <label>House Number:</label>
-          <input type="number" name="house_number" required />
+          <label class="form-label form-label--required">House Number:</label>
+          <input type="number" name="house_number" required class="form-input" />
         </div>
 
         <div class="form-group">
-          <label>Phone:</label>
-          <input type="text" name="phone" required />
+          <label class="form-label form-label--required">Phone:</label>
+          <input type="text" name="phone" required class="form-input" />
         </div>
       </div>
 
       <h3>Employment Details</h3>
       <div class="staff-form-grid">
         <div class="form-group">
-          <label>Start Work Date:</label>
-          <input type="date" name="start_work_date" required />
+          <label class="form-label form-label--required">Start Work Date:</label>
+          <input type="date" name="start_work_date" required class="form-input" />
         </div>
 
         <div class="form-group">
-          <label>Role:</label>
+          <label class="form-label form-label--required">Role:</label>
           <select name="role" required class="form-select">
             <option value="pilot">Pilot</option>
             <option value="attendant">Flight Attendant</option>
@@ -77,7 +78,7 @@
         <div class="form-group full-width">
           <label class="checkbox-label">
             <input type="checkbox" name="trained_for_long_flights" />
-            Trained for Long Flights
+            <span>Trained for Long Flights</span>
           </label>
         </div>
       </div>
@@ -86,7 +87,7 @@
         <button type="submit" class="btn">Add Staff Member</button>
         <a
           href="{{ url_for('manager.manager_dashboard') }}"
-          class="btn btn-secondary"
+          class="btn btn--secondary"
           >Cancel</a
         >
       </div>

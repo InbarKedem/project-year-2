@@ -48,7 +48,8 @@
   </form>
 
   <div class="card table-card">
-    <table class="table">
+    <div class="table-wrapper">
+      <table class="table">
 
       <thead>
         <tr>
@@ -86,11 +87,18 @@
         </tr>
         {% else %}
         <tr>
-          <td colspan="4">No active flights found.</td>
+          <td colspan="4" class="empty-state">
+            <div style="text-align: center; padding: 3rem;">
+              <div style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;">✈</div>
+              <p style="font-size: 1.1rem; color: var(--color-text-light); margin-bottom: 0.5rem;"><strong>No flights found</strong></p>
+              <p style="color: var(--color-text-light);">No flights match your filters. Try <a href="{{ url_for('manager.manage_flights') }}" style="color: var(--color-primary); text-decoration: underline;">clearing filters</a> or <a href="{{ url_for('manager.add_flight') }}" style="color: var(--color-primary); text-decoration: underline;">add a new flight</a>.</p>
+            </div>
+          </td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
+    </div>
   </div>
   <div class="back-link-container">
     <a

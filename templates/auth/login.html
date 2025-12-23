@@ -8,14 +8,14 @@
       <form method="POST" action="{{ url_for('auth.login') }}">
         <input type="hidden" name="user_type" value="customer" />
         <div class="form-group">
-          <label class="form-label">Email:</label>
-          <input type="email" name="email" required class="form-input" />
+          <label class="form-label" for="customer-email">Email:</label>
+          <input type="email" name="email" id="customer-email" required class="form-input" aria-required="true" />
         </div>
         <div class="form-group">
-          <label class="form-label">Password:</label>
-          <input type="password" name="password" required class="form-input" />
+          <label class="form-label" for="customer-password">Password:</label>
+          <input type="password" name="password" id="customer-password" required class="form-input" aria-required="true" />
         </div>
-        <button type="submit" class="btn">Login as Customer</button>
+        <button type="submit" class="btn" aria-label="Login as customer">Login as Customer</button>
       </form>
     </div>
 
@@ -26,20 +26,23 @@
       <form method="POST" action="{{ url_for('auth.login') }}">
         <input type="hidden" name="user_type" value="manager" />
         <div class="form-group">
-          <label class="form-label">ID Number:</label>
+          <label class="form-label" for="manager-id">ID Number:</label>
           <input
             type="text"
             name="id_number"
+            id="manager-id"
             required
             maxlength="9"
             class="form-input"
+            aria-required="true"
+            aria-label="Manager ID number (9 digits)"
           />
         </div>
         <div class="form-group">
-          <label class="form-label">Password:</label>
-          <input type="password" name="password" required class="form-input" />
+          <label class="form-label" for="manager-password">Password:</label>
+          <input type="password" name="password" id="manager-password" required class="form-input" aria-required="true" />
         </div>
-        <button type="submit" class="btn btn--secondary">
+        <button type="submit" class="btn btn--secondary" aria-label="Login as manager">
           Login as Manager
         </button>
       </form>
