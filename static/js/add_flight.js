@@ -16,11 +16,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const aircraftId = aircraftSelect.value;
 
     if (sourceId && destId && sourceId === destId) {
-      if (window.popupManager) {
-        window.popupManager.error("Source and Destination airports cannot be the same.");
-      } else {
-        alert("Source and Destination airports cannot be the same.");
-      }
+      window.popupManager.error("Source and Destination airports cannot be the same.");
       // Reset destination or handle UI
       destSelect.value = "";
       return;
@@ -244,11 +240,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     if (checkedCount > maxCount) {
-      if (window.popupManager) {
-        window.popupManager.warning(`You can only select ${maxCount} ${type}.`);
-      } else {
-        alert(`You can only select ${maxCount} ${type}. Please uncheck one.`);
-      }
+      window.popupManager.warning(`You can only select ${maxCount} ${type}.`);
       // Uncheck the checkbox that was just checked
       if (changedCheckbox) {
         changedCheckbox.checked = false;
@@ -307,13 +299,13 @@ document.addEventListener("DOMContentLoaded", function () {
         
         if (pilotCheckboxes.length !== pilotRequired) {
           event.preventDefault();
-          alert(`Please select exactly ${pilotRequired} pilot(s). Currently selected: ${pilotCheckboxes.length}`);
+          window.popupManager.error(`Please select exactly ${pilotRequired} pilot(s). Currently selected: ${pilotCheckboxes.length}`);
           return false;
         }
         
         if (attendantCheckboxes.length !== attendantRequired) {
           event.preventDefault();
-          alert(`Please select exactly ${attendantRequired} attendant(s). Currently selected: ${attendantCheckboxes.length}`);
+          window.popupManager.error(`Please select exactly ${attendantRequired} attendant(s). Currently selected: ${attendantCheckboxes.length}`);
           return false;
         }
         
