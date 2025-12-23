@@ -21,6 +21,9 @@ class PopupManager {
 
     // Process existing flash messages from Flask
     this.processFlashMessages();
+
+    // Process any messages queued for the next page load (e.g., before reload/navigation)
+    this.processQueuedMessages();
   }
 
   processFlashMessages() {
@@ -42,6 +45,29 @@ class PopupManager {
       // Remove the original alert
       alert.remove();
     });
+  }
+
+  processQueuedMessages() {
+    try {
+      const raw = window.sessionStorage?.getItem('popupQueue');
+      if (!raw) return;
+
+      const items = JSON.parse(raw);
+      if (!Array.isArray(items)) return;
+
+      items.forEach((item) => {
+        if (!item || typeof item.message !== 'string') return;
+        this.show(item.message, item.category || 'info', item.duration);
+      });
+    } catch (e) {
+      // If storage is blocked/corrupt, fail silently (popups should never break the page)
+    } finally {
+      try {
+        window.sessionStorage?.removeItem('popupQueue');
+      } catch (e) {
+        // ignore
+      }
+    }
   }
 
   extractCategory(className) {
@@ -154,6 +180,18 @@ class PopupManager {
   }
 
   // Public API methods
+  queueForNextLoad(message, category = 'info', duration) {
+    try {
+      const raw = window.sessionStorage?.getItem('popupQueue');
+      const items = raw ? JSON.parse(raw) : [];
+      const next = Array.isArray(items) ? items : [];
+      next.push({ message, category, duration });
+      window.sessionStorage?.setItem('popupQueue', JSON.stringify(next));
+    } catch (e) {
+      // ignore
+    }
+  }
+
   success(message, duration) {
     this.show(message, 'success', duration);
   }

@@ -242,7 +242,8 @@
       .then((data) => {
         if (data.success) {
           if (window.popupManager) {
-            window.popupManager.success("Status updated successfully!");
+            // Persist the success message across reload (popups are non-blocking).
+            window.popupManager.queueForNextLoad("Status updated successfully!", "success");
           } else {
             alert("Status updated successfully!");
           }
