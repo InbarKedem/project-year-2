@@ -324,6 +324,10 @@ def cancel_flight(source_id, dest_id, departure_time):
         # Check if flight is already cancelled
         if flight['flight_status'] == 'Cancelled':
             return False, "Flight is already cancelled"
+        
+        # Check if flight is completed
+        if flight['flight_status'] == 'Completed':
+            return False, "Cannot cancel a completed flight"
 
         # Update flight status to Cancelled (only if >= 72 hours before departure)
         db.execute_db("""

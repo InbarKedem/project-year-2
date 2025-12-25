@@ -274,25 +274,56 @@ def manage_flights():
     
     now = datetime.now()
     
-    # Add a flag for cancellation eligibility (72 hours and not already cancelled)
+    # Add a flag for cancellation eligibility (72 hours and not already cancelled or completed)
     for f in flights:
         # Ensure departure_time is a datetime object
         if isinstance(f['departure_time'], str):
              f['departure_time'] = datetime.strptime(f['departure_time'], '%Y-%m-%d %H:%M:%S')
              
         time_diff = f['departure_time'] - now
-        # Can cancel only if >= 72 hours before departure AND status is not 'Cancelled'
-        f['can_cancel'] = time_diff.total_seconds() >= 72 * 3600 and f.get('flight_status') != 'Cancelled'
+        hours_until_flight = time_diff.total_seconds() / 3600
+        
+        # Can cancel only if:
+        # - >= 72 hours before departure
+        # - status is not 'Cancelled'
+        # - status is not 'Completed'
+        f['can_cancel'] = (
+            hours_until_flight >= 72 
+            and f.get('flight_status') != 'Cancelled' 
+            and f.get('flight_status') != 'Completed'
+        )
+        
+        # Store hours for better messaging
+        f['hours_until_flight'] = hours_until_flight
 
     return render_template('manager/manage_flights.html', flights=flights, airports=airports)
 
-@manager_bp.route('/cancel_flight/<int:source_id>/<int:dest_id>/<string:departure_time>', methods=['GET', 'POST'])
+@manager_bp.route('/cancel_flight/<int:source_id>/<int:dest_id>/<path:departure_time>', methods=['POST'])
 def cancel_flight_route(source_id, dest_id, departure_time):
     if session.get('role') != 'manager':
         flash('Access denied. Managers only.', 'danger')
         return redirect(url_for('auth.login'))
 
-    success, message = cancel_flight(source_id, dest_id, departure_time)
+    # Decode URL-encoded departure_time (spaces are encoded as %20)
+    from urllib.parse import unquote
+    departure_time = unquote(departure_time)
+    
+    # Parse the datetime string properly
+    try:
+        # Try parsing with space separator first
+        departure_time = datetime.strptime(departure_time, '%Y-%m-%d %H:%M:%S')
+    except ValueError:
+        try:
+            # Try parsing with T separator
+            departure_time = datetime.strptime(departure_time, '%Y-%m-%dT%H:%M:%S')
+        except ValueError:
+            flash('Invalid departure time format.', 'danger')
+            return redirect(url_for('manager.manage_flights'))
+    
+    # Convert back to string format expected by the service
+    departure_time_str = departure_time.strftime('%Y-%m-%d %H:%M:%S')
+    
+    success, message = cancel_flight(source_id, dest_id, departure_time_str)
     
     if success:
         flash(message, 'success')
