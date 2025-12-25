@@ -1,10 +1,18 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, session, request, jsonify
+from flask import Blueprint, render_template, redirect, url_for, flash, session, request, jsonify, Response
 from services.reports_service import (
     get_occupancy_report,
     get_revenue_report,
     get_employee_hours_report,
     get_cancellation_report,
     get_plane_activity_report
+)
+from services.chart_service import (
+    generate_occupancy_chart,
+    generate_revenue_chart,
+    generate_employee_hours_chart,
+    generate_cancellation_chart,
+    generate_plane_activity_chart,
+    generate_filtered_revenue_chart
 )
 from services.employee_service import add_new_staff
 from services.flight_service import (
@@ -87,12 +95,31 @@ def reports():
         flash('Access denied. Managers only.', 'danger')
         return redirect(url_for('auth.login'))
 
+    # Get report data
+    occupancy_data = get_occupancy_report()
+    revenue_data = get_revenue_report()
+    employee_hours_data = get_employee_hours_report()
+    cancellation_data = get_cancellation_report()
+    plane_activity_data = get_plane_activity_report()
+    
+    # Generate charts
+    occupancy_chart = generate_occupancy_chart(occupancy_data) if occupancy_data else None
+    revenue_chart = generate_revenue_chart(revenue_data) if revenue_data else None
+    employee_hours_chart = generate_employee_hours_chart(employee_hours_data) if employee_hours_data else None
+    cancellation_chart = generate_cancellation_chart(cancellation_data) if cancellation_data else None
+    plane_activity_chart = generate_plane_activity_chart(plane_activity_data) if plane_activity_data else None
+
     return render_template('manager/reports.html', 
-                           occupancy_report=get_occupancy_report(),
-                           revenue_report=get_revenue_report(),
-                           employee_hours_report=get_employee_hours_report(),
-                           cancellation_report=get_cancellation_report(),
-                           plane_activity_report=get_plane_activity_report())
+                           occupancy_report=occupancy_data,
+                           occupancy_chart=occupancy_chart,
+                           revenue_report=revenue_data,
+                           revenue_chart=revenue_chart,
+                           employee_hours_report=employee_hours_data,
+                           employee_hours_chart=employee_hours_chart,
+                           cancellation_report=cancellation_data,
+                           cancellation_chart=cancellation_chart,
+                           plane_activity_report=plane_activity_data,
+                           plane_activity_chart=plane_activity_chart)
 
 
 @manager_bp.route('/api/check_availability')
@@ -173,38 +200,61 @@ def add_flight():
         # Get list of selected crew members
         crew_ids = request.form.getlist('crew_ids')
 
-        if source_id == dest_id:
-            flash('Source and Destination airports cannot be the same.', 'danger')
-        elif not crew_ids:
-            flash('Please assign at least one crew member.', 'danger')
-        else:
-            # Validate crew count matches requirements
-            validation_result = validate_crew_count(crew_ids, aircraft_id, source_id, dest_id, departure_time)
-            if not validation_result[0]:
-                flash(validation_result[1], 'danger')
+        # Validate prices are not negative
+        try:
+            economy_price_float = float(economy_price) if economy_price else 0
+            business_price_float = float(business_price) if business_price else 0
+            if economy_price_float < 0 or business_price_float < 0:
+                flash('Flight prices cannot be negative.', 'danger')
+            elif source_id == dest_id:
+                flash('Source and Destination airports cannot be the same.', 'danger')
+            elif not crew_ids:
+                flash('Please assign at least one crew member.', 'danger')
             else:
-                success, message = create_flight(
-                    source_id, dest_id, departure_time, aircraft_id, 
-                    economy_price, business_price, crew_ids
-                )
-                
-                if success:
-                    flash(message, 'success')
-                    return redirect(url_for('manager.manager_dashboard'))
+                # Validate departure time is not in the past
+                if departure_time:
+                    try:
+                        departure_dt = datetime.strptime(departure_time, '%Y-%m-%dT%H:%M')
+                        if departure_dt < datetime.now():
+                            flash('Departure time cannot be in the past.', 'danger')
+                        else:
+                            # Validate crew count matches requirements
+                            validation_result = validate_crew_count(crew_ids, aircraft_id, source_id, dest_id, departure_time)
+                            if not validation_result[0]:
+                                flash(validation_result[1], 'danger')
+                            else:
+                                success, message = create_flight(
+                                    source_id, dest_id, departure_time, aircraft_id, 
+                                    economy_price, business_price, crew_ids
+                                )
+                                
+                                if success:
+                                    flash(message, 'success')
+                                    return redirect(url_for('manager.manager_dashboard'))
+                                else:
+                                    flash(message, 'danger')
+                    except ValueError:
+                        flash('Invalid departure time format.', 'danger')
                 else:
-                    flash(message, 'danger')
+                    flash('Departure time is required.', 'danger')
+        except ValueError:
+            flash('Invalid price format. Please enter valid numbers.', 'danger')
 
     # Fetch data for dropdowns
     airports = get_all_airports()
     aircrafts = get_all_aircrafts()
     pilots = get_all_pilots()
     attendants = get_all_attendants()
+    
+    # Pass current datetime for the min attribute in datetime-local input
+    current_datetime = datetime.now().strftime('%Y-%m-%dT%H:%M')
 
     return render_template('manager/add_flight.html', 
                            airports=airports, 
                            aircrafts=aircrafts, 
                            pilots=pilots, 
-                           attendants=attendants)
+                           attendants=attendants,
+                           current_datetime=current_datetime)
 
 @manager_bp.route('/manage_flights')
 def manage_flights():
@@ -224,18 +274,19 @@ def manage_flights():
     
     now = datetime.now()
     
-    # Add a flag for cancellation eligibility (72 hours)
+    # Add a flag for cancellation eligibility (72 hours and not already cancelled)
     for f in flights:
         # Ensure departure_time is a datetime object
         if isinstance(f['departure_time'], str):
              f['departure_time'] = datetime.strptime(f['departure_time'], '%Y-%m-%d %H:%M:%S')
              
         time_diff = f['departure_time'] - now
-        f['can_cancel'] = time_diff.total_seconds() >= 72 * 3600
+        # Can cancel only if >= 72 hours before departure AND status is not 'Cancelled'
+        f['can_cancel'] = time_diff.total_seconds() >= 72 * 3600 and f.get('flight_status') != 'Cancelled'
 
     return render_template('manager/manage_flights.html', flights=flights, airports=airports)
 
-@manager_bp.route('/cancel_flight/<int:source_id>/<int:dest_id>/<string:departure_time>')
+@manager_bp.route('/cancel_flight/<int:source_id>/<int:dest_id>/<string:departure_time>', methods=['GET', 'POST'])
 def cancel_flight_route(source_id, dest_id, departure_time):
     if session.get('role') != 'manager':
         flash('Access denied. Managers only.', 'danger')

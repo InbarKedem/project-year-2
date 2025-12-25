@@ -73,13 +73,16 @@
           </td>
           <td>
             {% if flight.can_cancel %}
-            <a
-              href="{{ url_for('manager.cancel_flight_route', source_id=flight.source_airport_id, dest_id=flight.dest_airport_id, departure_time=flight.departure_time) }}"
-              class="btn-cancel"
-              onclick="event.stopPropagation(); return confirm('Are you sure you want to cancel this flight?');"
+            <form 
+              action="{{ url_for('manager.cancel_flight_route', source_id=flight.source_airport_id, dest_id=flight.dest_airport_id, departure_time=flight.departure_time) }}"
+              method="POST"
+              style="display: inline;"
+              onsubmit="event.stopPropagation(); return confirm('Are you sure you want to cancel this flight?');"
             >
-              Cancel
-            </a>
+              <button type="submit" class="btn btn--danger btn-sm">Cancel</button>
+            </form>
+            {% elif flight.flight_status == 'Cancelled' %}
+            <span class="cancel-disabled">Already Cancelled</span>
             {% else %}
             <span class="cancel-disabled">Cannot Cancel (< 72h)</span>
             {% endif %}

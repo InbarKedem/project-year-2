@@ -10,7 +10,7 @@
 
 {% block content %}
 <div class="container">
-  <h2>My Orders</h2>
+  <h2 class="page-header__title">My Orders</h2>
 
   <div class="spending-summary">
     <h3>Total Spending: ${{ "%.2f"|format(total_spending) }}</h3>
@@ -204,70 +204,73 @@
     </form>
 </div>
 
-
-<table class="table">
-    <thead>
-        <tr>
-            <th>Order Code</th>
-            <th>Order Date</th>
-            <th>Flight</th>
-            <th>Departure</th>
-            <th>Seats</th>
-            <th>Total Payment</th>
-            <th>Status</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for order in orders %}
-        <tr>
-            <td>{{ order.order_code }}</td>
-            <td>{{ order.order_date }}</td>
-            <td>{{ order.source_airport }} -> {{ order.dest_airport }}</td>
-            <td>{{ order.departure_time }}</td>
-            <td>
-                {% if order.seats %}
-                    <div class="seats-container">
-                    {% for seat in order.seats %}
-                        <span class="badge badge--info">
-                            Row {{ seat.row }}, Seat {{ seat.col }}
-                            {% if seat.is_business %}(Business){% else %}(Economy){% endif %}
-                        </span>
-                    {% endfor %}
-                    </div>
-                {% else %}
-                    <span class="text-muted">No seat assigned</span>
-                {% endif %}
-            </td>
-            <td>${{ order.total_payment }}</td>
-            <td>
-                <span class="status-badge status-{{ order.order_status|lower|replace(' ', '-') }}">
-                    {{ order.order_status }}
-                </span>
-            </td>
-            <td>
-                {% if order.order_status == 'Confirmed' or order.order_status == 'Active' %}
-                <form action="{{ url_for('customer.cancel_order', order_code=order.order_code) }}" method="POST" class="cancel-order-form">
-                    <button type="submit" class="btn btn-danger btn-sm">Cancel Order</button>
-                </form>
-                {% else %}
-                <span class="text-muted">No actions available</span>
-                {% endif %}
-            </td>
-        </tr>
-        {% else %}
-        <tr>
-            <td colspan="8" class="empty-state-cell">
-                <div class="empty-state empty-state--small">
-                    <div class="empty-state__icon">📋</div>
-                    <h3 class="empty-state__title">No orders found</h3>
-                    <p class="empty-state__message">You don't have any orders yet. <a href="{{ url_for('customer.index') }}" class="empty-state__link">Start booking your first flight</a>!</p>
-                </div>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<div class="card table-card">
+  <div class="table-container">
+    <table class="table table--striped">
+      <thead>
+          <tr>
+              <th>Order Code</th>
+              <th>Order Date</th>
+              <th>Flight</th>
+              <th>Departure</th>
+              <th>Seats</th>
+              <th>Total Payment</th>
+              <th>Status</th>
+              <th>Actions</th>
+          </tr>
+      </thead>
+      <tbody>
+          {% for order in orders %}
+          <tr>
+              <td>{{ order.order_code }}</td>
+              <td>{{ order.order_date }}</td>
+              <td>{{ order.source_airport }} -> {{ order.dest_airport }}</td>
+              <td>{{ order.departure_time }}</td>
+              <td>
+                  {% if order.seats %}
+                      <div class="seats-container">
+                      {% for seat in order.seats %}
+                          <span class="badge badge--info">
+                              Row {{ seat.row }}, Seat {{ seat.col }}
+                              {% if seat.is_business %}(Business){% else %}(Economy){% endif %}
+                          </span>
+                      {% endfor %}
+                      </div>
+                  {% else %}
+                      <span class="text-muted">No seat assigned</span>
+                  {% endif %}
+              </td>
+              <td>${{ "%.2f"|format(order.total_payment) }}</td>
+              <td>
+                  <span class="status-badge status-{{ order.order_status|lower|replace(' ', '-') }}">
+                      {{ order.order_status }}
+                  </span>
+              </td>
+              <td>
+                  {% if order.order_status == 'Confirmed' or order.order_status == 'Active' %}
+                  <form action="{{ url_for('customer.cancel_order', order_code=order.order_code) }}" method="POST" class="cancel-order-form">
+                      <button type="submit" class="btn btn--danger btn-sm">Cancel Order</button>
+                  </form>
+                  {% else %}
+                  <span class="text-muted">No actions available</span>
+                  {% endif %}
+              </td>
+          </tr>
+          {% else %}
+          <tr>
+              <td colspan="8" class="empty-state-cell">
+                  <div class="empty-state empty-state--small">
+                      <div class="empty-state__icon">📋</div>
+                      <h3 class="empty-state__title">No orders found</h3>
+                      <p class="empty-state__message">You don't have any orders yet. <a href="{{ url_for('customer.index') }}" class="empty-state__link">Start booking your first flight</a>!</p>
+                  </div>
+              </td>
+          </tr>
+          {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
 </div>
 
 {% endblock %}

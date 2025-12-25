@@ -312,14 +312,18 @@ def get_active_flights():
 def cancel_flight(source_id, dest_id, departure_time):
     update_all_flight_statuses()
     try:
-        # Check 72 hours rule
+        # Check flight exists and get current status
         flight = db.query_db("""
-            SELECT departure_time FROM Flight 
+            SELECT departure_time, flight_status FROM Flight 
             WHERE source_airport_id = %s AND dest_airport_id = %s AND departure_time = %s
         """, (source_id, dest_id, departure_time), one=True)
         
         if not flight:
             return False, "Flight not found"
+        
+        # Check if flight is already cancelled
+        if flight['flight_status'] == 'Cancelled':
+            return False, "Flight is already cancelled"
 
         # Update flight status to Cancelled (only if >= 72 hours before departure)
         db.execute_db("""
@@ -327,6 +331,7 @@ def cancel_flight(source_id, dest_id, departure_time):
             SET flight_status = 'Cancelled'
             WHERE source_airport_id = %s AND dest_airport_id = %s AND departure_time = %s
             AND TIMESTAMPDIFF(HOUR, NOW(), departure_time) >= 72
+            AND flight_status != 'Cancelled'
         """, (source_id, dest_id, departure_time))
         
         # Check if flight was actually updated

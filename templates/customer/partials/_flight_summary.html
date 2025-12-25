@@ -4,7 +4,7 @@
   <p><strong>From:</strong> {{ flight_details.source }}</p>
   <p><strong>To:</strong> {{ flight_details.dest }}</p>
   <p><strong>Date:</strong> {{ time }}</p>
-  <p><strong>Duration:</strong> {{ flight_details.duration }} mins</p>
+  <p><strong>Duration:</strong> {% set hours = flight_details.duration / 60.0 %}{% if hours == hours|int %}{{ hours|int }} hours{% else %}{{ "%.1f"|format(hours) }} hours{% endif %}</p>
   <p><strong>Aircraft:</strong> {{ flight_details.aircraft }}</p>
   <div class="class-selector">
     <button
