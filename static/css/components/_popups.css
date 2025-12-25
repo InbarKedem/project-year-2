@@ -171,7 +171,7 @@
 }
 
 .popup__progress-bar::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -212,7 +212,7 @@
     left: 10px;
     max-width: none;
   }
-  
+
   .popup {
     padding: 16px 20px;
   }
@@ -225,4 +225,3 @@
     font-size: 22px;
   }
 }
-

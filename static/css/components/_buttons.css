@@ -95,6 +95,12 @@
   display: flex;
 }
 
+.btn-sm {
+  padding: 8px 16px;
+  font-size: 0.875rem;
+  min-height: auto;
+}
+
 /* Loading state for buttons */
 .btn--loading {
   position: relative;

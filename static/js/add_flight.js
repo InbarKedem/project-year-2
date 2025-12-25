@@ -5,7 +5,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const aircraftSelect = document.getElementById("aircraft_id");
   const pilotsContainer = document.getElementById("pilots_container");
   const attendantsContainer = document.getElementById("attendants_container");
-  
+
   // Store current requirements for form validation
   let currentRequirements = { pilots: 2, attendants: 3 };
 
@@ -16,7 +16,9 @@ document.addEventListener("DOMContentLoaded", function () {
     const aircraftId = aircraftSelect.value;
 
     if (sourceId && destId && sourceId === destId) {
-      window.popupManager.error("Source and Destination airports cannot be the same.");
+      window.popupManager.error(
+        "Source and Destination airports cannot be the same."
+      );
       // Reset destination or handle UI
       destSelect.value = "";
       return;
@@ -54,7 +56,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const crewData = data.crew;
     const requirements = data.requirements;
-    
+
     // Store requirements for form validation
     currentRequirements = requirements;
 
@@ -149,7 +151,7 @@ document.addEventListener("DOMContentLoaded", function () {
     reqText.className = "text-muted small";
     reqText.textContent = `Required: ${requiredCount}`;
     header.appendChild(reqText);
-    
+
     // Add selected count display
     const countDisplay = document.createElement("span");
     countDisplay.className = "selected-count";
@@ -226,9 +228,11 @@ document.addEventListener("DOMContentLoaded", function () {
       label.appendChild(textSpan);
       container.appendChild(label);
     });
-    
+
     // Update selected count display after rendering
-    const checkedBoxes = container.querySelectorAll(`input[data-type="${type}"]:checked`);
+    const checkedBoxes = container.querySelectorAll(
+      `input[data-type="${type}"]:checked`
+    );
     updateSelectedCount(container, checkedBoxes.length, requiredCount, type);
   }
 
@@ -247,33 +251,33 @@ document.addEventListener("DOMContentLoaded", function () {
       }
       return false;
     }
-    
+
     // Update the selected count display
     updateSelectedCount(container, checkedCount, maxCount, type);
     return true;
   }
-  
+
   function updateSelectedCount(container, selected, required, type) {
     // Find or create the count display
-    let countDisplay = container.querySelector('.selected-count');
+    let countDisplay = container.querySelector(".selected-count");
     if (!countDisplay) {
-      countDisplay = document.createElement('span');
-      countDisplay.className = 'selected-count';
-      countDisplay.style.marginLeft = '10px';
-      countDisplay.style.fontWeight = 'bold';
-      const header = container.querySelector('.text-muted');
+      countDisplay = document.createElement("span");
+      countDisplay.className = "selected-count";
+      countDisplay.style.marginLeft = "10px";
+      countDisplay.style.fontWeight = "bold";
+      const header = container.querySelector(".text-muted");
       if (header) {
         header.appendChild(countDisplay);
       }
     }
-    
+
     countDisplay.textContent = `Selected: ${selected}/${required}`;
     if (selected > required) {
-      countDisplay.style.color = 'red';
+      countDisplay.style.color = "red";
     } else if (selected === required) {
-      countDisplay.style.color = 'green';
+      countDisplay.style.color = "green";
     } else {
-      countDisplay.style.color = 'orange';
+      countDisplay.style.color = "orange";
     }
   }
 
@@ -285,30 +289,69 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Check on load if values are pre-filled (e.g. browser cache or edit mode)
     checkAvailability();
-    
+
     // Add form validation before submission
-    const form = document.querySelector('.staff-form');
+    const form = document.querySelector(".staff-form");
     if (form) {
-      form.addEventListener("submit", function(event) {
-        const pilotCheckboxes = pilotsContainer.querySelectorAll('input[data-type="pilots"]:checked');
-        const attendantCheckboxes = attendantsContainer.querySelectorAll('input[data-type="attendants"]:checked');
-        
+      form.addEventListener("submit", function (event) {
+        // Validate past dates/times
+        if (timeInput && timeInput.value) {
+          const selectedDateTime = new Date(timeInput.value);
+          const now = new Date();
+          if (selectedDateTime < now) {
+            event.preventDefault();
+            window.popupManager.error("Departure time cannot be in the past.");
+            return false;
+          }
+        }
+
+        // Validate prices are not negative
+        const economyPriceInput = form.querySelector(
+          'input[name="economy_price"]'
+        );
+        const businessPriceInput = form.querySelector(
+          'input[name="business_price"]'
+        );
+
+        if (economyPriceInput && parseFloat(economyPriceInput.value) < 0) {
+          event.preventDefault();
+          window.popupManager.error("Economy price cannot be negative.");
+          return false;
+        }
+
+        if (businessPriceInput && parseFloat(businessPriceInput.value) < 0) {
+          event.preventDefault();
+          window.popupManager.error("Business price cannot be negative.");
+          return false;
+        }
+
+        const pilotCheckboxes = pilotsContainer.querySelectorAll(
+          'input[data-type="pilots"]:checked'
+        );
+        const attendantCheckboxes = attendantsContainer.querySelectorAll(
+          'input[data-type="attendants"]:checked'
+        );
+
         // Use stored requirements
         const pilotRequired = currentRequirements.pilots || 2;
         const attendantRequired = currentRequirements.attendants || 3;
-        
+
         if (pilotCheckboxes.length !== pilotRequired) {
           event.preventDefault();
-          window.popupManager.error(`Please select exactly ${pilotRequired} pilot(s). Currently selected: ${pilotCheckboxes.length}`);
+          window.popupManager.error(
+            `Please select exactly ${pilotRequired} pilot(s). Currently selected: ${pilotCheckboxes.length}`
+          );
           return false;
         }
-        
+
         if (attendantCheckboxes.length !== attendantRequired) {
           event.preventDefault();
-          window.popupManager.error(`Please select exactly ${attendantRequired} attendant(s). Currently selected: ${attendantCheckboxes.length}`);
+          window.popupManager.error(
+            `Please select exactly ${attendantRequired} attendant(s). Currently selected: ${attendantCheckboxes.length}`
+          );
           return false;
         }
-        
+
         return true;
       });
     }

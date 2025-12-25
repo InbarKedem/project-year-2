@@ -1,24 +1,20 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from db import query_db, execute_db
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from services.flight_service import update_all_flight_statuses
 
 customer_bp = Blueprint('customer', __name__)
 
 @customer_bp.route('/')
 def index():
-    # Prevent managers from accessing customer pages
-    if session.get('role') == 'manager':
-        flash('Managers cannot access customer pages. Please use the manager dashboard.', 'warning')
-        return redirect(url_for('manager.manager_dashboard'))
-    
+    # Managers can view flights but cannot book them
     update_all_flight_statuses()
     airports = query_db("SELECT airport_name FROM Airport")
     
     # Search Logic
     source = request.args.get('source')
     dest = request.args.get('dest')
-    date = request.args.get('date')
+    search_date = request.args.get('date')
     min_price = request.args.get('min_price')
     max_price = request.args.get('max_price')
     flight_class = request.args.get('class')
@@ -26,7 +22,7 @@ def index():
     
     flights = None
     
-    if source or dest or date or min_price or max_price or show_all:
+    if source or dest or search_date or min_price or max_price or show_all:
         query = """
             SELECT 
                 F.source_airport_id, F.dest_airport_id, F.departure_time,
@@ -50,9 +46,9 @@ def index():
         if dest:
             query += " AND A2.airport_name LIKE %s"
             params.append(f"%{dest}%")
-        if date:
+        if search_date:
             query += " AND DATE(F.departure_time) = %s"
-            params.append(date)
+            params.append(search_date)
             
         if min_price:
             if flight_class == 'Business':
@@ -70,14 +66,16 @@ def index():
 
         query += " ORDER BY F.departure_time"
         flights = query_db(query, tuple(params))
+    
+    # Pass today's date for the min attribute in date input
+    today_date = date.today().isoformat()
 
-    return render_template('customer/index.html', airports=airports, flights=flights)
+    return render_template('customer/index.html', airports=airports, flights=flights, today_date=today_date)
 
 @customer_bp.route('/track_order', methods=['GET', 'POST'])
 def track_order():
     # Prevent managers from tracking orders
     if session.get('role') == 'manager':
-        flash('Managers cannot track orders. Please log in as a customer.', 'warning')
         return redirect(url_for('manager.manager_dashboard'))
     
     order = None
@@ -269,7 +267,6 @@ def my_orders():
 def cancel_order(order_code):
     # Prevent managers from canceling orders
     if session.get('role') == 'manager':
-        flash('Managers cannot cancel orders. Please log in as a customer.', 'warning')
         return redirect(url_for('manager.manager_dashboard'))
     
     # 1. Identify User (Session or Form)
@@ -359,7 +356,6 @@ def cancel_order(order_code):
 def book_flight():
     update_all_flight_statuses()
     if 'user_id' in session and session.get('role') == 'manager':
-        flash("Managers cannot book flights. Please log in as a customer.", "danger")
         return redirect(url_for('manager.manager_dashboard'))
 
     import random
