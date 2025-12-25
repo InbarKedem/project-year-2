@@ -356,6 +356,7 @@ def cancel_order(order_code):
 def book_flight():
     update_all_flight_statuses()
     if 'user_id' in session and session.get('role') == 'manager':
+        flash('Managers cannot book flights. Please log in as a customer to make a booking.', 'warning')
         return redirect(url_for('manager.manager_dashboard'))
 
     import random
