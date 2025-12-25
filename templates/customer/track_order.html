@@ -92,17 +92,7 @@
       </div>
       <div class="detail-row">
         <span class="detail-label">Total Payment:</span>
-        <span class="detail-value">
-          {% if order.order_status == 'Customer Cancelled' %}
-            <div style="line-height: 1.6;">
-              <div><strong>Original Price:</strong> ${{ "%.2f"|format(order.original_payment) }}</div>
-              <div style="color: #dc3545;"><strong>Cancellation Fee (5%):</strong> ${{ "%.2f"|format(order.total_payment) }}</div>
-              <div style="color: #28a745;"><strong>Refund Amount:</strong> ${{ "%.2f"|format(order.original_payment|float - order.total_payment|float) }}</div>
-            </div>
-          {% else %}
-            ${{ "%.2f"|format(order.total_payment) }}
-          {% endif %}
-        </span>
+        <span class="detail-value">${{ order.total_payment }}</span>
       </div>
     </div>
 

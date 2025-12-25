@@ -101,14 +101,6 @@ def track_order():
         
         if result:
             order = result[0]
-            # Calculate original_payment for cancelled orders
-            if order['order_status'] == 'Customer Cancelled':
-                # For cancelled orders, total_payment stores the fee (5% of original)
-                # Calculate original: original = fee / 0.05 = fee * 20
-                order['original_payment'] = float(order['total_payment']) * 20
-            else:
-                # For non-cancelled orders, total_payment is the actual payment
-                order['original_payment'] = float(order['total_payment'])
         else:
             flash('Order not found. Please check your details.', 'danger')
             
@@ -231,20 +223,10 @@ def my_orders():
     for row in raw_orders:
         code = row['order_code']
         if code not in orders_map:
-            # Calculate original_payment for cancelled orders
-            if row['order_status'] == 'Customer Cancelled':
-                # For cancelled orders, total_payment stores the fee (5% of original)
-                # Calculate original: original = fee / 0.05 = fee * 20
-                original_payment = float(row['total_payment']) * 20
-            else:
-                # For non-cancelled orders, total_payment is the actual payment
-                original_payment = float(row['total_payment'])
-            
             orders_map[code] = {
                 'order_code': row['order_code'],
                 'order_date': row['order_date'],
                 'total_payment': row['total_payment'],
-                'original_payment': original_payment,
                 'order_status': row['order_status'],
                 'departure_time': row['departure_time'],
                 'source_airport': row['source_airport'],
@@ -337,12 +319,8 @@ def cancel_order(order_code):
     # 4. Apply Cancellation Fee (5%)
     # We don't have a refund column, so we'll just notify the user.
     # In a real system, we would process the refund here.
-    original_price = float(order['total_payment'])
-    fee = round(original_price * 0.05, 2)
-    # Ensure fee is at least 0.01 for very small amounts (edge case handling)
-    if fee < 0.01 and original_price > 0:
-        fee = 0.01
-    refund_amount = round(original_price - fee, 2)
+    fee = float(order['total_payment']) * 0.05
+    refund_amount = float(order['total_payment']) - fee
     
     try:
         execute_db("UPDATE Order_Table SET order_status = 'Customer Cancelled', total_payment = %s WHERE order_code = %s", (fee, order_code))
@@ -372,14 +350,6 @@ def cancel_order(order_code):
             WHERE O.order_code = %s
         """
         updated_order = query_db(query, (order_code,), one=True)
-        # Calculate original_payment for cancelled orders
-        if updated_order and updated_order['order_status'] == 'Customer Cancelled':
-            # For cancelled orders, total_payment stores the fee (5% of original)
-            # Calculate original: original = fee / 0.05 = fee * 20
-            updated_order['original_payment'] = float(updated_order['total_payment']) * 20
-        elif updated_order:
-            # For non-cancelled orders, total_payment is the actual payment
-            updated_order['original_payment'] = float(updated_order['total_payment'])
         return render_template('customer/track_order.html', order=updated_order)
 
 @customer_bp.route('/book_flight', methods=['GET', 'POST'])
