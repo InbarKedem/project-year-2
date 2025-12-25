@@ -224,7 +224,31 @@
 
 .table-card {
   padding: 0;
-  overflow: hidden;
+  overflow: visible;
+}
+
+.table-card .table-wrapper {
+  overflow-x: auto;
+  overflow-y: visible;
+  max-height: none;
+}
+
+/* Ensure table body rows are visible and not hidden by sticky header */
+.table-card .table tbody tr {
+  display: table-row;
+  visibility: visible;
+  position: relative;
+  z-index: 1;
+}
+
+.table-card .table tbody tr:first-child {
+  display: table-row;
+  visibility: visible;
+}
+
+.table-card .table tbody {
+  display: table-row-group;
+  visibility: visible;
 }
 
 .clickable-row {

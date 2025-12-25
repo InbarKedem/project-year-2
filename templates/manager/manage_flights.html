@@ -1,5 +1,13 @@
 {% extends 'layout/base.html' %}
 
+{% block extra_css %}
+<link href="https://unpkg.com/tabulator-tables@6.2.5/dist/css/tabulator.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block extra_js %}
+<script type="text/javascript" src="https://unpkg.com/tabulator-tables@6.2.5/dist/js/tabulator.min.js"></script>
+{% endblock %}
+
 {% block content %}
 <div class="container">
   <h2>Manage Flights</h2>
@@ -12,7 +20,7 @@
               <option value="Active" {% if request.args.get('status') == 'Active' %}selected{% endif %}>Active</option>
               <option value="Delayed" {% if request.args.get('status') == 'Delayed' %}selected{% endif %}>Delayed</option>
               <option value="Cancelled" {% if request.args.get('status') == 'Cancelled' %}selected{% endif %}>Cancelled</option>
-              <option value="Landed" {% if request.args.get('status') == 'Landed' %}selected{% endif %}>Landed</option>
+              <option value="Completed" {% if request.args.get('status') == 'Completed' %}selected{% endif %}>Completed</option>
           </select>
       </div>
       <div class="filter-group">
@@ -48,60 +56,14 @@
   </form>
 
   <div class="card table-card">
-    <div class="table-wrapper">
-      <table class="table">
-
-      <thead>
-        <tr>
-          <th>Flight</th>
-          <th>Departure</th>
-          <th>Status</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for flight in flights %}
-        <tr onclick="openFlightModal('{{ flight.source_airport_id }}', '{{ flight.dest_airport_id }}', '{{ flight.departure_time }}')" class="clickable-row">
-          <td class="flight-route">
-              {{ flight.source }} &rarr; {{ flight.dest }}
-          </td>
-          <td>{{ flight.departure_time }}</td>
-          <td>
-              <span class="badge {% if flight.flight_status == 'Active' %}badge-info{% elif flight.flight_status == 'Cancelled' %}badge-danger{% else %}badge-secondary{% endif %}">
-                  {{ flight.flight_status }}
-              </span>
-          </td>
-          <td>
-            {% if flight.can_cancel %}
-            <form 
-              action="{{ url_for('manager.cancel_flight_route', source_id=flight.source_airport_id, dest_id=flight.dest_airport_id, departure_time=flight.departure_time) }}"
-              method="POST"
-              style="display: inline;"
-              onsubmit="event.stopPropagation(); return confirm('Are you sure you want to cancel this flight?');"
-            >
-              <button type="submit" class="btn btn--danger btn-sm">Cancel</button>
-            </form>
-            {% elif flight.flight_status == 'Cancelled' %}
-            <span class="cancel-disabled">Already Cancelled</span>
-            {% else %}
-            <span class="cancel-disabled">Cannot Cancel (< 72h)</span>
-            {% endif %}
-          </td>
-        </tr>
-        {% else %}
-        <tr>
-          <td colspan="4" class="empty-state">
-            <div style="text-align: center; padding: 3rem;">
-              <div style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;">✈</div>
-              <p style="font-size: 1.1rem; color: var(--color-text-light); margin-bottom: 0.5rem;"><strong>No flights found</strong></p>
-              <p style="color: var(--color-text-light);">No flights match your filters. Try <a href="{{ url_for('manager.manage_flights') }}" style="color: var(--color-primary); text-decoration: underline;">clearing filters</a> or <a href="{{ url_for('manager.add_flight') }}" style="color: var(--color-primary); text-decoration: underline;">add a new flight</a>.</p>
-            </div>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    <div id="flightsTable"></div>
+    {% if not flights %}
+    <div style="text-align: center; padding: 3rem;">
+      <div style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;">✈</div>
+      <p style="font-size: 1.1rem; color: var(--color-text-light); margin-bottom: 0.5rem;"><strong>No flights found</strong></p>
+      <p style="color: var(--color-text-light);">No flights match your filters. Try <a href="{{ url_for('manager.manage_flights') }}" style="color: var(--color-primary); text-decoration: underline;">clearing filters</a> or <a href="{{ url_for('manager.add_flight') }}" style="color: var(--color-primary); text-decoration: underline;">add a new flight</a>.</p>
     </div>
+    {% endif %}
   </div>
   <div class="back-link-container">
     <a
@@ -129,6 +91,130 @@
 </div>
 
 <script>
+  // Initialize Tabulator
+  document.addEventListener('DOMContentLoaded', function() {
+    {% if flights %}
+    const tableData = [
+      {% for flight in flights %}
+      {
+        id: {{ loop.index }},
+        flight: "{{ flight.source }} &rarr; {{ flight.dest }}",
+        departure: "{{ flight.departure_time }}",
+        status: "{{ flight.flight_status }}",
+        statusClass: "{% if flight.flight_status == 'Active' %}badge-info{% elif flight.flight_status == 'Cancelled' %}badge-danger{% elif flight.flight_status == 'Completed' %}badge-success{% elif flight.flight_status == 'Delayed' %}badge-warning{% else %}badge-secondary{% endif %}",
+        canCancel: {{ 'true' if flight.can_cancel else 'false' }},
+        sourceId: "{{ flight.source_airport_id }}",
+        destId: "{{ flight.dest_airport_id }}",
+        departureTime: "{{ flight.departure_time }}",
+        source: "{{ flight.source }}",
+        dest: "{{ flight.dest }}",
+        cancelUrl: "{{ url_for('manager.cancel_flight_route', source_id=flight.source_airport_id, dest_id=flight.dest_airport_id, departure_time=flight.departure_time) }}",
+        hoursUntilFlight: {{ flight.hours_until_flight if flight.hours_until_flight is defined else 0 }}
+      }{% if not loop.last %},{% endif %}
+      {% endfor %}
+    ];
+
+    const table = new Tabulator("#flightsTable", {
+      data: tableData,
+      layout: "fitDataStretch",
+      pagination: true,
+      paginationSize: 10,
+      paginationSizeSelector: [10, 25, 50, 100],
+      columns: [
+        {
+          title: "Flight",
+          field: "flight",
+          formatter: "html",
+          widthGrow: 2,
+          minWidth: 200,
+          cssClass: "tabulator-cell-wrap"
+        },
+        {
+          title: "Departure",
+          field: "departure",
+          widthGrow: 1,
+          minWidth: 150
+        },
+        {
+          title: "Status",
+          field: "status",
+          widthGrow: 1,
+          minWidth: 100,
+          formatter: function(cell, formatterParams) {
+            const status = cell.getValue();
+            const statusClass = cell.getRow().getData().statusClass;
+            return '<span class="badge ' + statusClass + '">' + status + '</span>';
+          }
+        },
+        {
+          title: "More Info",
+          field: "moreInfo",
+          widthGrow: 1,
+          minWidth: 120,
+          formatter: function(cell, formatterParams) {
+            const rowData = cell.getRow().getData();
+            const sourceId = rowData.sourceId;
+            const destId = rowData.destId;
+            const departureTime = rowData.departureTime;
+            return '<button type="button" class="btn btn-sm more-info-btn" onclick="event.stopPropagation(); openFlightModal(\'' + sourceId + '\', \'' + destId + '\', \'' + departureTime + '\');">More Info</button>';
+          }
+        },
+        {
+          title: "Action",
+          field: "action",
+          widthGrow: 2,
+          minWidth: 180,
+          formatter: function(cell, formatterParams) {
+            const rowData = cell.getRow().getData();
+            if (rowData.canCancel) {
+              return '<form class="cancel-flight-form" action="' + rowData.cancelUrl + '" method="POST" style="display: inline;"><button type="submit" class="btn btn--danger btn-sm">Cancel</button></form>';
+            } else if (rowData.status === 'Cancelled') {
+              return '<span class="cancel-disabled">Already Cancelled</span>';
+            } else if (rowData.status === 'Completed') {
+              return '<span class="cancel-disabled">Cannot Cancel (Completed)</span>';
+            } else if (rowData.hoursUntilFlight > 0 && rowData.hoursUntilFlight < 72) {
+              return '<span class="cancel-disabled">Cannot Cancel (< 72h)</span>';
+            } else {
+              return '<span class="cancel-disabled">Cannot Cancel</span>';
+            }
+          }
+        }
+      ],
+      rowClick: function(e, row) {
+        // Don't open modal if clicking on form or button
+        const target = e.target || (e.originalEvent && e.originalEvent.target);
+        if (target) {
+          const clickedElement = target.tagName ? target : target.parentElement;
+          if (clickedElement && (clickedElement.closest('form') || clickedElement.closest('button') || clickedElement.tagName === 'BUTTON' || clickedElement.tagName === 'FORM')) {
+            return;
+          }
+        }
+        const data = row.getData();
+        if (data.sourceId && data.destId && data.departureTime) {
+          openFlightModal(data.sourceId, data.destId, data.departureTime);
+        }
+      }
+    });
+
+    // Handle cancel form submissions
+    document.addEventListener('submit', function(e) {
+      if (e.target.classList.contains('cancel-flight-form')) {
+        e.preventDefault();
+        e.stopPropagation();
+        const form = e.target;
+        const row = table.getRows().find(r => {
+          const rowElement = r.getElement();
+          return rowElement.contains(form);
+        });
+        if (row) {
+          const data = row.getData();
+          showCancelConfirmation(form.id || 'cancel-form', data.source, data.dest, form);
+        }
+      }
+    });
+    {% endif %}
+  });
+
   function openFlightModal(sourceId, destId, departureTime) {
     document.getElementById("flightModal").style.display = "block";
     document.getElementById("loadingMessage").style.display = "block";
@@ -187,33 +273,6 @@
                     <div class="detail-label" style="margin-bottom: 5px;">Assigned Crew</div>
                     ${crewHtml}
                 </div>
-                
-                <div class="status-update-section">
-                    <h4>Update Status</h4>
-                    <div class="status-controls">
-                        <select id="newStatus" class="status-select">
-                            <option value="Active" ${
-                              data.flight_status === "Active" ? "selected" : ""
-                            }>Active</option>
-                            <option value="Delayed" ${
-                              data.flight_status === "Delayed" ? "selected" : ""
-                            }>Delayed</option>
-                            <option value="Cancelled" ${
-                              data.flight_status === "Cancelled"
-                                ? "selected"
-                                : ""
-                            }>Cancelled</option>
-                            <option value="Landed" ${
-                              data.flight_status === "Landed" ? "selected" : ""
-                            }>Landed</option>
-                        </select>
-                        <button onclick="updateStatus(${
-                          data.source_airport_id
-                        }, ${data.dest_airport_id}, '${
-          data.departure_time
-        }')" class="btn-update">Update Status</button>
-                    </div>
-                </div>
             `;
 
         document.getElementById("flightContent").innerHTML = html;
@@ -234,36 +293,6 @@
     document.getElementById("flightModal").style.display = "none";
   }
 
-  function updateStatus(sourceId, destId, departureTime) {
-    const newStatus = document.getElementById("newStatus").value;
-
-    fetch("/update_flight_status", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        source_id: sourceId,
-        dest_id: destId,
-        departure_time: departureTime,
-        status: newStatus,
-      }),
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        if (data.success) {
-          // Persist the success message across reload (popups are non-blocking).
-          window.popupManager.queueForNextLoad("Status updated successfully!", "success");
-          location.reload(); // Reload to reflect changes in the table
-        } else {
-          window.popupManager.error("Error updating status: " + data.message);
-        }
-      })
-      .catch((err) => {
-        console.error(err);
-        window.popupManager.error("Error updating status.");
-      });
-  }
 
   // Close modal when clicking outside
   window.onclick = function (event) {
@@ -271,5 +300,83 @@
       closeModal();
     }
   };
+
+  // Confirmation dialog for flight cancellation
+  function showCancelConfirmation(formId, source, dest, formElement) {
+    if (!window.popupManager) {
+      // Fallback to browser confirm if popupManager not available
+      if (confirm(`Are you sure you want to cancel this flight?\n\nRoute: ${source} → ${dest}`)) {
+        document.getElementById(formId).submit();
+      }
+      return;
+    }
+
+    // Create a custom confirmation dialog
+    const confirmationDiv = document.createElement('div');
+    confirmationDiv.className = 'confirmation-dialog';
+    confirmationDiv.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 2rem;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-xl);
+      z-index: 10001;
+      max-width: 400px;
+      width: 90%;
+    `;
+    
+    confirmationDiv.innerHTML = `
+      <h3 style="margin-top: 0; margin-bottom: 1rem; color: var(--color-text);">Confirm Cancellation</h3>
+      <p style="margin-bottom: 1.5rem; color: var(--color-text-light);">
+        Are you sure you want to cancel this flight?<br><br>
+        <strong>Route:</strong> ${source} → ${dest}
+      </p>
+      <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+        <button id="confirm-cancel-no" class="btn btn--secondary" style="min-width: 100px;">No</button>
+        <button id="confirm-cancel-yes" class="btn btn--danger" style="min-width: 100px;">Yes, Cancel</button>
+      </div>
+    `;
+
+    // Create overlay
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 10000;
+    `;
+
+    document.body.appendChild(overlay);
+    document.body.appendChild(confirmationDiv);
+
+    // Handle Yes button
+    document.getElementById('confirm-cancel-yes').addEventListener('click', () => {
+      document.body.removeChild(overlay);
+      document.body.removeChild(confirmationDiv);
+      if (formElement) {
+        formElement.submit();
+      } else if (formId) {
+        document.getElementById(formId).submit();
+      }
+    });
+
+    // Handle No button
+    document.getElementById('confirm-cancel-no').addEventListener('click', () => {
+      document.body.removeChild(overlay);
+      document.body.removeChild(confirmationDiv);
+    });
+
+    // Close on overlay click
+    overlay.addEventListener('click', () => {
+      document.body.removeChild(overlay);
+      document.body.removeChild(confirmationDiv);
+    });
+  }
 </script>
 {% endblock %}

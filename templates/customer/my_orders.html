@@ -2,9 +2,11 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_my_orders.css') }}">
+<link href="https://unpkg.com/tabulator-tables@6.2.5/dist/css/tabulator.min.css" rel="stylesheet">
 {% endblock %}
 
 {% block extra_js %}
+<script type="text/javascript" src="https://unpkg.com/tabulator-tables@6.2.5/dist/js/tabulator.min.js"></script>
 <script src="{{ url_for('static', filename='js/my_orders.js') }}"></script>
 {% endblock %}
 
@@ -206,71 +208,117 @@
 
 <div class="card table-card">
   <div class="table-container">
-    <table class="table table--striped">
-      <thead>
-          <tr>
-              <th>Order Code</th>
-              <th>Order Date</th>
-              <th>Flight</th>
-              <th>Departure</th>
-              <th>Seats</th>
-              <th>Total Payment</th>
-              <th>Status</th>
-              <th>Actions</th>
-          </tr>
-      </thead>
-      <tbody>
-          {% for order in orders %}
-          <tr>
-              <td>{{ order.order_code }}</td>
-              <td>{{ order.order_date }}</td>
-              <td>{{ order.source_airport }} -> {{ order.dest_airport }}</td>
-              <td>{{ order.departure_time }}</td>
-              <td>
-                  {% if order.seats %}
-                      <div class="seats-container">
-                      {% for seat in order.seats %}
-                          <span class="badge badge--info">
-                              Row {{ seat.row }}, Seat {{ seat.col }}
-                              {% if seat.is_business %}(Business){% else %}(Economy){% endif %}
-                          </span>
-                      {% endfor %}
-                      </div>
-                  {% else %}
-                      <span class="text-muted">No seat assigned</span>
-                  {% endif %}
-              </td>
-              <td>${{ "%.2f"|format(order.total_payment) }}</td>
-              <td>
-                  <span class="status-badge status-{{ order.order_status|lower|replace(' ', '-') }}">
-                      {{ order.order_status }}
-                  </span>
-              </td>
-              <td>
-                  {% if order.order_status == 'Confirmed' or order.order_status == 'Active' %}
-                  <form action="{{ url_for('customer.cancel_order', order_code=order.order_code) }}" method="POST" class="cancel-order-form">
-                      <button type="submit" class="btn btn--danger btn-sm">Cancel Order</button>
-                  </form>
-                  {% else %}
-                  <span class="text-muted">No actions available</span>
-                  {% endif %}
-              </td>
-          </tr>
-          {% else %}
-          <tr>
-              <td colspan="8" class="empty-state-cell">
-                  <div class="empty-state empty-state--small">
-                      <div class="empty-state__icon">📋</div>
-                      <h3 class="empty-state__title">No orders found</h3>
-                      <p class="empty-state__message">You don't have any orders yet. <a href="{{ url_for('customer.index') }}" class="empty-state__link">Start booking your first flight</a>!</p>
-                  </div>
-              </td>
-          </tr>
-          {% endfor %}
-      </tbody>
-    </table>
+    {% if orders %}
+    <div id="ordersTable"></div>
+    {% else %}
+    <div class="empty-state empty-state--small" style="text-align: center; padding: 3rem;">
+        <div class="empty-state__icon">📋</div>
+        <h3 class="empty-state__title">No orders found</h3>
+        <p class="empty-state__message">You don't have any orders yet. <a href="{{ url_for('customer.index') }}" class="empty-state__link">Start booking your first flight</a>!</p>
+    </div>
+    {% endif %}
   </div>
 </div>
 </div>
+
+<script>
+  // Initialize Tabulator for orders table
+  document.addEventListener('DOMContentLoaded', function() {
+    {% if orders %}
+    const ordersData = [
+      {% for order in orders %}
+      {
+        id: {{ loop.index }},
+        orderCode: {{ order.order_code }},
+        orderDate: "{{ order.order_date }}",
+        flight: "{{ order.source_airport }} -> {{ order.dest_airport }}",
+        departure: "{{ order.departure_time }}",
+        seats: {% if order.seats %}[{% for seat in order.seats %}{"row": {{ seat.row }}, "col": {{ seat.col }}, "isBusiness": {{ 'true' if seat.is_business else 'false' }}}{% if not loop.last %},{% endif %}{% endfor %}]{% else %}[]{% endif %},
+        totalPayment: {{ "%.2f"|format(order.total_payment) }},
+        status: "{{ order.order_status }}",
+        statusClass: "status-{{ order.order_status|lower|replace(' ', '-') }}",
+        canCancel: {{ 'true' if (order.order_status == 'Confirmed' or order.order_status == 'Active') else 'false' }},
+        cancelUrl: "{{ url_for('customer.cancel_order', order_code=order.order_code) }}"
+      }{% if not loop.last %},{% endif %}
+      {% endfor %}
+    ];
+
+    const ordersTable = new Tabulator("#ordersTable", {
+      data: ordersData,
+      layout: "fitDataStretch",
+      pagination: true,
+      paginationSize: 10,
+      paginationSizeSelector: [10, 25, 50, 100],
+      columns: [
+        { title: "Order Code", field: "orderCode", widthGrow: 1, minWidth: 100 },
+        { title: "Order Date", field: "orderDate", widthGrow: 1, minWidth: 150 },
+        { title: "Flight", field: "flight", widthGrow: 2, minWidth: 200, cssClass: "tabulator-cell-wrap" },
+        { title: "Departure", field: "departure", widthGrow: 1, minWidth: 150 },
+        {
+          title: "Seats",
+          field: "seats",
+          widthGrow: 2,
+          minWidth: 200,
+          cssClass: "tabulator-cell-wrap",
+          formatter: function(cell, formatterParams) {
+            const seats = cell.getValue();
+            if (!seats || seats.length === 0) {
+              return '<span class="text-muted">No seat assigned</span>';
+            }
+            let html = '<div class="seats-container">';
+            seats.forEach(function(seat) {
+              html += '<span class="badge badge--info">Row ' + seat.row + ', Seat ' + seat.col + ' ' + (seat.isBusiness ? '(Business)' : '(Economy)') + '</span>';
+            });
+            html += '</div>';
+            return html;
+          }
+        },
+        {
+          title: "Total Payment",
+          field: "totalPayment",
+          widthGrow: 1,
+          minWidth: 120,
+          formatter: function(cell, formatterParams) {
+            return '$' + parseFloat(cell.getValue()).toFixed(2);
+          }
+        },
+        {
+          title: "Status",
+          field: "status",
+          widthGrow: 1,
+          minWidth: 150,
+          formatter: function(cell, formatterParams) {
+            const status = cell.getValue();
+            const statusClass = cell.getRow().getData().statusClass;
+            return '<span class="status-badge ' + statusClass + '">' + status + '</span>';
+          }
+        },
+        {
+          title: "Actions",
+          field: "action",
+          widthGrow: 1,
+          minWidth: 150,
+          formatter: function(cell, formatterParams) {
+            const rowData = cell.getRow().getData();
+            if (rowData.canCancel) {
+              return '<form class="cancel-order-form" action="' + rowData.cancelUrl + '" method="POST"><button type="submit" class="btn btn--danger btn-sm">Cancel Order</button></form>';
+            } else {
+              return '<span class="text-muted">No actions available</span>';
+            }
+          }
+        }
+      ]
+    });
+
+    // Handle cancel order form submissions
+    document.addEventListener('submit', function(e) {
+      if (e.target.classList.contains('cancel-order-form')) {
+        // Let the form submit normally - server handles it
+        return true;
+      }
+    });
+    {% endif %}
+  });
+</script>
 
 {% endblock %}

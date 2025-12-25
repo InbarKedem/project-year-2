@@ -17,8 +17,8 @@ def update_all_flight_statuses():
             AND departure_time < NOW()
         """)
     except Exception as e:
-        # Log error but don't fail the request
-        print(f"Error updating flight statuses: {e}")
+        # Error updating flight statuses - fail silently
+        pass
 
 def get_all_airports():
     return db.query_db("SELECT * FROM Airport ORDER BY airport_name")
@@ -265,6 +265,7 @@ def create_flight(source_id, dest_id, departure_time, aircraft_id, economy_price
 
 def get_flights(status=None, source_id=None, dest_id=None, date_from=None, date_to=None):
     update_all_flight_statuses()
+    
     query = """
         SELECT F.*, A1.airport_name as source, A2.airport_name as dest 
         FROM Flight F
@@ -274,9 +275,17 @@ def get_flights(status=None, source_id=None, dest_id=None, date_from=None, date_
     """
     params = []
     
-    if status and status != 'All':
+    # Normalize status parameter
+    if status:
+        status = status.strip() if isinstance(status, str) else str(status).strip()
+    
+    if status and status != 'All' and status != '':
         query += " AND F.flight_status = %s"
         params.append(status)
+        # For Active status, ensure we only get flights with future departure times
+        # (update_all_flight_statuses should handle this, but this is a safety check)
+        if status == 'Active':
+            query += " AND F.departure_time > NOW()"
     
     if source_id and source_id != '':
         query += " AND F.source_airport_id = %s"
@@ -296,7 +305,9 @@ def get_flights(status=None, source_id=None, dest_id=None, date_from=None, date_
         
     query += " ORDER BY F.departure_time DESC"
     
-    return db.query_db(query, tuple(params))
+    results = db.query_db(query, tuple(params))
+    
+    return results
 
 def get_active_flights():
     update_all_flight_statuses()
@@ -324,6 +335,10 @@ def cancel_flight(source_id, dest_id, departure_time):
         # Check if flight is already cancelled
         if flight['flight_status'] == 'Cancelled':
             return False, "Flight is already cancelled"
+        
+        # Check if flight is completed
+        if flight['flight_status'] == 'Completed':
+            return False, "Cannot cancel a completed flight"
 
         # Update flight status to Cancelled (only if >= 72 hours before departure)
         db.execute_db("""

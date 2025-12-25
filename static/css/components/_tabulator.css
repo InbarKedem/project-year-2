@@ -1,0 +1,47 @@
+/* Tabulator Overrides to Prevent Text Truncation */
+
+/* Prevent text from being cut off */
+.tabulator-cell {
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+
+.tabulator-cell-wrap {
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  overflow: visible !important;
+}
+
+/* Ensure cells have proper padding */
+.tabulator-cell {
+  padding: 0.75rem 1rem !important;
+  vertical-align: middle !important;
+}
+
+/* Make sure badges and buttons don't get cut off */
+.tabulator-cell .badge,
+.tabulator-cell .btn {
+  white-space: nowrap;
+  display: inline-block;
+}
+
+/* Ensure seats container displays properly */
+.tabulator-cell .seats-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* Prevent row height issues */
+.tabulator-row {
+  min-height: auto !important;
+}
+
+/* Ensure action column has enough space */
+.tabulator-cell[data-field="action"],
+.tabulator-cell[data-field="Actions"] {
+  white-space: normal !important;
+}
+
