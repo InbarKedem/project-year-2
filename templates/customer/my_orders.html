@@ -235,6 +235,7 @@
         departure: "{{ order.departure_time }}",
         seats: {% if order.seats %}[{% for seat in order.seats %}{"row": {{ seat.row }}, "col": {{ seat.col }}, "isBusiness": {{ 'true' if seat.is_business else 'false' }}}{% if not loop.last %},{% endif %}{% endfor %}]{% else %}[]{% endif %},
         totalPayment: {{ "%.2f"|format(order.total_payment) }},
+        originalPayment: {{ "%.2f"|format(order.original_payment) }},
         status: "{{ order.order_status }}",
         statusClass: "status-{{ order.order_status|lower|replace(' ', '-') }}",
         canCancel: {{ 'true' if (order.order_status == 'Confirmed' or order.order_status == 'Active') else 'false' }},
@@ -279,7 +280,22 @@
           widthGrow: 1,
           minWidth: 120,
           formatter: function(cell, formatterParams) {
-            return '$' + parseFloat(cell.getValue()).toFixed(2);
+            const rowData = cell.getRow().getData();
+            const status = rowData.status;
+            const totalPayment = parseFloat(cell.getValue());
+            
+            // For cancelled orders, show both original price and fee
+            if (status === 'Customer Cancelled') {
+              const originalPayment = parseFloat(rowData.originalPayment);
+              const fee = totalPayment;
+              return '<div style="line-height: 1.4;">' +
+                     '<div><strong>Original:</strong> $' + originalPayment.toFixed(2) + '</div>' +
+                     '<div style="color: #dc3545;"><strong>Fee (5%):</strong> $' + fee.toFixed(2) + '</div>' +
+                     '</div>';
+            } else {
+              // For non-cancelled orders, show normal payment
+              return '$' + totalPayment.toFixed(2);
+            }
           }
         },
         {
