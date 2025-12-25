@@ -9,6 +9,73 @@ document.addEventListener("DOMContentLoaded", function () {
   // Store current requirements for form validation
   let currentRequirements = { pilots: 2, attendants: 3 };
 
+  // Set default departure time to current time if not already set
+  if (timeInput && !timeInput.value) {
+    const now = new Date();
+    // Format as YYYY-MM-DDTHH:mm for datetime-local input
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    const hours = String(now.getHours()).padStart(2, "0");
+    const minutes = String(now.getMinutes()).padStart(2, "0");
+    timeInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+  }
+
+  // Update min attribute dynamically to always be current time
+  function updateMinDateTime() {
+    if (timeInput) {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, "0");
+      const day = String(now.getDate()).padStart(2, "0");
+      const hours = String(now.getHours()).padStart(2, "0");
+      const minutes = String(now.getMinutes()).padStart(2, "0");
+      timeInput.min = `${year}-${month}-${day}T${hours}:${minutes}`;
+    }
+  }
+
+  // Initialize min attribute
+  updateMinDateTime();
+
+  // Real-time validation for past dates
+  let isUpdatingTime = false; // Flag to prevent infinite recursion
+  function validateDepartureTime() {
+    if (!timeInput || !timeInput.value || isUpdatingTime) return;
+
+    const selectedDateTime = new Date(timeInput.value);
+    const now = new Date();
+
+    if (selectedDateTime < now) {
+      window.popupManager.error("Departure time cannot be in the past.");
+      // Reset to current time
+      isUpdatingTime = true; // Set flag to prevent recursion
+      updateMinDateTime();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, "0");
+      const day = String(now.getDate()).padStart(2, "0");
+      const hours = String(now.getHours()).padStart(2, "0");
+      const minutes = String(now.getMinutes()).padStart(2, "0");
+      timeInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+      // Trigger change to update availability (but validation won't run due to flag)
+      timeInput.dispatchEvent(new Event("change"));
+      // Reset flag after a short delay
+      setTimeout(() => {
+        isUpdatingTime = false;
+      }, 100);
+    }
+  }
+
+  // Real-time validation for negative numbers in price fields
+  function validatePriceInput(input, fieldName) {
+    if (!input) return;
+
+    const value = parseFloat(input.value);
+    if (input.value !== "" && (isNaN(value) || value < 0)) {
+      window.popupManager.error(`${fieldName} cannot be negative.`);
+      input.value = "";
+    }
+  }
+
   function checkAvailability() {
     const sourceId = sourceSelect.value;
     const destId = destSelect.value;
@@ -287,12 +354,42 @@ document.addEventListener("DOMContentLoaded", function () {
     timeInput.addEventListener("change", checkAvailability);
     aircraftSelect.addEventListener("change", checkAvailability);
 
+    // Real-time validation for departure time (past dates)
+    timeInput.addEventListener("change", validateDepartureTime);
+    timeInput.addEventListener("input", validateDepartureTime);
+
     // Check on load if values are pre-filled (e.g. browser cache or edit mode)
     checkAvailability();
 
-    // Add form validation before submission
+    // Add real-time validation for price inputs
     const form = document.querySelector(".staff-form");
     if (form) {
+      const economyPriceInput = form.querySelector(
+        'input[name="economy_price"]'
+      );
+      const businessPriceInput = form.querySelector(
+        'input[name="business_price"]'
+      );
+
+      if (economyPriceInput) {
+        economyPriceInput.addEventListener("input", function () {
+          validatePriceInput(economyPriceInput, "Economy price");
+        });
+        economyPriceInput.addEventListener("blur", function () {
+          validatePriceInput(economyPriceInput, "Economy price");
+        });
+      }
+
+      if (businessPriceInput) {
+        businessPriceInput.addEventListener("input", function () {
+          validatePriceInput(businessPriceInput, "Business price");
+        });
+        businessPriceInput.addEventListener("blur", function () {
+          validatePriceInput(businessPriceInput, "Business price");
+        });
+      }
+
+      // Add form validation before submission
       form.addEventListener("submit", function (event) {
         // Validate past dates/times
         if (timeInput && timeInput.value) {
