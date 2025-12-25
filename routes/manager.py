@@ -268,32 +268,18 @@ def manage_flights():
     date_from = request.args.get('date_from')
     date_to = request.args.get('date_to')
 
-    # #region agent log
-    import json; log_data = {"sessionId": "debug-session", "runId": "run1", "hypothesisId": "A", "location": "routes/manager.py:265", "message": "Status parameter received", "data": {"status_raw": request.args.get('status'), "status_processed": status, "all_args": dict(request.args)}, "timestamp": int(__import__('time').time() * 1000)}; open(r'c:\Users\inked\PycharmProjects\project\.cursor\debug.log', 'a', encoding='utf-8').write(json.dumps(log_data) + '\n')
-    # #endregion
-
     flights = get_flights(status if status else None, source_id, dest_id, date_from, date_to)
     
     # Ensure flights is always a list (never None)
     if flights is None:
         flights = []
-    
-    # #region agent log
-    log_data = {"sessionId": "debug-session", "runId": "run1", "hypothesisId": "E", "location": "routes/manager.py:272", "message": "Flights returned from get_flights", "data": {"flight_count": len(flights) if flights else 0, "flights_is_none": flights is None, "flights_type": type(flights).__name__, "first_flight_status": flights[0].get('flight_status') if flights and len(flights) > 0 else None}, "timestamp": int(__import__('time').time() * 1000)}; open(r'c:\Users\inked\PycharmProjects\project\.cursor\debug.log', 'a', encoding='utf-8').write(json.dumps(log_data) + '\n')
-    # #endregion
     airports = get_all_airports()
     
     now = datetime.now()
     
     # Add a flag for cancellation eligibility (72 hours and not already cancelled or completed)
-    # #region agent log
-    log_data = {"sessionId": "debug-session", "runId": "run1", "hypothesisId": "E", "location": "routes/manager.py:285", "message": "Before processing flights loop", "data": {"flights_count": len(flights) if flights else 0}, "timestamp": int(__import__('time').time() * 1000)}; open(r'c:\Users\inked\PycharmProjects\project\.cursor\debug.log', 'a', encoding='utf-8').write(json.dumps(log_data) + '\n')
-    # #endregion
     try:
         for f in flights:
-            # #region agent log
-            log_data = {"sessionId": "debug-session", "runId": "run1", "hypothesisId": "E", "location": "routes/manager.py:288", "message": "Processing flight", "data": {"flight_status": f.get('flight_status'), "departure_time_type": type(f.get('departure_time')).__name__, "departure_time_value": str(f.get('departure_time'))}, "timestamp": int(__import__('time').time() * 1000)}; open(r'c:\Users\inked\PycharmProjects\project\.cursor\debug.log', 'a', encoding='utf-8').write(json.dumps(log_data) + '\n')
-            # #endregion
             # Ensure departure_time is a datetime object
             if isinstance(f['departure_time'], str):
                  f['departure_time'] = datetime.strptime(f['departure_time'], '%Y-%m-%d %H:%M:%S')
@@ -317,29 +303,13 @@ def manage_flights():
             # Convert departure_time back to string for template rendering (url_for needs string)
             if isinstance(f['departure_time'], datetime):
                 f['departure_time'] = f['departure_time'].strftime('%Y-%m-%d %H:%M:%S')
-                # #region agent log
-                log_data = {"sessionId": "debug-session", "runId": "run1", "hypothesisId": "E", "location": "routes/manager.py:315", "message": "Converted departure_time to string", "data": {"departure_time_after": f['departure_time'], "departure_time_type_after": type(f['departure_time']).__name__}, "timestamp": int(__import__('time').time() * 1000)}; open(r'c:\Users\inked\PycharmProjects\project\.cursor\debug.log', 'a', encoding='utf-8').write(json.dumps(log_data) + '\n')
-                # #endregion
     except Exception as e:
-        # #region agent log
-        import traceback; log_data = {"sessionId": "debug-session", "runId": "run1", "hypothesisId": "E", "location": "routes/manager.py:310", "message": "Exception in flight processing", "data": {"error": str(e), "traceback": traceback.format_exc()}, "timestamp": int(__import__('time').time() * 1000)}; open(r'c:\Users\inked\PycharmProjects\project\.cursor\debug.log', 'a', encoding='utf-8').write(json.dumps(log_data) + '\n')
-        # #endregion
         raise
     
-    # #region agent log
-    log_data = {"sessionId": "debug-session", "runId": "run1", "hypothesisId": "E", "location": "routes/manager.py:327", "message": "After processing flights, before render", "data": {"flights_count": len(flights) if flights else 0, "first_flight_can_cancel": flights[0].get('can_cancel') if flights and len(flights) > 0 else None, "first_flight_departure_time": str(flights[0].get('departure_time')) if flights and len(flights) > 0 else None, "first_flight_departure_time_type": type(flights[0].get('departure_time')).__name__ if flights and len(flights) > 0 else None, "all_flight_statuses": [f.get('flight_status') for f in flights] if flights else []}, "timestamp": int(__import__('time').time() * 1000)}; open(r'c:\Users\inked\PycharmProjects\project\.cursor\debug.log', 'a', encoding='utf-8').write(json.dumps(log_data) + '\n')
-    # #endregion
-
     try:
         result = render_template('manager/manage_flights.html', flights=flights, airports=airports)
-        # #region agent log
-        log_data = {"sessionId": "debug-session", "runId": "run1", "hypothesisId": "E", "location": "routes/manager.py:332", "message": "Template rendered successfully", "data": {"response_length": len(result) if result else 0}, "timestamp": int(__import__('time').time() * 1000)}; open(r'c:\Users\inked\PycharmProjects\project\.cursor\debug.log', 'a', encoding='utf-8').write(json.dumps(log_data) + '\n')
-        # #endregion
         return result
     except Exception as e:
-        # #region agent log
-        import traceback; log_data = {"sessionId": "debug-session", "runId": "run1", "hypothesisId": "E", "location": "routes/manager.py:337", "message": "Template rendering exception", "data": {"error": str(e), "traceback": traceback.format_exc()}, "timestamp": int(__import__('time').time() * 1000)}; open(r'c:\Users\inked\PycharmProjects\project\.cursor\debug.log', 'a', encoding='utf-8').write(json.dumps(log_data) + '\n')
-        # #endregion
         raise
 
 @manager_bp.route('/cancel_flight/<int:source_id>/<int:dest_id>/<path:departure_time>', methods=['POST'])
