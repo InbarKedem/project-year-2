@@ -264,7 +264,20 @@ def create_flight(source_id, dest_id, departure_time, aircraft_id, economy_price
         return False, str(e)
 
 def get_flights(status=None, source_id=None, dest_id=None, date_from=None, date_to=None):
+    # #region agent log
+    import json; log_data = {"sessionId": "debug-session", "runId": "run1", "hypothesisId": "A", "location": "services/flight_service.py:266", "message": "get_flights called", "data": {"status_param": status, "status_type": type(status).__name__}, "timestamp": int(__import__('time').time() * 1000)}; open(r'c:\Users\inked\PycharmProjects\project\.cursor\debug.log', 'a', encoding='utf-8').write(json.dumps(log_data) + '\n')
+    # #endregion
+    
+    # #region agent log
+    import db; active_before = db.query_db("SELECT COUNT(*) as cnt FROM Flight WHERE flight_status = 'Active'", one=True); log_data = {"sessionId": "debug-session", "runId": "run1", "hypothesisId": "B", "location": "services/flight_service.py:267", "message": "Active flights before update_all_flight_statuses", "data": {"active_count": active_before.get('cnt') if active_before else 0}, "timestamp": int(__import__('time').time() * 1000)}; open(r'c:\Users\inked\PycharmProjects\project\.cursor\debug.log', 'a', encoding='utf-8').write(json.dumps(log_data) + '\n')
+    # #endregion
+    
     update_all_flight_statuses()
+    
+    # #region agent log
+    active_after = db.query_db("SELECT COUNT(*) as cnt FROM Flight WHERE flight_status = 'Active'", one=True); log_data = {"sessionId": "debug-session", "runId": "run1", "hypothesisId": "B", "location": "services/flight_service.py:268", "message": "Active flights after update_all_flight_statuses", "data": {"active_count": active_after.get('cnt') if active_after else 0}, "timestamp": int(__import__('time').time() * 1000)}; open(r'c:\Users\inked\PycharmProjects\project\.cursor\debug.log', 'a', encoding='utf-8').write(json.dumps(log_data) + '\n')
+    # #endregion
+    
     query = """
         SELECT F.*, A1.airport_name as source, A2.airport_name as dest 
         FROM Flight F
@@ -274,9 +287,25 @@ def get_flights(status=None, source_id=None, dest_id=None, date_from=None, date_
     """
     params = []
     
-    if status and status != 'All':
+    # Normalize status parameter
+    if status:
+        status = status.strip() if isinstance(status, str) else str(status).strip()
+    
+    # #region agent log
+    log_data = {"sessionId": "debug-session", "runId": "run1", "hypothesisId": "A", "location": "services/flight_service.py:280", "message": "Status after normalization", "data": {"status_normalized": status, "will_add_filter": bool(status and status != 'All' and status != '')}, "timestamp": int(__import__('time').time() * 1000)}; open(r'c:\Users\inked\PycharmProjects\project\.cursor\debug.log', 'a', encoding='utf-8').write(json.dumps(log_data) + '\n')
+    # #endregion
+    
+    if status and status != 'All' and status != '':
         query += " AND F.flight_status = %s"
         params.append(status)
+        # For Active status, ensure we only get flights with future departure times
+        # (update_all_flight_statuses should handle this, but this is a safety check)
+        if status == 'Active':
+            query += " AND F.departure_time > NOW()"
+    
+    # #region agent log
+    log_data = {"sessionId": "debug-session", "runId": "run1", "hypothesisId": "C", "location": "services/flight_service.py:287", "message": "SQL query built", "data": {"query": query, "params": params, "query_length": len(query)}, "timestamp": int(__import__('time').time() * 1000)}; open(r'c:\Users\inked\PycharmProjects\project\.cursor\debug.log', 'a', encoding='utf-8').write(json.dumps(log_data) + '\n')
+    # #endregion
     
     if source_id and source_id != '':
         query += " AND F.source_airport_id = %s"
@@ -296,7 +325,17 @@ def get_flights(status=None, source_id=None, dest_id=None, date_from=None, date_
         
     query += " ORDER BY F.departure_time DESC"
     
-    return db.query_db(query, tuple(params))
+    # #region agent log
+    log_data = {"sessionId": "debug-session", "runId": "run1", "hypothesisId": "C", "location": "services/flight_service.py:300", "message": "Final query before execution", "data": {"final_query": query, "final_params": params}, "timestamp": int(__import__('time').time() * 1000)}; open(r'c:\Users\inked\PycharmProjects\project\.cursor\debug.log', 'a', encoding='utf-8').write(json.dumps(log_data) + '\n')
+    # #endregion
+    
+    results = db.query_db(query, tuple(params))
+    
+    # #region agent log
+    log_data = {"sessionId": "debug-session", "runId": "run1", "hypothesisId": "D", "location": "services/flight_service.py:305", "message": "Query results", "data": {"result_count": len(results) if results else 0, "first_result_status": results[0].get('flight_status') if results and len(results) > 0 else None, "first_result_departure": str(results[0].get('departure_time')) if results and len(results) > 0 else None}, "timestamp": int(__import__('time').time() * 1000)}; open(r'c:\Users\inked\PycharmProjects\project\.cursor\debug.log', 'a', encoding='utf-8').write(json.dumps(log_data) + '\n')
+    # #endregion
+    
+    return results
 
 def get_active_flights():
     update_all_flight_statuses()
