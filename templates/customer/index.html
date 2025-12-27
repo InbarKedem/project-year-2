@@ -75,48 +75,6 @@
   </div>
 </div>
 
-<!-- Order Lookup Section -->
-<div class="container">
-  <div class="order-lookup-section">
-    <div class="card order-lookup-card">
-      <h3 class="order-lookup-title">Track Your Order</h3>
-      <p class="order-lookup-subtitle">Enter your order ID and email to view your booking details</p>
-      <form action="{{ url_for('customer.track_order') }}" method="POST" class="order-lookup-form">
-        <div class="order-lookup-grid">
-          <div class="form-group">
-            <label for="order-id-lookup" class="form-label">Order ID</label>
-            <input
-              type="text"
-              name="order_code"
-              id="order-id-lookup"
-              required
-              class="form-input"
-              placeholder="e.g., 1001"
-              aria-label="Enter your order ID"
-            />
-          </div>
-          <div class="form-group">
-            <label for="email-lookup" class="form-label">Email Address</label>
-            <input
-              type="email"
-              name="email"
-              id="email-lookup"
-              required
-              class="form-input"
-              placeholder="Enter your email"
-              aria-label="Enter your email address"
-            />
-          </div>
-          <div class="form-group order-lookup-btn-group">
-            <label class="form-label">&nbsp;</label>
-            <button type="submit" class="btn btn--accent btn--block">Track Order</button>
-          </div>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
 {% if flights is not none %}
 <div class="container results-container">
     <h2 class="results-title">Flight Results</h2>

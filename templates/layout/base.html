@@ -44,9 +44,17 @@
           <span class="nav__toggle-line"></span>
         </button>
         <ul class="nav__list" id="navList" role="menubar">
+          <!-- Main Navigation -->
           <li role="none">
             <a href="{{ url_for('customer.index') }}" class="nav__link" role="menuitem" aria-label="Go to home page">Home</a>
           </li>
+          {% if session.get('role') != 'manager' %}
+          <li role="none">
+            <a href="{{ url_for('customer.track_order') }}" class="nav__link" role="menuitem" aria-label="Track your order">Track Order</a>
+          </li>
+          {% endif %}
+          
+          <!-- Role-Specific Navigation -->
           {% if session.get('role') == 'manager' %}
           <li role="none">
             <a
@@ -57,10 +65,10 @@
               >Manager Dashboard</a
             >
           </li>
-          {% endif %} {% if session.get('user_id') %}
-          <li role="none">
-            <span class="nav__text" aria-label="Welcome message">Welcome, {{ session.get('name') }}</span>
-          </li>
+          {% endif %}
+          
+          <!-- User Account Section -->
+          {% if session.get('user_id') %}
           {% if session.get('role') == 'customer' %}
           <li role="none">
             <a href="{{ url_for('customer.my_orders') }}" class="nav__link" role="menuitem" aria-label="View my orders"
@@ -68,6 +76,9 @@
             >
           </li>
           {% endif %}
+          <li role="none">
+            <span class="nav__text" aria-label="Welcome message">Welcome, {{ session.get('name') }}</span>
+          </li>
           <li role="none">
             <a href="{{ url_for('auth.logout') }}" class="nav__link" role="menuitem" aria-label="Logout from account">Logout</a>
           </li>
