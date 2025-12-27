@@ -47,7 +47,7 @@
     <div class="status-indicator">
       <div class="status-steps">
         <div
-          class="status-step {% if order.order_status == 'Confirmed' or order.order_status == 'Active' or order.order_status == 'Completed' %}status-step--completed{% elif order.order_status == 'Confirmed' %}status-step--active{% endif %}"
+          class="status-step {% if order.order_status == 'Active' or order.order_status == 'Completed' %}status-step--completed{% elif order.order_status == 'Active' %}status-step--active{% endif %}"
         >
           <div class="status-step__icon">✓</div>
           <div class="status-step__label">Confirmed</div>
@@ -71,7 +71,7 @@
       <div class="detail-row">
         <span class="detail-label">Status:</span>
         <span
-          class="detail-value badge {% if order.order_status == 'Confirmed' %}badge-success{% elif order.order_status == 'Active' %}badge-success{% else %}badge-secondary{% endif %}"
+          class="detail-value badge {% if order.order_status == 'Active' %}badge-success{% else %}badge-secondary{% endif %}"
         >
           {{ order.order_status }}
         </span>
@@ -96,7 +96,7 @@
       </div>
     </div>
 
-    {% if order.order_status == 'Confirmed' or order.order_status == 'Active' %}
+    {% if order.order_status == 'Active' %}
     <div class="order-actions">
       <form
         action="{{ url_for('customer.cancel_order', order_code=order.order_code) }}"

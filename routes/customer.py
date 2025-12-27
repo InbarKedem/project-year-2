@@ -124,8 +124,6 @@ def my_orders():
     max_price = request.args.get('max_price')
     order_code_filter = request.args.get('order_code')
     seat_class_filter = request.args.get('seat_class')
-    sort_by = request.args.get('sort_by', 'order_date')
-    sort_order = request.args.get('sort_order', 'DESC')
     
     query = """
         SELECT 
@@ -203,16 +201,8 @@ def my_orders():
         except ValueError:
             pass
     
-    # Validate sort_by to prevent SQL injection
-    valid_sort_columns = ['order_date', 'departure_time', 'total_payment', 'order_code']
-    if sort_by not in valid_sort_columns:
-        sort_by = 'order_date'
-    
-    # Validate sort_order
-    if sort_order.upper() not in ['ASC', 'DESC']:
-        sort_order = 'DESC'
-    
-    query += f" ORDER BY O.{sort_by} {sort_order}"
+    # Default ordering: newest orders first
+    query += " ORDER BY O.order_date DESC"
     
     raw_orders = query_db(query, tuple(params))
     
