@@ -95,15 +95,29 @@ INSERT INTO Seat (aircraft_id, is_business, `row_number`, `column_number`) VALUE
 (4, FALSE, 5, 1), (4, FALSE, 5, 2), (4, FALSE, 5, 3), (4, FALSE, 5, 4);
 
 
--- 5. Employees
+
+-- 5. Users
+INSERT INTO User (email, first_name, middle_name, last_name) VALUES
+('reg1@test.com', 'Reg', 'I', 'User'),
+('reg2@test.com', 'Reg', 'II', 'User'),
+('guest1@test.com', 'Guest', 'I', 'User'),
+('guest2@test.com', 'Guest', 'II', 'User'),
+('MosheCohen@flytau.co.il', 'Moshe', NULL, 'Cohen', 'Tel Aviv'),
+('SarahLeeLevi@flytau.co.il', 'Sarah', 'Lee', 'Levi')  ;
+
+INSERT INTO Registered_Customer (email, passport_number, birth_date, registration_date, password) VALUES
+('reg1@test.com', 'P12345678', '1990-01-01', '2025-01-01', 'pass1'),
+('reg2@test.com', 'P87654321', '1995-05-05', '2025-02-01', 'pass2');
+
+-- 6. Employees
 -- Managers
 INSERT INTO Employee (id_number, first_name, middle_name, last_name, city, street, house_number, phone, start_work_date) VALUES
 ('111111111', 'Moshe', NULL, 'Cohen', 'Tel Aviv', 'Rothschild', 10, '0501111111', '2020-01-01'),
 ('222222222', 'Sarah', 'Lee', 'Levi', 'Haifa', 'Herzl', 20, '0502222222', '2021-02-01');
 
-INSERT INTO Manager (id_number, password) VALUES
-('111111111', 'admin123'),
-('222222222', 'admin456');
+INSERT INTO Manager (id_number, email, password) VALUES
+('111111111', 'MosheCohen@flytau.co.il', 'admin123'),
+('222222222','SarahLeeLevi@flytau.co.il', 'admin456');
 
 -- Pilots (10)
 INSERT INTO Employee (id_number, first_name, middle_name, last_name, city, street, house_number, phone, start_work_date) VALUES
@@ -145,17 +159,6 @@ INSERT INTO Flight_Crew (id_number, trained_for_long_flights, is_pilot) VALUES
 ('400000007', FALSE, FALSE), ('400000008', FALSE, FALSE),
 ('400000009', FALSE, FALSE), ('400000010', FALSE, FALSE);
 
-
--- 6. Users
-INSERT INTO User (email, first_name, middle_name, last_name) VALUES
-('reg1@test.com', 'Reg', 'I', 'User'),
-('reg2@test.com', 'Reg', 'II', 'User'),
-('guest1@test.com', 'Guest', 'I', 'User'),
-('guest2@test.com', 'Guest', 'II', 'User');
-
-INSERT INTO Registered_Customer (email, passport_number, birth_date, registration_date, password) VALUES
-('reg1@test.com', 'P12345678', '1990-01-01', '2025-01-01', 'pass1'),
-('reg2@test.com', 'P87654321', '1995-05-05', '2025-02-01', 'pass2');
 
 -- 7. Flights
 -- Flight 1: TLV->JFK (Long), Plane 1 (Large), 2026-01-01 08:00
