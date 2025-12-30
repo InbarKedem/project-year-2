@@ -66,10 +66,13 @@ CREATE TABLE Flight_Crew (
     FOREIGN KEY (id_number) REFERENCES Employee(id_number)
 );
 
+
 CREATE TABLE Manager (
     id_number CHAR(9) PRIMARY KEY,
+    email VARCHAR(100) PRIMARY KEY,
     password VARCHAR(100) NOT NULL,
     FOREIGN KEY (id_number) REFERENCES Employee(id_number)
+    FOREIGN KEY (email) REFERENCES User(email)
 );
 
 -- 3. Flight Operations
