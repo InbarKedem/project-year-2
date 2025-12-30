@@ -11,32 +11,137 @@
 
     <!-- Main Passenger (Booker) -->
     <h4>Main Passenger</h4>
-    
+
     <div class="form-group">
       <label class="form-label" for="booking-email">Email</label>
-      <input type="email" name="email" id="booking-email" class="form-input" required 
-             value="{{ user_details.email if user_details else (session.get('user_id') if session.get('user_id') else '') }}"
-             {% if session.get('user_id') %}readonly{% endif %}
-             aria-required="true" />
+      <input type="email" name="email" id="booking-email" class="form-input"
+      required value="{{ user_details.email if user_details else
+      (session.get('user_id') if session.get('user_id') else '') }}" {% if
+      session.get('user_id') %}readonly{% endif %} aria-required="true" />
     </div>
     <div class="form-group">
-      <label class="form-label" for="booking-first-name">First Name</label>
-      <input type="text" name="first_name" id="booking-first-name" class="form-input" required 
-             value="{{ user_details.first_name if user_details else '' }}"
-             aria-required="true" />
+      <label class="form-label" for="booking-first-name"
+        >First Name <span style="color: red">*</span></label
+      >
+      <input
+        type="text"
+        name="first_name"
+        id="booking-first-name"
+        class="form-input"
+        required
+        minlength="1"
+        value="{{ user_details.first_name if user_details else '' }}"
+        title="First name is required."
+        aria-required="true"
+      />
     </div>
     <div class="form-group">
-      <label class="form-label" for="booking-last-name">Last Name</label>
-      <input type="text" name="last_name" id="booking-last-name" class="form-input" required 
-             value="{{ user_details.last_name if user_details else '' }}"
-             aria-required="true" />
+      <label class="form-label" for="booking-last-name"
+        >Last Name <span style="color: red">*</span></label
+      >
+      <input
+        type="text"
+        name="last_name"
+        id="booking-last-name"
+        class="form-input"
+        required
+        minlength="1"
+        value="{{ user_details.last_name if user_details else '' }}"
+        title="Last name is required."
+        aria-required="true"
+      />
     </div>
     <div class="form-group">
-      <label class="form-label" for="booking-phone">Phone</label>
-      <input type="tel" name="phone" id="booking-phone" class="form-input" required 
-             value="{{ user_details.phone_number if user_details else '' }}"
-             aria-required="true" />
+      <label class="form-label" for="booking-phone"
+        >Phone <span style="color: red">*</span></label
+      >
+      <input
+        type="tel"
+        name="phone"
+        id="booking-phone"
+        class="form-input"
+        required
+        value="{% if user_details and user_details.phone_number %}{{ user_details.phone_number }}{% endif %}"
+        pattern="[0-9+\-() ]{1,}"
+        inputmode="tel"
+        minlength="1"
+        title="Phone number is required. Please enter a valid phone number (numbers only)."
+        aria-required="true"
+      />
     </div>
+    <script>
+      // Additional JavaScript validation for phone number input
+      (function () {
+        const phoneInput = document.getElementById("booking-phone");
+        const bookingForm = document.getElementById("booking-form");
+
+        if (phoneInput) {
+          // Real-time validation: remove non-numeric characters except +, -, (, ), and spaces
+          phoneInput.addEventListener("input", function (e) {
+            let value = e.target.value.replace(/[^0-9+\-() ]/g, "");
+            if (value !== e.target.value) {
+              e.target.value = value;
+            }
+
+            // Update validity
+            if (value.trim().length === 0) {
+              phoneInput.setCustomValidity("Phone number is required.");
+            } else if (!/[0-9]/.test(value)) {
+              phoneInput.setCustomValidity(
+                "Phone number must contain at least one digit."
+              );
+            } else {
+              phoneInput.setCustomValidity("");
+            }
+          });
+
+          // Prevent non-numeric characters on keypress
+          phoneInput.addEventListener("keypress", function (e) {
+            const allowedKeys = [
+              "Backspace",
+              "Delete",
+              "Tab",
+              "Escape",
+              "Enter",
+            ];
+            const char = String.fromCharCode(e.which || e.keyCode);
+            const isNumber = /[0-9]/.test(char);
+            const isAllowedKey =
+              allowedKeys.includes(e.key) ||
+              ["+", "-", "(", ")", " "].includes(char);
+
+            if (!isNumber && !isAllowedKey) {
+              e.preventDefault();
+            }
+          });
+
+          // Form submission validation
+          if (bookingForm) {
+            bookingForm.addEventListener("submit", function (e) {
+              const phoneValue = phoneInput.value.trim();
+              if (!phoneValue || phoneValue.length === 0) {
+                e.preventDefault();
+                phoneInput.setCustomValidity("Phone number is required.");
+                phoneInput.reportValidity();
+                phoneInput.focus();
+                return false;
+              }
+
+              // Check if there's at least one digit
+              if (!/[0-9]/.test(phoneValue)) {
+                e.preventDefault();
+                phoneInput.setCustomValidity(
+                  "Phone number must contain at least one digit."
+                );
+                phoneInput.reportValidity();
+                phoneInput.focus();
+                return false;
+              }
+            });
+          }
+        }
+      })();
+    </script>
 
     <!-- Extra Passengers -->
     <div

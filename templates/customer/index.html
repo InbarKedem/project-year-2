@@ -92,8 +92,8 @@
                         <p>Aircraft: {{ flight.manufacturer }}</p>
                     </div>
                     <div class="price">
-                        <p class="price-tag">${{ flight.economy_price }} <small>(Eco)</small></p>
-                        <p class="price-tag price-tag--biz">${{ flight.business_price }} <small>(Biz)</small></p>
+                        <p class="price-tag">${{ flight.economy_price }} <small>(Economy)</small></p>
+                        <p class="price-tag price-tag--biz">${{ flight.business_price }} <small>(Business)</small></p>
                     </div>
                 </div>
                 <div class="actions">
@@ -114,5 +114,25 @@
     </div>
 </div>
 {% endif %}
+
+<script>
+// Automatically show all flights by default when page loads with no search parameters
+(function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasSearchParams = urlParams.has('source') || urlParams.has('dest') || 
+                           urlParams.has('date') || urlParams.has('min_price') || 
+                           urlParams.has('max_price') || urlParams.has('class') || 
+                           urlParams.has('show_all');
+    
+    // Check if flights results container exists (flights were loaded)
+    const flightsContainer = document.querySelector('.results-container');
+    const flightsNotLoaded = flightsContainer === null;
+    
+    // If no search parameters and flights are not displayed, automatically show all flights
+    if (!hasSearchParams && flightsNotLoaded) {
+        window.location.href = "{{ url_for('customer.index', show_all=1) }}";
+    }
+})();
+</script>
 
 {% endblock %}
