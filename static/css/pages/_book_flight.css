@@ -480,3 +480,23 @@
   flex: 1;
   min-width: 150px;
 }
+
+/* Disabled/Readonly form fields for registered users */
+.form-input[readonly],
+.form-input:disabled,
+select.form-input:disabled,
+.form-input-readonly {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+}
+
+/* Phone number info text */
+.phone-info {
+  font-size: 0.85em;
+  color: #666;
+  margin-top: 0.25em;
+}
+
+.phone-info strong {
+  color: #333;
+}

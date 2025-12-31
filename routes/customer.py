@@ -366,6 +366,19 @@ def book_flight():
         last_name = request.form.get('last_name')
         phone = request.form.get('phone')
         
+        # Validate required fields
+        if not first_name or not first_name.strip():
+            flash('First name is required.', 'danger')
+            return redirect(request.url)
+        
+        if not last_name or not last_name.strip():
+            flash('Last name is required.', 'danger')
+            return redirect(request.url)
+        
+        if not phone or not phone.strip():
+            flash('Phone number is required.', 'danger')
+            return redirect(request.url)
+        
         # Multiple seats
         seat_rows = request.form.getlist('seat_row')
         seat_cols = request.form.getlist('seat_col')
@@ -375,7 +388,8 @@ def book_flight():
         passenger_2_name = request.form.get('passenger_2_name')
         
         # If user is logged in as customer, use their email
-        if 'user_id' in session and session.get('role') == 'customer':
+        is_logged_in = 'user_id' in session and session.get('role') == 'customer'
+        if is_logged_in:
             email = session['user_id']
         
         # 1. Ensure User Exists (or create dummy user for non-registered)
@@ -385,6 +399,25 @@ def book_flight():
             execute_db("INSERT INTO User (email, first_name, last_name) VALUES (%s, %s, %s)", 
                      (email, first_name, last_name))
             execute_db("INSERT INTO Phone (email, phone_number) VALUES (%s, %s)", (email, phone))
+        else:
+            # User exists - update their information if logged in
+            if is_logged_in:
+                # Update User table with new first_name and last_name
+                execute_db("UPDATE User SET first_name=%s, last_name=%s WHERE email=%s", 
+                         (first_name, last_name, email))
+                
+                # Handle phone number - check if it already exists for this user
+                existing_phone = query_db("SELECT phone_number FROM Phone WHERE email=%s AND phone_number=%s", 
+                                         (email, phone), one=True)
+                
+                if not existing_phone:
+                    # Phone number doesn't exist, add it
+                    # Since schema allows multiple phone numbers, we'll insert the new one
+                    try:
+                        execute_db("INSERT INTO Phone (email, phone_number) VALUES (%s, %s)", (email, phone))
+                    except Exception:
+                        # If insert fails (e.g., duplicate), that's okay - phone already exists
+                        pass
             
         # 2. Create Order
         order_code = random.randint(100000, 999999)
@@ -514,15 +547,27 @@ def book_flight():
         if len(occupied_business) < total_biz:
             has_business = True
             
-    # Get user details if logged in
+    # Get user details if logged in (including all phone numbers)
     user_details = None
     if 'user_id' in session and session.get('role') == 'customer':
-        user_details = query_db("""
-            SELECT U.email, U.first_name, U.last_name, P.phone_number 
+        # Get user basic info
+        user_info = query_db("""
+            SELECT U.email, U.first_name, U.last_name 
             FROM User U 
-            LEFT JOIN Phone P ON U.email = P.email 
             WHERE U.email = %s
         """, (session['user_id'],), one=True)
+        
+        # Get all phone numbers for this user
+        phone_numbers = query_db("""
+            SELECT phone_number 
+            FROM Phone 
+            WHERE email = %s
+            ORDER BY phone_number
+        """, (session['user_id'],))
+        
+        if user_info:
+            user_details = user_info
+            user_details['phone_numbers'] = [p['phone_number'] for p in phone_numbers] if phone_numbers else []
     
     return render_template('customer/book_flight.html', 
                            configs=configs,

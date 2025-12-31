@@ -68,7 +68,7 @@
         </details>
 
         <div class="show-all-container">
-            <a href="{{ url_for('customer.index', show_all=1) }}" class="link-show-all">View All Available Flights</a>
+            <a href="{{ url_for('customer.index', show_all=1) }}" class="link-show-all" data-show-all-url="{{ url_for('customer.index', show_all=1) }}">View All Available Flights</a>
         </div>
       </form>
     </div>
@@ -92,8 +92,8 @@
                         <p>Aircraft: {{ flight.manufacturer }}</p>
                     </div>
                     <div class="price">
-                        <p class="price-tag">${{ flight.economy_price }} <small>(Eco)</small></p>
-                        <p class="price-tag price-tag--biz">${{ flight.business_price }} <small>(Biz)</small></p>
+                        <p class="price-tag">${{ flight.economy_price }} <small>(Economy)</small></p>
+                        <p class="price-tag price-tag--biz">${{ flight.business_price }} <small>(Business)</small></p>
                     </div>
                 </div>
                 <div class="actions">
@@ -114,5 +114,7 @@
     </div>
 </div>
 {% endif %}
+
+<script src="{{ url_for('static', filename='js/flight_index.js') }}"></script>
 
 {% endblock %}

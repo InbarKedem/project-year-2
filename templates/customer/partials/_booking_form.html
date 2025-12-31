@@ -1,4 +1,3 @@
-<!-- Booking Form -->
 <div class="card booking-form">
   <h3>Passenger Details</h3>
   <form
@@ -6,43 +5,102 @@
     method="POST"
     id="booking-form"
   >
-    <!-- Hidden inputs for seats will be appended here -->
     <div id="selected-seats-container"></div>
 
-    <!-- Main Passenger (Booker) -->
     <h4>Main Passenger</h4>
-    
+    {% set is_registered = session.get('user_id') and session.get('role') == 'customer' %}
+
     <div class="form-group">
       <label class="form-label" for="booking-email">Email</label>
-      <input type="email" name="email" id="booking-email" class="form-input" required 
-             value="{{ user_details.email if user_details else (session.get('user_id') if session.get('user_id') else '') }}"
-             {% if session.get('user_id') %}readonly{% endif %}
-             aria-required="true" />
-    </div>
-    <div class="form-group">
-      <label class="form-label" for="booking-first-name">First Name</label>
-      <input type="text" name="first_name" id="booking-first-name" class="form-input" required 
-             value="{{ user_details.first_name if user_details else '' }}"
-             aria-required="true" />
-    </div>
-    <div class="form-group">
-      <label class="form-label" for="booking-last-name">Last Name</label>
-      <input type="text" name="last_name" id="booking-last-name" class="form-input" required 
-             value="{{ user_details.last_name if user_details else '' }}"
-             aria-required="true" />
-    </div>
-    <div class="form-group">
-      <label class="form-label" for="booking-phone">Phone</label>
-      <input type="tel" name="phone" id="booking-phone" class="form-input" required 
-             value="{{ user_details.phone_number if user_details else '' }}"
-             aria-required="true" />
+      <input
+        type="email"
+        name="email"
+        id="booking-email"
+        class="form-input {% if is_registered %}form-input-readonly{% endif %}"
+        required
+        value="{{ user_details.email if user_details else (session.get('user_id') if session.get('user_id') else '') }}"
+        {% if is_registered %}readonly{% endif %}
+        aria-required="true"
+      />
     </div>
 
-    <!-- Extra Passengers -->
-    <div
-      id="extra-passengers-container"
-      class="extra-passengers-container"
-    ></div>
+    <div class="form-group">
+      <label class="form-label" for="booking-first-name">First Name</label>
+      <input
+        type="text"
+        name="first_name"
+        id="booking-first-name"
+        class="form-input {% if is_registered %}form-input-readonly{% endif %}"
+        required
+        minlength="1"
+        value="{{ user_details.first_name if user_details else '' }}"
+        title="First name is required."
+        aria-required="true"
+        {% if is_registered %}readonly{% endif %}
+      />
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="booking-last-name">Last Name</label>
+      <input
+        type="text"
+        name="last_name"
+        id="booking-last-name"
+        class="form-input {% if is_registered %}form-input-readonly{% endif %}"
+        required
+        minlength="1"
+        value="{{ user_details.last_name if user_details else '' }}"
+        title="Last name is required."
+        aria-required="true"
+        {% if is_registered %}readonly{% endif %}
+      />
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="booking-phone">Phone</label>
+      {% if is_registered and user_details and user_details.phone_numbers %}
+        {% for phone in user_details.phone_numbers %}
+          <input
+            type="tel"
+            name="phone"
+            id="booking-phone{% if loop.index > 1 %}-{{ loop.index }}{% endif %}"
+            class="form-input form-input-readonly"
+            required
+            value="{{ phone }}"
+            pattern="[0-9+\-() ]{1,}"
+            inputmode="tel"
+            minlength="1"
+            title="Phone number is required. Please enter a valid phone number (numbers only)."
+            aria-required="true"
+            readonly
+            {% if loop.index > 1 %}style="margin-top: 0.5rem;"{% endif %}
+          />
+        {% endfor %}
+        
+        <input
+          type="hidden"
+          name="phone"
+          value="{{ user_details.phone_numbers[0] }}"
+          id="booking-phone-hidden"
+        />
+      {% else %}
+        <input
+          type="tel"
+          name="phone"
+          id="booking-phone"
+          class="form-input"
+          required
+          value=""
+          pattern="[0-9+\-() ]{1,}"
+          inputmode="tel"
+          minlength="1"
+          title="Phone number is required. Please enter a valid phone number (numbers only)."
+          aria-required="true"
+        />
+      {% endif %}
+    </div>
+
+    <div id="extra-passengers-container" class="extra-passengers-container"></div>
 
     <div class="confirm-btn-container">
       <button type="submit" class="btn btn--accent" id="confirm-btn" disabled>

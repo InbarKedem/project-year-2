@@ -155,6 +155,16 @@ INSERT INTO Registered_Customer (email, passport_number, birth_date, registratio
 ('reg1@test.com', 'P12345678', '1990-01-01', '2025-01-01', 'pass1'),
 ('reg2@test.com', 'P87654321', '1995-05-05', '2025-02-01', 'pass2');
 
+-- Phone numbers for all users (some users have multiple phone numbers)
+INSERT INTO Phone (email, phone_number) VALUES
+('reg1@test.com', '0501234567'),
+('reg1@test.com', '0501234568'),
+('reg1@test.com', '0501234569'),
+('reg2@test.com', '0509876543'),
+('reg2@test.com', '0509876544'),
+('guest1@test.com', '0501111111'),
+('guest2@test.com', '0502222222');
+
 -- 7. Flights
 -- Flight 1: TLV->JFK (Long), Plane 1 (Large), 2026-01-01 08:00
 INSERT INTO Flight (source_airport_id, dest_airport_id, departure_time, aircraft_id, flight_status, economy_price, business_price) VALUES
