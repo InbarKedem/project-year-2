@@ -547,29 +547,66 @@ def book_flight():
         if len(occupied_business) < total_biz:
             has_business = True
             
-    # Get user details if logged in
+    # Get user details if logged in (including all phone numbers)
     user_details = None
     if 'user_id' in session and session.get('role') == 'customer':
-        user_details = query_db("""
-            SELECT U.email, U.first_name, U.last_name, P.phone_number 
+        # Get user basic info
+        user_info = query_db("""
+            SELECT U.email, U.first_name, U.last_name 
             FROM User U 
-            LEFT JOIN Phone P ON U.email = P.email 
             WHERE U.email = %s
-            LIMIT 1
         """, (session['user_id'],), one=True)
+        
+        # Get all phone numbers for this user
+        phone_numbers = query_db("""
+            SELECT phone_number 
+            FROM Phone 
+            WHERE email = %s
+            ORDER BY phone_number
+        """, (session['user_id'],))
+        
+        if user_info:
+            user_details = user_info
+            user_details['phone_numbers'] = [p['phone_number'] for p in phone_numbers] if phone_numbers else []
     
-    return render_template('customer/book_flight.html', 
-                           configs=configs,
-                           occupied_economy=occupied_economy,
-                           occupied_business=occupied_business,
-                           economy_price=economy_price,
-                           business_price=business_price,
-                           has_economy=has_economy,
-                           has_business=has_business,
-                           source_id=source_id,
-                           dest_id=dest_id,
-                           time=time_str,
-                           booking_success=booking_success,
-                           new_order_code=new_order_code,
-                           flight_details=flight_details,
-                           user_details=user_details)
+    # #region agent log
+    import json
+    import os
+    log_path = r'c:\Users\inked\PycharmProjects\project\.cursor\debug.log'
+    try:
+        with open(log_path, 'a', encoding='utf-8') as f:
+            f.write(json.dumps({"sessionId":"debug-session","runId":"pre-fix","hypothesisId":"A","location":"customer.py:572","message":"Before render_template","data":{"user_details_exists":user_details is not None,"phone_numbers_count":len(user_details.get('phone_numbers',[])) if user_details else 0},"timestamp":int(__import__('time').time()*1000)})+'\n')
+    except: pass
+    # #endregion agent log
+    
+    try:
+        result = render_template('customer/book_flight.html', 
+                               configs=configs,
+                               occupied_economy=occupied_economy,
+                               occupied_business=occupied_business,
+                               economy_price=economy_price,
+                               business_price=business_price,
+                               has_economy=has_economy,
+                               has_business=has_business,
+                               source_id=source_id,
+                               dest_id=dest_id,
+                               time=time_str,
+                               booking_success=booking_success,
+                               new_order_code=new_order_code,
+                               flight_details=flight_details,
+                               user_details=user_details)
+        # #region agent log
+        try:
+            with open(log_path, 'a', encoding='utf-8') as f:
+                f.write(json.dumps({"sessionId":"debug-session","runId":"pre-fix","hypothesisId":"A","location":"customer.py:595","message":"render_template succeeded","data":{},"timestamp":int(__import__('time').time()*1000)})+'\n')
+        except: pass
+        # #endregion agent log
+        return result
+    except Exception as e:
+        # #region agent log
+        try:
+            with open(log_path, 'a', encoding='utf-8') as f:
+                f.write(json.dumps({"sessionId":"debug-session","runId":"pre-fix","hypothesisId":"A","location":"customer.py:600","message":"render_template failed","data":{"error_type":type(e).__name__,"error_message":str(e)},"timestamp":int(__import__('time').time()*1000)})+'\n')
+        except: pass
+        # #endregion agent log
+        raise
