@@ -68,7 +68,7 @@
         </details>
 
         <div class="show-all-container">
-            <a href="{{ url_for('customer.index', show_all=1) }}" class="link-show-all">View All Available Flights</a>
+            <a href="{{ url_for('customer.index', show_all=1) }}" class="link-show-all" data-show-all-url="{{ url_for('customer.index', show_all=1) }}">View All Available Flights</a>
         </div>
       </form>
     </div>
@@ -115,24 +115,6 @@
 </div>
 {% endif %}
 
-<script>
-// Automatically show all flights by default when page loads with no search parameters
-(function() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const hasSearchParams = urlParams.has('source') || urlParams.has('dest') || 
-                           urlParams.has('date') || urlParams.has('min_price') || 
-                           urlParams.has('max_price') || urlParams.has('class') || 
-                           urlParams.has('show_all');
-    
-    // Check if flights results container exists (flights were loaded)
-    const flightsContainer = document.querySelector('.results-container');
-    const flightsNotLoaded = flightsContainer === null;
-    
-    // If no search parameters and flights are not displayed, automatically show all flights
-    if (!hasSearchParams && flightsNotLoaded) {
-        window.location.href = "{{ url_for('customer.index', show_all=1) }}";
-    }
-})();
-</script>
+<script src="{{ url_for('static', filename='js/flight_index.js') }}"></script>
 
 {% endblock %}
