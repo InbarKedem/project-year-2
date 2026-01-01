@@ -28,6 +28,10 @@ def login():
         elif user_type == 'customer':
             email = request.form.get('email')
             password = request.form.get('password')
+            redirect_to_booking = request.form.get('redirect_to_booking')
+            booking_source_id = request.args.get('source_id') or request.form.get('source_id')
+            booking_dest_id = request.args.get('dest_id') or request.form.get('dest_id')
+            booking_time = request.args.get('time') or request.form.get('time')
             
             user = query_db('SELECT * FROM Registered_Customer WHERE email = %s AND password = %s', (email, password), one=True)
             if user:
@@ -37,11 +41,28 @@ def login():
                 session['role'] = 'customer'
                 session['name'] = f"{u['first_name']} {u['last_name']}"
                 flash('Logged in successfully!', 'success')
+                
+                # If redirecting to booking page, preserve flight parameters
+                if redirect_to_booking and booking_source_id and booking_dest_id and booking_time:
+                    return redirect(url_for('customer.book_flight', 
+                                          source_id=booking_source_id, 
+                                          dest_id=booking_dest_id, 
+                                          time=booking_time))
                 return redirect(url_for('customer.index'))
             else:
                 flash('Invalid Email or Password', 'danger')
                 
-    return render_template('auth/login.html')
+    # Check if this is a redirect from booking page
+    redirect_to_booking = request.args.get('redirect_to_booking') or request.form.get('redirect_to_booking')
+    booking_source_id = request.args.get('source_id')
+    booking_dest_id = request.args.get('dest_id')
+    booking_time = request.args.get('time')
+    
+    return render_template('auth/login.html', 
+                         redirect_to_booking=redirect_to_booking,
+                         booking_source_id=booking_source_id,
+                         booking_dest_id=booking_dest_id,
+                         booking_time=booking_time)
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():

@@ -1,8 +1,8 @@
 from db import query_db
-from services.flight_service import update_all_flight_statuses
+from services.flight_service import update_flight_statuses
 
+@update_flight_statuses
 def get_occupancy_report():
-    update_all_flight_statuses()
     return query_db("""
         SELECT 
             A1.airport_name as source, 
@@ -21,8 +21,8 @@ def get_occupancy_report():
         GROUP BY F.source_airport_id, F.dest_airport_id, F.departure_time, F.aircraft_id
     """)
 
+@update_flight_statuses
 def get_revenue_report():
-    update_all_flight_statuses()
     return query_db("""
         SELECT 
             AC.manufacturer, 
@@ -39,8 +39,8 @@ def get_revenue_report():
         GROUP BY AC.manufacturer, AC.is_large, OS.is_business
     """)
 
+@update_flight_statuses
 def get_employee_hours_report():
-    update_all_flight_statuses()
     return query_db("""
         SELECT 
             E.first_name, 
@@ -72,8 +72,8 @@ def get_cancellation_report():
         GROUP BY DATE_FORMAT(order_date, '%Y-%m')
     """)
 
+@update_flight_statuses
 def get_plane_activity_report():
-    update_all_flight_statuses()
     return query_db("""
         SELECT 
             F.aircraft_id,

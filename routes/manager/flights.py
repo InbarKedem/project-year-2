@@ -1,130 +1,17 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, session, request, jsonify, Response
-from services.reports_service import (
-    get_occupancy_report,
-    get_revenue_report,
-    get_employee_hours_report,
-    get_cancellation_report,
-    get_plane_activity_report
-)
-from services.chart_service import (
-    generate_occupancy_chart,
-    generate_revenue_chart,
-    generate_employee_hours_chart,
-    generate_cancellation_chart,
-    generate_plane_activity_chart,
-    generate_filtered_revenue_chart
-)
-from services.employee_service import add_new_staff
+from flask import render_template, redirect, url_for, flash, session, request, jsonify
 from services.flight_service import (
     get_all_airports, get_all_aircrafts, get_all_pilots, get_all_attendants,
-    create_flight, get_active_flights, cancel_flight, get_flight_details, update_flight_status, get_flights,
-    get_crew_availability, get_aircraft_availability, get_flight_duration, update_all_flight_statuses
+    create_flight, cancel_flight, get_flight_details, update_flight_status, get_flights,
+    get_crew_availability, get_aircraft_availability, update_flight_statuses, add_aircraft
 )
-from db import query_db
+from routes.manager import manager_bp
+from routes.manager.validators import validate_crew_count
 from datetime import datetime
-
-manager_bp = Blueprint('manager', __name__)
-
-def validate_crew_count(crew_ids, aircraft_id, source_id, dest_id, departure_time):
-    """
-    Validates that the selected crew count matches the requirements.
-    Returns (is_valid, message)
-    """
-    if not crew_ids:
-        return False, "No crew members selected."
-    
-    # Get aircraft type
-    aircraft = query_db("SELECT is_large FROM Aircraft WHERE aircraft_id = %s", (aircraft_id,), one=True)
-    if not aircraft:
-        return False, "Invalid aircraft selected."
-    
-    # Get flight duration to determine requirements
-    duration = get_flight_duration(source_id, dest_id)
-    
-    # Determine requirements based on aircraft size
-    if aircraft['is_large']:
-        required_pilots = 3
-        required_attendants = 6
-    else:
-        required_pilots = 2
-        required_attendants = 3
-    
-    # Count selected pilots and attendants
-    selected_pilots = []
-    selected_attendants = []
-    
-    for crew_id in crew_ids:
-        # Check if it's a pilot or attendant
-        pilot_check = query_db("""
-            SELECT id_number FROM Flight_Crew 
-            WHERE id_number = %s AND is_pilot = 1
-        """, (crew_id,), one=True)
-        
-        if pilot_check:
-            selected_pilots.append(crew_id)
-        else:
-            attendant_check = query_db("""
-                SELECT id_number FROM Flight_Crew 
-                WHERE id_number = %s AND is_pilot = 0
-            """, (crew_id,), one=True)
-            if attendant_check:
-                selected_attendants.append(crew_id)
-    
-    # Validate counts
-    pilot_count = len(selected_pilots)
-    attendant_count = len(selected_attendants)
-    
-    if pilot_count != required_pilots:
-        return False, f"Invalid number of pilots. Required: {required_pilots}, Selected: {pilot_count}"
-    
-    if attendant_count != required_attendants:
-        return False, f"Invalid number of attendants. Required: {required_attendants}, Selected: {attendant_count}"
-    
-    return True, "Crew count is valid"
-
-@manager_bp.route('/manager')
-def manager_dashboard():
-    if session.get('role') != 'manager':
-        flash('Access denied. Managers only.', 'danger')
-        return redirect(url_for('auth.login'))
-    return render_template('manager/dashboard.html')
-
-@manager_bp.route('/reports')
-def reports():
-    if session.get('role') != 'manager':
-        flash('Access denied. Managers only.', 'danger')
-        return redirect(url_for('auth.login'))
-
-    # Get report data
-    occupancy_data = get_occupancy_report()
-    revenue_data = get_revenue_report()
-    employee_hours_data = get_employee_hours_report()
-    cancellation_data = get_cancellation_report()
-    plane_activity_data = get_plane_activity_report()
-    
-    # Generate charts
-    occupancy_chart = generate_occupancy_chart(occupancy_data) if occupancy_data else None
-    revenue_chart = generate_revenue_chart(revenue_data) if revenue_data else None
-    employee_hours_chart = generate_employee_hours_chart(employee_hours_data) if employee_hours_data else None
-    cancellation_chart = generate_cancellation_chart(cancellation_data) if cancellation_data else None
-    plane_activity_chart = generate_plane_activity_chart(plane_activity_data) if plane_activity_data else None
-
-    return render_template('manager/reports.html', 
-                           occupancy_report=occupancy_data,
-                           occupancy_chart=occupancy_chart,
-                           revenue_report=revenue_data,
-                           revenue_chart=revenue_chart,
-                           employee_hours_report=employee_hours_data,
-                           employee_hours_chart=employee_hours_chart,
-                           cancellation_report=cancellation_data,
-                           cancellation_chart=cancellation_chart,
-                           plane_activity_report=plane_activity_data,
-                           plane_activity_chart=plane_activity_chart)
-
+from urllib.parse import unquote
 
 @manager_bp.route('/api/check_availability')
+@update_flight_statuses
 def check_availability():
-    update_all_flight_statuses()
     if session.get('role') != 'manager':
         return jsonify({'error': 'Unauthorized'}), 401
         
@@ -146,42 +33,6 @@ def check_availability():
         return jsonify(result)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
-@manager_bp.route('/add_staff', methods=['GET', 'POST'])
-def add_staff():
-    if session.get('role') != 'manager':
-        flash('Access denied. Managers only.', 'danger')
-        return redirect(url_for('auth.login'))
-
-    if request.method == 'POST':
-        # Extract form data
-        id_number = request.form.get('id_number')
-        first_name = request.form.get('first_name')
-        middle_name = request.form.get('middle_name')
-        last_name = request.form.get('last_name')
-        city = request.form.get('city')
-        street = request.form.get('street')
-        house_number = request.form.get('house_number')
-        phone = request.form.get('phone')
-        start_work_date = request.form.get('start_work_date')
-        role = request.form.get('role')
-        trained_for_long_flights = 1 if request.form.get('trained_for_long_flights') else 0
-
-        success, message = add_new_staff(
-            id_number, first_name, middle_name, last_name, city, street, 
-            house_number, phone, start_work_date, role, trained_for_long_flights
-        )
-
-        if success:
-            flash(message, 'success')
-            return redirect(url_for('manager.manager_dashboard'))
-        else:
-            flash(message, 'danger')
-            return render_template('manager/add_staff.html')
-
-    return render_template('manager/add_staff.html')
-
-
 
 @manager_bp.route('/add_flight', methods=['GET', 'POST'])
 def add_flight():
@@ -319,7 +170,6 @@ def cancel_flight_route(source_id, dest_id, departure_time):
         return redirect(url_for('auth.login'))
 
     # Decode URL-encoded departure_time (spaces are encoded as %20)
-    from urllib.parse import unquote
     departure_time = unquote(departure_time)
     
     # Parse the datetime string properly
@@ -348,8 +198,8 @@ def cancel_flight_route(source_id, dest_id, departure_time):
 
 
 @manager_bp.route('/api/flight_details/<int:source_id>/<int:dest_id>/<departure_time>')
+@update_flight_statuses
 def api_flight_details(source_id, dest_id, departure_time):
-    update_all_flight_statuses()
     if session.get('role') != 'manager':
         return jsonify({'error': 'Access denied'}), 403
     
@@ -380,4 +230,63 @@ def update_status():
     success, message = update_flight_status(source_id, dest_id, departure_time, new_status)
     
     return jsonify({'success': success, 'message': message})
+
+@manager_bp.route('/add_aircraft', methods=['GET', 'POST'])
+def add_aircraft_route():
+    if session.get('role') != 'manager':
+        flash('Access denied. Managers only.', 'danger')
+        return redirect(url_for('auth.login'))
+    
+    if request.method == 'POST':
+        aircraft_id = request.form.get('aircraft_id')
+        manufacturer = request.form.get('manufacturer')
+        purchase_date = request.form.get('purchase_date')
+        is_large = 1 if request.form.get('is_large') else 0
+        has_business = request.form.get('has_business')
+        
+        # Economy config (always required)
+        economy_rows = request.form.get('economy_rows')
+        economy_columns = request.form.get('economy_columns')
+        
+        # Business config (conditional)
+        business_config = None
+        if has_business:
+            business_rows = request.form.get('business_rows')
+            business_columns = request.form.get('business_columns')
+            if business_rows and business_columns:
+                business_config = {
+                    'num_rows': int(business_rows),
+                    'num_columns': int(business_columns)
+                }
+        
+        # Validate required fields
+        if not all([aircraft_id, manufacturer, purchase_date, economy_rows, economy_columns]):
+            flash('Please fill in all required fields.', 'danger')
+        else:
+            try:
+                economy_config = {
+                    'num_rows': int(economy_rows),
+                    'num_columns': int(economy_columns)
+                }
+                
+                success, message = add_aircraft(
+                    int(aircraft_id),
+                    manufacturer,
+                    purchase_date,
+                    is_large,
+                    business_config,
+                    economy_config
+                )
+                
+                if success:
+                    flash(message, 'success')
+                    return redirect(url_for('manager.manager_dashboard'))
+                else:
+                    flash(message, 'danger')
+            except ValueError:
+                flash('Invalid number format for rows or columns.', 'danger')
+            except Exception as e:
+                flash(f'Error: {str(e)}', 'danger')
+    
+    return render_template('manager/add_aircraft.html')
 

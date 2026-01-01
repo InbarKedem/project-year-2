@@ -1,5 +1,16 @@
 <div class="card booking-form">
   <h3>Passenger Details</h3>
+  {% set is_registered = session.get('user_id') and session.get('role') == 'customer' %}
+  
+  {% if not is_registered %}
+  <div class="login-prompt" style="background: #f0f7ff; border: 1px solid #0066cc; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+    <p style="margin: 0 0 0.75rem 0; color: #333;">
+      <strong>Already have an account?</strong> 
+      <a href="#" id="booking-login-link" style="color: #0066cc; text-decoration: underline; cursor: pointer;">Login to auto-fill your details</a>
+    </p>
+  </div>
+  {% endif %}
+
   <form
     action="{{ url_for('customer.book_flight', source_id=source_id, dest_id=dest_id, time=time) }}"
     method="POST"
@@ -8,7 +19,6 @@
     <div id="selected-seats-container"></div>
 
     <h4>Main Passenger</h4>
-    {% set is_registered = session.get('user_id') and session.get('role') == 'customer' %}
 
     <div class="form-group">
       <label class="form-label" for="booking-email">Email</label>

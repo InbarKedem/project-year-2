@@ -1,0 +1,211 @@
+<!-- Login Modal for Booking Page -->
+<div id="booking-login-modal" class="modal" style="display: none;">
+  <div class="modal-content" style="max-width: 400px; margin: 10% auto;">
+    <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+      <h3 style="margin: 0;">Login to Auto-Fill</h3>
+      <span class="modal-close" id="booking-login-modal-close" style="cursor: pointer; font-size: 1.5rem; color: #666;">&times;</span>
+    </div>
+    
+    <form id="booking-login-form" method="POST" action="{{ url_for('customer.book_flight', source_id=source_id, dest_id=dest_id, time=time) }}">
+      <input type="hidden" name="login_action" value="login" />
+      <input type="hidden" name="redirect_to_booking" value="1" />
+      
+      <div class="form-group">
+        <label class="form-label" for="login-email">Email</label>
+        <input
+          type="email"
+          name="email"
+          id="login-email"
+          class="form-input"
+          required
+          autocomplete="email"
+        />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="login-password">Password</label>
+        <input
+          type="password"
+          name="password"
+          id="login-password"
+          class="form-input"
+          required
+          autocomplete="current-password"
+        />
+      </div>
+
+      <div id="booking-login-error" class="error-message" style="display: none; color: #dc3545; margin-bottom: 1rem;"></div>
+
+      <div class="form-actions" style="display: flex; gap: 0.5rem; margin-top: 1.5rem;">
+        <button type="submit" class="btn" style="flex: 1;">Login</button>
+        <button type="button" class="btn btn--secondary" id="booking-login-cancel" style="flex: 1;">Cancel</button>
+      </div>
+    </form>
+    
+    <div style="margin-top: 1rem; text-align: center; font-size: 0.9rem;">
+      <p style="margin: 0;">Don't have an account? 
+        <a href="{{ url_for('auth.register') }}" style="color: #0066cc;">Register here</a>
+      </p>
+    </div>
+  </div>
+</div>
+
+<style>
+.modal {
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  overflow: auto;
+}
+
+.modal-content {
+  background-color: #fefefe;
+  padding: 2rem;
+  border: 1px solid #888;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.modal-close:hover {
+  color: #000;
+}
+</style>
+
+<script>
+(function() {
+  const loginLink = document.getElementById('booking-login-link');
+  const loginModal = document.getElementById('booking-login-modal');
+  const modalClose = document.getElementById('booking-login-modal-close');
+  const loginCancel = document.getElementById('booking-login-cancel');
+  const loginForm = document.getElementById('booking-login-form');
+  const errorDiv = document.getElementById('booking-login-error');
+
+  // Open modal
+  if (loginLink) {
+    loginLink.addEventListener('click', function(e) {
+      e.preventDefault();
+      loginModal.style.display = 'block';
+      document.body.style.overflow = 'hidden';
+    });
+  }
+
+  // Close modal
+  function closeModal() {
+    loginModal.style.display = 'none';
+    document.body.style.overflow = '';
+    errorDiv.style.display = 'none';
+    loginForm.reset();
+  }
+
+  if (modalClose) {
+    modalClose.addEventListener('click', closeModal);
+  }
+
+  if (loginCancel) {
+    loginCancel.addEventListener('click', closeModal);
+  }
+
+  // Close modal when clicking outside
+  loginModal.addEventListener('click', function(e) {
+    if (e.target === loginModal) {
+      closeModal();
+    }
+  });
+
+  // Handle form submission
+  if (loginForm) {
+    loginForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      errorDiv.style.display = 'none';
+      
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+      
+      if (!email || !password) {
+        errorDiv.textContent = 'Please enter both email and password.';
+        errorDiv.style.display = 'block';
+        return;
+      }
+      
+      // Get booking parameters from URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const sourceId = urlParams.get('source_id');
+      const destId = urlParams.get('dest_id');
+      const time = urlParams.get('time');
+      
+      // Create form data
+      const loginFormData = new FormData();
+      loginFormData.append('user_type', 'customer');
+      loginFormData.append('email', email);
+      loginFormData.append('password', password);
+      loginFormData.append('redirect_to_booking', '1');
+      
+      // Build login URL with booking parameters
+      const loginUrl = '{{ url_for("auth.login") }}' + 
+        (sourceId && destId && time ? 
+          `?source_id=${encodeURIComponent(sourceId)}&dest_id=${encodeURIComponent(destId)}&time=${encodeURIComponent(time)}&redirect_to_booking=1` : '');
+      
+      fetch(loginUrl, {
+        method: 'POST',
+        body: loginFormData,
+        credentials: 'same-origin'
+      })
+      .then(response => {
+        // Check if response was redirected (login successful)
+        if (response.redirected) {
+          // Login successful - navigate to the redirected URL
+          window.location.href = response.url;
+          return;
+        }
+        
+        // Not redirected - check response content for errors
+        return response.text().then(html => {
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, 'text/html');
+          const errorMessages = doc.querySelectorAll('.alert-danger, .flash-danger');
+          const successMessages = doc.querySelectorAll('.alert-success, .flash-success');
+          
+          // If there's a success message, reload
+          if (successMessages.length > 0) {
+            window.location.reload();
+            return;
+          }
+          
+          // Show error if present
+          if (errorMessages.length > 0) {
+            let errorText = '';
+            for (let msg of errorMessages) {
+              const text = msg.textContent.trim();
+              if (text) {
+                errorText = text;
+                break;
+              }
+            }
+            if (errorText) {
+              errorDiv.textContent = errorText;
+              errorDiv.style.display = 'block';
+            } else {
+              errorDiv.textContent = 'Invalid email or password.';
+              errorDiv.style.display = 'block';
+            }
+          } else {
+            // No error message found, but login failed
+            errorDiv.textContent = 'Invalid email or password.';
+            errorDiv.style.display = 'block';
+          }
+        });
+      })
+      .catch(error => {
+        console.error('Login error:', error);
+        errorDiv.textContent = 'An error occurred. Please try again.';
+        errorDiv.style.display = 'block';
+      });
+    });
+  }
+})();
+</script>
+

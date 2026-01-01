@@ -1,5 +1,6 @@
 import db
 from datetime import datetime, timedelta
+from functools import wraps
 
 def update_all_flight_statuses():
     """
@@ -17,8 +18,19 @@ def update_all_flight_statuses():
             AND departure_time < NOW()
         """)
     except Exception as e:
-        # Error updating flight statuses - fail silently
+        # Error updating flight_statuses - fail silently
         pass
+
+def update_flight_statuses(func):
+    """
+    Decorator that calls update_all_flight_statuses() before executing the wrapped function.
+    Works with both route handlers and service functions.
+    """
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        update_all_flight_statuses()
+        return func(*args, **kwargs)
+    return wrapper
 
 def get_all_airports():
     return db.query_db("SELECT * FROM Airport ORDER BY airport_name")
@@ -49,8 +61,8 @@ def get_flight_duration(source_id, dest_id):
     """, (source_id, dest_id), one=True)
     return result['flight_duration'] if result else 0
 
+@update_flight_statuses
 def get_aircraft_availability(source_id, dest_id, departure_time_str):
-    update_all_flight_statuses()
     # Convert string to datetime if needed
     if isinstance(departure_time_str, str):
         try:
@@ -131,8 +143,8 @@ def get_aircraft_availability(source_id, dest_id, departure_time_str):
 
     return aircrafts
 
+@update_flight_statuses
 def get_crew_availability(source_id, dest_id, departure_time_str, aircraft_id=None):
-    update_all_flight_statuses()
     # Convert string to datetime if needed
     if isinstance(departure_time_str, str):
         try:
@@ -263,8 +275,8 @@ def create_flight(source_id, dest_id, departure_time, aircraft_id, economy_price
     except Exception as e:
         return False, str(e)
 
+@update_flight_statuses
 def get_flights(status=None, source_id=None, dest_id=None, date_from=None, date_to=None):
-    update_all_flight_statuses()
     
     query = """
         SELECT F.*, A1.airport_name as source, A2.airport_name as dest 
@@ -309,8 +321,8 @@ def get_flights(status=None, source_id=None, dest_id=None, date_from=None, date_
     
     return results
 
+@update_flight_statuses
 def get_active_flights():
-    update_all_flight_statuses()
     return db.query_db("""
         SELECT F.*, A1.airport_name as source, A2.airport_name as dest 
         FROM Flight F
@@ -320,8 +332,8 @@ def get_active_flights():
         ORDER BY F.departure_time
     """)
 
+@update_flight_statuses
 def cancel_flight(source_id, dest_id, departure_time):
-    update_all_flight_statuses()
     try:
         # Check flight exists and get current status
         flight = db.query_db("""
@@ -393,8 +405,8 @@ def cancel_flight(source_id, dest_id, departure_time):
     except Exception as e:
         return False, str(e)
 
+@update_flight_statuses
 def get_flight_details(source_id, dest_id, departure_time):
-    update_all_flight_statuses()
     # Get flight info + aircraft info
     flight = db.query_db("""
         SELECT F.*, 
@@ -450,4 +462,69 @@ def update_flight_status(source_id, dest_id, departure_time, new_status):
         return True, "Status updated successfully"
     except Exception as e:
         return False, str(e)
+
+def add_aircraft(aircraft_id, manufacturer, purchase_date, is_large, business_config, economy_config):
+    """
+    Adds a new aircraft with classes and seats.
+    
+    Args:
+        aircraft_id: Unique aircraft ID (integer)
+        manufacturer: Manufacturer name (string)
+        purchase_date: Purchase date (date string or date object)
+        is_large: Boolean indicating if aircraft is large
+        business_config: Dict with 'num_rows' and 'num_columns', or None if no business class
+        economy_config: Dict with 'num_rows' and 'num_columns' (required)
+    
+    Returns:
+        (success: bool, message: str)
+    """
+    try:
+        # Check if aircraft already exists
+        existing = db.query_db("SELECT aircraft_id FROM Aircraft WHERE aircraft_id = %s", (aircraft_id,), one=True)
+        if existing:
+            return False, 'Aircraft with this ID already exists.'
+        
+        # Validate economy_config is provided
+        if not economy_config or 'num_rows' not in economy_config or 'num_columns' not in economy_config:
+            return False, 'Economy class configuration is required.'
+        
+        # Insert into Aircraft table
+        db.execute_db("""
+            INSERT INTO Aircraft (aircraft_id, manufacturer, purchase_date, is_large)
+            VALUES (%s, %s, %s, %s)
+        """, (aircraft_id, manufacturer, purchase_date, is_large))
+        
+        # Insert Economy Class (always required)
+        db.execute_db("""
+            INSERT INTO Aircraft_Class (aircraft_id, is_business, num_rows, num_columns)
+            VALUES (%s, %s, %s, %s)
+        """, (aircraft_id, False, economy_config['num_rows'], economy_config['num_columns']))
+        
+        # Generate Economy seats
+        for row in range(1, economy_config['num_rows'] + 1):
+            for col in range(1, economy_config['num_columns'] + 1):
+                db.execute_db("""
+                    INSERT INTO Seat (aircraft_id, is_business, `row_number`, `column_number`)
+                    VALUES (%s, %s, %s, %s)
+                """, (aircraft_id, False, row, col))
+        
+        # Insert Business Class if provided
+        if business_config and 'num_rows' in business_config and 'num_columns' in business_config:
+            db.execute_db("""
+                INSERT INTO Aircraft_Class (aircraft_id, is_business, num_rows, num_columns)
+                VALUES (%s, %s, %s, %s)
+            """, (aircraft_id, True, business_config['num_rows'], business_config['num_columns']))
+            
+            # Generate Business seats
+            for row in range(1, business_config['num_rows'] + 1):
+                for col in range(1, business_config['num_columns'] + 1):
+                    db.execute_db("""
+                        INSERT INTO Seat (aircraft_id, is_business, `row_number`, `column_number`)
+                        VALUES (%s, %s, %s, %s)
+                    """, (aircraft_id, True, row, col))
+        
+        return True, 'Aircraft added successfully!'
+    
+    except Exception as e:
+        return False, f'Error adding aircraft: {str(e)}'
 

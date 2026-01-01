@@ -18,6 +18,10 @@
   </div>
 
   {% include 'customer/partials/_success_modal.html' %}
+  
+  {% if not (session.get('user_id') and session.get('role') == 'customer') %}
+  {% include 'customer/partials/_booking_login_modal.html' %}
+  {% endif %}
 </div>
 
 <script src="{{ url_for('static', filename='js/booking_form.js') }}"></script>
