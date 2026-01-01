@@ -155,7 +155,6 @@ CREATE TABLE Order_Seats (
     is_business BOOLEAN NOT NULL,
     `row_number` INT NOT NULL,
     `column_number` INT NOT NULL,
-    passenger_name VARCHAR(100),
     PRIMARY KEY (order_code, aircraft_id, is_business, `row_number`, `column_number`),
     FOREIGN KEY (order_code) REFERENCES Order_Table(order_code),
     FOREIGN KEY (aircraft_id, is_business, `row_number`, `column_number`)

@@ -1,0 +1,165 @@
+{% extends 'layout/base.html' %} {% block content %}
+<div class="container">
+  <h2 class="page-header__title">Add New Aircraft</h2>
+  <div class="auth-container">
+    <form
+      method="POST"
+      action="{{ url_for('manager.add_aircraft_route') }}"
+      class="staff-form"
+      id="aircraft-form"
+    >
+      <h3>Aircraft Information</h3>
+      <div class="staff-form-grid">
+        <div class="form-group">
+          <label class="form-label form-label--required">Aircraft ID:</label>
+          <input
+            type="number"
+            name="aircraft_id"
+            required
+            min="1"
+            class="form-input"
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label form-label--required">Manufacturer:</label>
+          <select name="manufacturer" required class="form-select">
+            <option value="">Select Manufacturer</option>
+            <option value="Boeing">Boeing</option>
+            <option value="Airbus">Airbus</option>
+            <option value="Dassault">Dassault</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label form-label--required">Purchase Date:</label>
+          <input type="date" name="purchase_date" required class="form-input" />
+          <small
+            style="
+              display: block;
+              margin-top: 0.25rem;
+              color: #666;
+              font-size: 0.875rem;
+            "
+          >
+            The date the aircraft starts to be operational.
+          </small>
+        </div>
+
+        <div class="form-group full-width">
+          <label class="checkbox-label">
+            <input type="checkbox" name="is_large" id="is_large" />
+            <span>Large Aircraft</span>
+          </label>
+        </div>
+      </div>
+
+      <h3>Class Configuration</h3>
+
+      <div class="form-group full-width">
+        <label class="checkbox-label">
+          <input type="checkbox" name="has_business" id="has_business" />
+          <span>Has Business Class</span>
+        </label>
+      </div>
+
+      <div id="business-config" style="display: none">
+        <h4>Business Class</h4>
+        <div class="staff-form-grid">
+          <div class="form-group">
+            <label class="form-label form-label--required">Rows:</label>
+            <input
+              type="number"
+              name="business_rows"
+              id="business_rows"
+              min="1"
+              class="form-input"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label form-label--required">Columns:</label>
+            <input
+              type="number"
+              name="business_columns"
+              id="business_columns"
+              min="1"
+              class="form-input"
+            />
+          </div>
+        </div>
+      </div>
+
+      <h4>Economy Class</h4>
+      <div class="staff-form-grid">
+        <div class="form-group">
+          <label class="form-label form-label--required">Rows:</label>
+          <input
+            type="number"
+            name="economy_rows"
+            required
+            min="1"
+            class="form-input"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label form-label--required">Columns:</label>
+          <input
+            type="number"
+            name="economy_columns"
+            required
+            min="1"
+            class="form-input"
+          />
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn">Add Aircraft</button>
+        <a
+          href="{{ url_for('manager.manager_dashboard') }}"
+          class="btn btn--secondary"
+          >Cancel</a
+        >
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  // Show/hide business class configuration based on checkbox
+  document
+    .getElementById("has_business")
+    .addEventListener("change", function () {
+      const businessConfig = document.getElementById("business-config");
+      const businessRows = document.getElementById("business_rows");
+      const businessColumns = document.getElementById("business_columns");
+
+      if (this.checked) {
+        businessConfig.style.display = "block";
+        businessRows.setAttribute("required", "required");
+        businessColumns.setAttribute("required", "required");
+      } else {
+        businessConfig.style.display = "none";
+        businessRows.removeAttribute("required");
+        businessColumns.removeAttribute("required");
+        businessRows.value = "";
+        businessColumns.value = "";
+      }
+    });
+
+  // Form validation
+  document
+    .getElementById("aircraft-form")
+    .addEventListener("submit", function (e) {
+      const hasBusiness = document.getElementById("has_business").checked;
+      const businessRows = document.getElementById("business_rows").value;
+      const businessColumns = document.getElementById("business_columns").value;
+
+      if (hasBusiness && (!businessRows || !businessColumns)) {
+        e.preventDefault();
+        alert("Please fill in business class rows and columns.");
+        return false;
+      }
+    });
+</script>
+{% endblock %}

@@ -126,18 +126,5 @@ function updateForm() {
     inputClass.value = s.class;
     container.appendChild(inputClass);
   });
-
-  // Add passenger fields
-  if (selectedSeats.length >= 2) {
-    const div = document.createElement("div");
-    div.className = "form-group";
-    const passengerId = `passenger-2-name-${selectedSeats.length}`;
-    div.innerHTML = `
-          <h4>Passenger 2 Details</h4>
-          <label class="form-label" for="${passengerId}">Full Name</label>
-          <input type="text" name="passenger_2_name" id="${passengerId}" class="form-input" required aria-required="true" />
-        `;
-    extraContainer.appendChild(div);
-  }
 }
 
