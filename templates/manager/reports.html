@@ -222,7 +222,7 @@
         marker: {color: '#3498db', line: {color: 'white', width: 1.5}},
         text: economyValues.map(function(v) { return v > 0 ? '$' + v.toLocaleString('en-US', {maximumFractionDigits: 0}) : ''; }),
         textposition: 'outside',
-        hovertemplate: '<b>%{x}</b><br>Economy: $%{y:,.2f}<extra></extra>'
+        hovertemplate: '<b>%{x}</b><br>Economy: $%{y:,}<extra></extra>'
       });
     }
     
@@ -236,7 +236,7 @@
         marker: {color: '#9b59b6', line: {color: 'white', width: 1.5}},
         text: businessValues.map(function(v) { return v > 0 ? '$' + v.toLocaleString('en-US', {maximumFractionDigits: 0}) : ''; }),
         textposition: 'outside',
-        hovertemplate: '<b>%{x}</b><br>Business: $%{y:,.2f}<extra></extra>'
+        hovertemplate: '<b>%{x}</b><br>Business: $%{y:,}<extra></extra>'
       });
     }
     

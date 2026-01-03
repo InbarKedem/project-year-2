@@ -53,9 +53,9 @@ def add_flight():
 
         # Validate prices are not negative
         try:
-            economy_price_float = float(economy_price) if economy_price else 0
-            business_price_float = float(business_price) if business_price else 0
-            if economy_price_float < 0 or business_price_float < 0:
+            economy_price_int = int(economy_price) if economy_price else 0
+            business_price_int = int(business_price) if business_price else 0
+            if economy_price_int < 0 or business_price_int < 0:
                 flash('Flight prices cannot be negative.', 'danger')
             elif source_id == dest_id:
                 flash('Source and Destination airports cannot be the same.', 'danger')
@@ -76,7 +76,7 @@ def add_flight():
                             else:
                                 success, message = create_flight(
                                     source_id, dest_id, departure_time, aircraft_id, 
-                                    economy_price, business_price, crew_ids
+                                    economy_price_int, business_price_int, crew_ids
                                 )
                                 
                                 if success:
@@ -140,11 +140,11 @@ def manage_flights():
             
             # Can cancel only if:
             # - >= 72 hours before departure
-            # - status is not 'Cancelled'
+            # - status is not 'Canceled'
             # - status is not 'Completed'
             f['can_cancel'] = (
                 hours_until_flight >= 72 
-                and f.get('flight_status') != 'Cancelled' 
+                and f.get('flight_status') != 'Canceled' 
                 and f.get('flight_status') != 'Completed'
             )
             

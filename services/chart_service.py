@@ -158,7 +158,7 @@ def generate_revenue_chart(revenue_data):
         marker=dict(color='#3498db', line=dict(color='white', width=1.5)),
         text=[f'${val:,.0f}' if val > 0 else '' for val in economy_values],
         textposition='outside',
-        hovertemplate='<b>%{x}</b><br>Economy: $%{y:,.2f}<extra></extra>'
+        hovertemplate='<b>%{x}</b><br>Economy: $%{y:,}<extra></extra>'
     ))
     
     # Business bars
@@ -169,7 +169,7 @@ def generate_revenue_chart(revenue_data):
         marker=dict(color='#9b59b6', line=dict(color='white', width=1.5)),
         text=[f'${val:,.0f}' if val > 0 else '' for val in business_values],
         textposition='outside',
-        hovertemplate='<b>%{x}</b><br>Business: $%{y:,.2f}<extra></extra>'
+        hovertemplate='<b>%{x}</b><br>Business: $%{y:,}<extra></extra>'
     ))
     
     fig.update_layout(
@@ -269,7 +269,7 @@ def generate_filtered_revenue_chart(revenue_data, manufacturer_filter=None, size
         marker=dict(color='#3498db', line=dict(color='white', width=1.5)),
         text=[f'${val:,.0f}' if val > 0 else '' for val in economy_values],
         textposition='outside',
-        hovertemplate='<b>%{x}</b><br>Economy: $%{y:,.2f}<extra></extra>'
+        hovertemplate='<b>%{x}</b><br>Economy: $%{y:,}<extra></extra>'
     ))
     
     # Business bars
@@ -280,7 +280,7 @@ def generate_filtered_revenue_chart(revenue_data, manufacturer_filter=None, size
         marker=dict(color='#9b59b6', line=dict(color='white', width=1.5)),
         text=[f'${val:,.0f}' if val > 0 else '' for val in business_values],
         textposition='outside',
-        hovertemplate='<b>%{x}</b><br>Business: $%{y:,.2f}<extra></extra>'
+        hovertemplate='<b>%{x}</b><br>Business: $%{y:,}<extra></extra>'
     ))
     
     fig.update_layout(

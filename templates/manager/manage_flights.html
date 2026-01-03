@@ -18,8 +18,8 @@
           <select name="status" class="filter-control">
               <option value="">All</option>
               <option value="Active" {% if request.args.get('status') == 'Active' %}selected{% endif %}>Active</option>
-              <option value="Delayed" {% if request.args.get('status') == 'Delayed' %}selected{% endif %}>Delayed</option>
-              <option value="Cancelled" {% if request.args.get('status') == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+              <option value="Fully Booked" {% if request.args.get('status') == 'Fully Booked' %}selected{% endif %}>Fully Booked</option>
+              <option value="Canceled" {% if request.args.get('status') == 'Canceled' %}selected{% endif %}>Canceled</option>
               <option value="Completed" {% if request.args.get('status') == 'Completed' %}selected{% endif %}>Completed</option>
           </select>
       </div>
@@ -101,7 +101,7 @@
         flight: "{{ flight.source }} &rarr; {{ flight.dest }}",
         departure: "{{ flight.departure_time }}",
         status: "{{ flight.flight_status }}",
-        statusClass: "{% if flight.flight_status == 'Active' %}badge-info{% elif flight.flight_status == 'Cancelled' %}badge-danger{% elif flight.flight_status == 'Completed' %}badge-success{% elif flight.flight_status == 'Delayed' %}badge-warning{% else %}badge-secondary{% endif %}",
+        statusClass: "{% if flight.flight_status == 'Active' %}badge-info{% elif flight.flight_status == 'Canceled' %}badge-danger{% elif flight.flight_status == 'Completed' %}badge-success{% elif flight.flight_status == 'Fully Booked' %}badge-warning{% else %}badge-secondary{% endif %}",
         canCancel: {{ 'true' if flight.can_cancel else 'false' }},
         sourceId: "{{ flight.source_airport_id }}",
         destId: "{{ flight.dest_airport_id }}",
@@ -168,8 +168,8 @@
             const rowData = cell.getRow().getData();
             if (rowData.canCancel) {
               return '<form class="cancel-flight-form" action="' + rowData.cancelUrl + '" method="POST" style="display: inline;"><button type="submit" class="btn btn--danger btn-sm">Cancel</button></form>';
-            } else if (rowData.status === 'Cancelled') {
-              return '<span class="cancel-disabled">Already Cancelled</span>';
+            } else if (rowData.status === 'Canceled') {
+              return '<span class="cancel-disabled">Already Canceled</span>';
             } else if (rowData.status === 'Completed') {
               return '<span class="cancel-disabled">Cannot Cancel (Completed)</span>';
             } else if (rowData.hoursUntilFlight > 0 && rowData.hoursUntilFlight < 72) {
