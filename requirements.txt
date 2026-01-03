@@ -2,4 +2,6 @@ Flask==3.1.2
 mysql-connector-python==9.5.0
 Flask-Session
 plotly>=5.0.0
+faker>=20.0.0
+pytest>=7.4.0
 

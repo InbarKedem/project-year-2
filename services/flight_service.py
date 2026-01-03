@@ -4,18 +4,79 @@ from functools import wraps
 
 def update_all_flight_statuses():
     """
-    Updates flight statuses based on current time and departure time.
-    Flights that have already departed (departure_time < NOW()) and are still 'Active'
-    will be updated to 'Completed'.
+    Updates flight statuses based on current time, departure time, and seat availability.
+    - Flights that have already departed (departure_time < NOW()) and are still 'Active' or 'Fully Booked'
+      will be updated to 'Completed'.
+    - Active flights with all seats booked will be updated to 'Fully Booked'.
+    - Fully Booked flights with available seats (due to cancellations) will be updated to 'Active'.
     This function should be called before any flight-related queries to ensure
     flight statuses are always up-to-date.
     """
     try:
+        # 1. Update departed flights to 'Completed'
         db.execute_db("""
             UPDATE Flight 
             SET flight_status = 'Completed'
-            WHERE flight_status = 'Active' 
+            WHERE flight_status IN ('Active', 'Fully Booked')
             AND departure_time < NOW()
+        """)
+        
+        # 2. Update Active flights to 'Fully Booked' if all seats are taken
+        # (Only for future flights that are still Active)
+        db.execute_db("""
+            UPDATE Flight F
+            SET flight_status = 'Fully Booked'
+            WHERE F.flight_status = 'Active'
+            AND F.departure_time > NOW()
+            AND NOT EXISTS (
+                -- Check if there are any available seats
+                SELECT 1
+                FROM Seat S
+                WHERE S.aircraft_id = F.aircraft_id
+                AND NOT EXISTS (
+                    -- Check if this seat is booked in an active order
+                    SELECT 1
+                    FROM Order_Seats OS
+                    JOIN Order_Table O ON OS.order_code = O.order_code
+                    WHERE OS.aircraft_id = S.aircraft_id
+                    AND OS.is_business = S.is_business
+                    AND OS.row_number = S.row_number
+                    AND OS.column_number = S.column_number
+                    AND O.source_airport_id = F.source_airport_id
+                    AND O.dest_airport_id = F.dest_airport_id
+                    AND O.departure_time = F.departure_time
+                    AND O.order_status NOT IN ('Client Cancellation', 'System Cancellation')
+                )
+            )
+        """)
+        
+        # 3. Update 'Fully Booked' flights back to 'Active' if seats become available
+        # (Due to cancellations - only for future flights)
+        db.execute_db("""
+            UPDATE Flight F
+            SET flight_status = 'Active'
+            WHERE F.flight_status = 'Fully Booked'
+            AND F.departure_time > NOW()
+            AND EXISTS (
+                -- Check if there are any available seats
+                SELECT 1
+                FROM Seat S
+                WHERE S.aircraft_id = F.aircraft_id
+                AND NOT EXISTS (
+                    -- Check if this seat is booked in an active order
+                    SELECT 1
+                    FROM Order_Seats OS
+                    JOIN Order_Table O ON OS.order_code = O.order_code
+                    WHERE OS.aircraft_id = S.aircraft_id
+                    AND OS.is_business = S.is_business
+                    AND OS.row_number = S.row_number
+                    AND OS.column_number = S.column_number
+                    AND O.source_airport_id = F.source_airport_id
+                    AND O.dest_airport_id = F.dest_airport_id
+                    AND O.departure_time = F.departure_time
+                    AND O.order_status NOT IN ('Client Cancellation', 'System Cancellation')
+                )
+            )
         """)
     except Exception as e:
         # Error updating flight_statuses - fail silently
@@ -345,20 +406,20 @@ def cancel_flight(source_id, dest_id, departure_time):
             return False, "Flight not found"
         
         # Check if flight is already cancelled
-        if flight['flight_status'] == 'Cancelled':
+        if flight['flight_status'] == 'Canceled':
             return False, "Flight is already cancelled"
         
         # Check if flight is completed
         if flight['flight_status'] == 'Completed':
             return False, "Cannot cancel a completed flight"
 
-        # Update flight status to Cancelled (only if >= 72 hours before departure)
+        # Update flight status to Canceled (only if >= 72 hours before departure)
         db.execute_db("""
             UPDATE Flight 
-            SET flight_status = 'Cancelled'
+            SET flight_status = 'Canceled'
             WHERE source_airport_id = %s AND dest_airport_id = %s AND departure_time = %s
             AND TIMESTAMPDIFF(HOUR, NOW(), departure_time) >= 72
-            AND flight_status != 'Cancelled'
+            AND flight_status != 'Canceled'
         """, (source_id, dest_id, departure_time))
         
         # Check if flight was actually updated
@@ -367,7 +428,7 @@ def cancel_flight(source_id, dest_id, departure_time):
             WHERE source_airport_id = %s AND dest_airport_id = %s AND departure_time = %s
         """, (source_id, dest_id, departure_time), one=True)
         
-        if updated_flight['flight_status'] == 'Cancelled':
+        if updated_flight['flight_status'] == 'Canceled':
             # Get affected orders and total refund amount before updating
             affected_orders = db.query_db("""
                 SELECT order_code, total_payment, customer_email
@@ -375,26 +436,26 @@ def cancel_flight(source_id, dest_id, departure_time):
                 WHERE source_airport_id = %s 
                 AND dest_airport_id = %s 
                 AND departure_time = %s
-                AND order_status NOT IN ('Cancelled', 'Customer Cancelled', 'System Cancelled')
+                AND order_status NOT IN ('Client Cancellation', 'System Cancellation')
             """, (source_id, dest_id, departure_time))
             
-            total_refund = sum(float(order['total_payment']) for order in affected_orders)
+            total_refund = sum(int(order['total_payment']) for order in affected_orders)
             order_count = len(affected_orders)
             
-            # Update all related orders to 'System Cancelled' and set total_payment to 0 (full refund)
+            # Update all related orders to 'System Cancellation' and set total_payment to 0 (full refund)
             db.execute_db("""
                 UPDATE Order_Table 
-                SET order_status = 'System Cancelled',
-                    total_payment = 0.00
+                SET order_status = 'System Cancellation',
+                    total_payment = 0
                 WHERE source_airport_id = %s 
                 AND dest_airport_id = %s 
                 AND departure_time = %s
-                AND order_status NOT IN ('Cancelled', 'Customer Cancelled', 'System Cancelled')
+                AND order_status NOT IN ('Client Cancellation', 'System Cancellation')
             """, (source_id, dest_id, departure_time))
             
             # Build detailed refund message
             if order_count > 0:
-                refund_message = f"Flight cancelled successfully. {order_count} order(s) cancelled with full refund of ${total_refund:.2f} processed. All customers will receive their full payment back."
+                refund_message = f"Flight cancelled successfully. {order_count} order(s) cancelled with full refund of ${total_refund} processed. All customers will receive their full payment back."
             else:
                 refund_message = "Flight cancelled successfully. No active orders were affected."
             
@@ -447,17 +508,17 @@ def update_flight_status(source_id, dest_id, departure_time, new_status):
             WHERE source_airport_id = %s AND dest_airport_id = %s AND departure_time = %s
         """, (new_status, source_id, dest_id, departure_time))
         
-        # If status is set to 'Cancelled', update all related orders to 'System Cancelled'
-        if new_status == 'Cancelled':
+        # If status is set to 'Canceled', update all related orders to 'System Cancellation'
+        if new_status == 'Canceled':
             db.execute_db("""
                 UPDATE Order_Table 
-                SET order_status = 'System Cancelled'
+                SET order_status = 'System Cancellation'
                 WHERE source_airport_id = %s 
                 AND dest_airport_id = %s 
                 AND departure_time = %s
-                AND order_status NOT IN ('Cancelled', 'Customer Cancelled', 'System Cancelled')
+                AND order_status NOT IN ('Client Cancellation', 'System Cancellation')
             """, (source_id, dest_id, departure_time))
-            return True, "Flight status updated to Cancelled. All related orders have been cancelled."
+            return True, "Flight status updated to Canceled. All related orders have been cancelled."
         
         return True, "Status updated successfully"
     except Exception as e:

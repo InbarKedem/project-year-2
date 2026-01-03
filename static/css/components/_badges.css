@@ -72,20 +72,26 @@
 }
 
 .status-confirmed,
-.status-active {
+.status-active,
+.status-completed {
   background-color: var(--color-success);
   color: white;
 }
 
-.status-customer-cancelled {
+.status-client-cancellation {
   background-color: var(--color-warning);
   color: var(--color-gray-dark);
 }
 
-.status-system-cancelled,
-.status-cancelled {
+.status-system-cancellation,
+.status-canceled {
   background-color: var(--color-error);
   color: white;
+}
+
+.status-fully-booked {
+  background-color: var(--color-warning);
+  color: var(--color-gray-dark);
 }
 
 /* Pilot/Attendant Badges */

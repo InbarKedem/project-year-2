@@ -42,7 +42,10 @@ function updatePriceDisplay(cls) {
   if (selectedSeats.length > 0) {
     let total = 0;
     selectedSeats.forEach((s) => {
-      total += s.class === "business" ? businessPrice : economyPrice;
+      const price = s.class === "business" ? businessPrice : economyPrice;
+      if (price !== null && !isNaN(price)) {
+        total += price;
+      }
     });
     priceDisplay = `Total Price: $${total} (${selectedSeats.length} seats)`;
   } else {
@@ -50,8 +53,11 @@ function updatePriceDisplay(cls) {
       if (hasEconomy) priceDisplay = `Price: $${economyPrice}`;
       else priceDisplay = `Economy Sold Out ($${economyPrice})`;
     } else if (cls === "business") {
-      if (hasBusiness) priceDisplay = `Price: $${businessPrice}`;
-      else priceDisplay = `Business Sold Out ($${businessPrice})`;
+      if (hasBusiness && businessPrice !== null && !isNaN(businessPrice)) {
+        priceDisplay = `Price: $${businessPrice}`;
+      } else {
+        priceDisplay = `Business Not Available`;
+      }
     }
   }
   document.getElementById("selected-price-display").innerText = priceDisplay;

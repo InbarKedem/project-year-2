@@ -93,7 +93,11 @@
                     </div>
                     <div class="price">
                         <p class="price-tag">${{ flight.economy_price }} <small>(Economy)</small></p>
+                        {% if flight.business_price %}
                         <p class="price-tag price-tag--biz">${{ flight.business_price }} <small>(Business)</small></p>
+                        {% else %}
+                        <p class="price-tag price-tag--biz price-tag--unavailable">Not Available <small>(Business)</small></p>
+                        {% endif %}
                     </div>
                 </div>
                 <div class="actions">

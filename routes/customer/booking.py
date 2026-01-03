@@ -79,12 +79,23 @@ def book_flight():
         # 2. Create Order
         order_code = random.randint(100000, 999999)
         
-        # Get price and aircraft_id
-        flight_info = query_db(f"SELECT economy_price, business_price, aircraft_id FROM Flight WHERE source_airport_id=%s AND dest_airport_id=%s AND departure_time=%s", 
+        # Get price, aircraft_id, and flight status
+        flight_info = query_db(f"SELECT economy_price, business_price, aircraft_id, flight_status FROM Flight WHERE source_airport_id=%s AND dest_airport_id=%s AND departure_time=%s", 
                                (source_id, dest_id, time_str))
         
         if not flight_info:
             flash("Flight not found.", "danger")
+            return redirect(url_for('customer.index'))
+        
+        # Check if flight is bookable
+        flight_status = flight_info[0]['flight_status']
+        if flight_status in ('Canceled', 'Completed', 'Fully Booked'):
+            if flight_status == 'Canceled':
+                flash("This flight has been canceled and cannot be booked.", "danger")
+            elif flight_status == 'Completed':
+                flash("This flight has already departed and cannot be booked.", "danger")
+            elif flight_status == 'Fully Booked':
+                flash("This flight is fully booked and no seats are available.", "danger")
             return redirect(url_for('customer.index'))
             
         economy_price = flight_info[0]['economy_price']
@@ -100,7 +111,7 @@ def book_flight():
         
         execute_db("""
             INSERT INTO Order_Table (order_code, order_date, total_payment, order_status, customer_email, source_airport_id, dest_airport_id, departure_time)
-            VALUES (%s, NOW(), %s, 'Confirmed', %s, %s, %s, %s)
+            VALUES (%s, NOW(), %s, 'Active', %s, %s, %s, %s)
         """, (order_code, total_price, email, source_id, dest_id, time_str))
         
         # 3. Book Seats
@@ -119,6 +130,10 @@ def book_flight():
             booking_success = True
             new_order_code = order_code
             
+            # Update flight status after successful booking
+            from services.flight_service import update_all_flight_statuses
+            update_all_flight_statuses()
+            
         except Exception as e:
             # Rollback order if seat booking fails (simplified)
             execute_db("DELETE FROM Order_Table WHERE order_code = %s", (order_code,))
@@ -127,10 +142,11 @@ def book_flight():
 
     # GET Request - Show Seat Map
     
-    # 1. Get Flight Info & Aircraft Config for BOTH classes
+    # 1. Get Flight Info & Aircraft Config for BOTH classes (including status)
     flight_query = """
         SELECT F.aircraft_id, AC.is_business, AC.num_rows, AC.num_columns, F.economy_price, F.business_price,
-               A1.airport_name as source_airport, A2.airport_name as dest_airport, FR.flight_duration, Aircraft.manufacturer
+               F.flight_status, A1.airport_name as source_airport, A2.airport_name as dest_airport, 
+               FR.flight_duration, Aircraft.manufacturer
         FROM Flight F
         JOIN Aircraft_Class AC ON F.aircraft_id = AC.aircraft_id
         JOIN Airport A1 ON F.source_airport_id = A1.airport_id
@@ -143,6 +159,17 @@ def book_flight():
     
     if not flight_data:
         flash("Flight details not found.", "danger")
+        return redirect(url_for('customer.index'))
+    
+    # Check if flight is bookable
+    flight_status = flight_data[0]['flight_status']
+    if flight_status in ('Canceled', 'Completed', 'Fully Booked'):
+        if flight_status == 'Canceled':
+            flash("This flight has been canceled and cannot be booked.", "danger")
+        elif flight_status == 'Completed':
+            flash("This flight has already departed and cannot be booked.", "danger")
+        elif flight_status == 'Fully Booked':
+            flash("This flight is fully booked and no seats are available.", "danger")
         return redirect(url_for('customer.index'))
         
     configs = {}
@@ -169,7 +196,7 @@ def book_flight():
         FROM Order_Seats OS
         JOIN Order_Table O ON OS.order_code = O.order_code
         WHERE O.source_airport_id = %s AND O.dest_airport_id = %s AND O.departure_time = %s
-        AND O.order_status NOT IN ('Cancelled', 'Customer Cancelled', 'System Cancelled')
+        AND O.order_status NOT IN ('System Cancellation', 'Client Cancellation')
     """
     occupied_seats = query_db(occupied_query, (source_id, dest_id, time_str))
     
