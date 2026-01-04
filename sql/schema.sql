@@ -1,19 +1,9 @@
--- 1. Infrastructure & Planes
-DROP TABLE IF EXISTS Order_Seats;
-DROP TABLE IF EXISTS Order_Table;
-DROP TABLE IF EXISTS Registered_Customer;
-DROP TABLE IF EXISTS Phone;
-DROP TABLE IF EXISTS User;
-DROP TABLE IF EXISTS Employee_Flight_Assignment;
-DROP TABLE IF EXISTS Flight;
-DROP TABLE IF EXISTS Manager;
-DROP TABLE IF EXISTS Flight_Crew;
-DROP TABLE IF EXISTS Employee;
-DROP TABLE IF EXISTS Seat;
-DROP TABLE IF EXISTS Aircraft_Class;
-DROP TABLE IF EXISTS Aircraft;
-DROP TABLE IF EXISTS Flight_Route;
-DROP TABLE IF EXISTS Airport;
+-- Drop all tables (disable foreign key checks for faster dropping)
+SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS Order_Seats, Order_Table, Registered_Customer, Phone, User, 
+                     Employee_Flight_Assignment, Flight, Manager, Flight_Crew, Employee, 
+                     Seat, Aircraft_Class, Aircraft, Flight_Route, Airport;
+SET FOREIGN_KEY_CHECKS = 1;
 
 -- Now create tables
 CREATE TABLE Airport (

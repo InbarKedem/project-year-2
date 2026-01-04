@@ -553,12 +553,12 @@ def generate_faker_flight_crew(cursor):
     
     # Estimate crew needs:
     # - Each flight needs 2-3 pilots and 3-6 attendants
-    # - With 50 flights, we need good coverage
-    # - Minimum: 20 pilots (15 trained for long flights) and 30 attendants (20 trained for long flights)
-    min_pilots = 20
-    min_trained_pilots = 15  # For long flights
-    min_attendants = 30
-    min_trained_attendants = 20  # For long flights
+    # - With 100 flights, we need good coverage
+    # - Minimum: 45 pilots (34 trained for long flights) and 55 attendants (37 trained for long flights)
+    min_pilots = 45
+    min_trained_pilots = 34  # For long flights
+    min_attendants = 55
+    min_trained_attendants = 37  # For long flights
     
     cursor.execute("SELECT COUNT(*) FROM Flight_Crew WHERE is_pilot = 1")
     current_pilots = cursor.fetchone()[0]
@@ -1320,7 +1320,7 @@ def generate_all_fake_data(drop_schema=True):
         generate_faker_users(cursor, min_count=20)
         generate_faker_phones(cursor)
         generate_faker_registered_customers(cursor)
-        generate_faker_flights(cursor, min_count=50)
+        generate_faker_flights(cursor, min_count=100)
         generate_faker_crew_assignments(cursor)
         generate_faker_orders(cursor, min_count=20)
         
