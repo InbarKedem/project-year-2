@@ -5,6 +5,30 @@ from datetime import datetime
 from routes.customer import customer_bp
 from services.flight_service import update_flight_statuses
 
+# Non-bookable flight statuses
+NON_BOOKABLE_STATUSES = ('Canceled', 'Completed', 'Fully Booked')
+
+def check_flight_bookable(flight_status):
+    """
+    Check if a flight can be booked based on its status.
+    
+    Args:
+        flight_status: The current status of the flight
+        
+    Returns:
+        tuple: (is_bookable: bool, error_message: str or None)
+    """
+    if flight_status not in NON_BOOKABLE_STATUSES:
+        return True, None
+    
+    status_messages = {
+        'Canceled': "This flight has been canceled and cannot be booked.",
+        'Completed': "This flight has already departed and cannot be booked.",
+        'Fully Booked': "This flight is fully booked and no seats are available."
+    }
+    
+    return False, status_messages.get(flight_status, "This flight cannot be booked.")
+
 @customer_bp.route('/book_flight', methods=['GET', 'POST'])
 @update_flight_statuses
 def book_flight():
@@ -80,8 +104,11 @@ def book_flight():
         order_code = random.randint(100000, 999999)
         
         # Get price, aircraft_id, and flight status
-        flight_info = query_db(f"SELECT economy_price, business_price, aircraft_id, flight_status FROM Flight WHERE source_airport_id=%s AND dest_airport_id=%s AND departure_time=%s", 
-                               (source_id, dest_id, time_str))
+        flight_info = query_db("""
+            SELECT economy_price, business_price, aircraft_id, flight_status 
+            FROM Flight 
+            WHERE source_airport_id = %s AND dest_airport_id = %s AND departure_time = %s
+        """, (source_id, dest_id, time_str))
         
         if not flight_info:
             flash("Flight not found.", "danger")
@@ -89,22 +116,19 @@ def book_flight():
         
         # Check if flight is bookable
         flight_status = flight_info[0]['flight_status']
-        if flight_status in ('Canceled', 'Completed', 'Fully Booked'):
-            if flight_status == 'Canceled':
-                flash("This flight has been canceled and cannot be booked.", "danger")
-            elif flight_status == 'Completed':
-                flash("This flight has already departed and cannot be booked.", "danger")
-            elif flight_status == 'Fully Booked':
-                flash("This flight is fully booked and no seats are available.", "danger")
+        is_bookable, error_message = check_flight_bookable(flight_status)
+        if not is_bookable:
+            flash(error_message, "danger")
             return redirect(url_for('customer.index'))
             
         economy_price = flight_info[0]['economy_price']
         business_price = flight_info[0]['business_price']
         aircraft_id = flight_info[0]['aircraft_id']
         
+        # Calculate total price based on selected seat classes
         total_price = 0
-        for s_class in seat_classes:
-            if s_class == 'business':
+        for seat_class in seat_classes:
+            if seat_class == 'business':
                 total_price += business_price
             else:
                 total_price += economy_price
@@ -116,11 +140,12 @@ def book_flight():
         
         # 3. Book Seats
         try:
+            # Insert each selected seat into Order_Seats
             for i in range(len(seat_rows)):
                 row = seat_rows[i]
                 col = seat_cols[i]
-                s_class = seat_classes[i]
-                is_business = (s_class == 'business')
+                seat_class = seat_classes[i]
+                is_business = (seat_class == 'business')
                 
                 execute_db("""
                     INSERT INTO Order_Seats (order_code, aircraft_id, is_business, `row_number`, `column_number`)
@@ -130,12 +155,12 @@ def book_flight():
             booking_success = True
             new_order_code = order_code
             
-            # Update flight status after successful booking
+            # Update flight status after successful booking to reflect new seat availability
             from services.flight_service import update_all_flight_statuses
             update_all_flight_statuses()
             
         except Exception as e:
-            # Rollback order if seat booking fails (simplified)
+            # Rollback order if seat booking fails
             execute_db("DELETE FROM Order_Table WHERE order_code = %s", (order_code,))
             flash(f"Booking failed: {e}", "danger")
             return redirect(request.url)
@@ -163,13 +188,9 @@ def book_flight():
     
     # Check if flight is bookable
     flight_status = flight_data[0]['flight_status']
-    if flight_status in ('Canceled', 'Completed', 'Fully Booked'):
-        if flight_status == 'Canceled':
-            flash("This flight has been canceled and cannot be booked.", "danger")
-        elif flight_status == 'Completed':
-            flash("This flight has already departed and cannot be booked.", "danger")
-        elif flight_status == 'Fully Booked':
-            flash("This flight is fully booked and no seats are available.", "danger")
+    is_bookable, error_message = check_flight_bookable(flight_status)
+    if not is_bookable:
+        flash(error_message, "danger")
         return redirect(url_for('customer.index'))
         
     configs = {}
@@ -190,13 +211,15 @@ def book_flight():
         else:
             economy_price = row['economy_price']
     
-    # 2. Get Occupied Seats for ALL classes
+    # 2. Get Occupied Seats for ALL classes (excluding cancelled orders)
     occupied_query = """
         SELECT OS.row_number, OS.column_number, OS.is_business
         FROM Order_Seats OS
         JOIN Order_Table O ON OS.order_code = O.order_code
-        WHERE O.source_airport_id = %s AND O.dest_airport_id = %s AND O.departure_time = %s
-        AND O.order_status NOT IN ('System Cancellation', 'Client Cancellation')
+        WHERE O.source_airport_id = %s 
+          AND O.dest_airport_id = %s 
+          AND O.departure_time = %s
+          AND O.order_status NOT IN ('System Cancellation', 'Client Cancellation')
     """
     occupied_seats = query_db(occupied_query, (source_id, dest_id, time_str))
     

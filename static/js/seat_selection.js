@@ -10,7 +10,7 @@ function showClass(cls) {
   if (classToggleTimeout) {
     clearTimeout(classToggleTimeout);
   }
-  
+
   classToggleTimeout = setTimeout(() => {
     // Toggle Buttons
     document
@@ -39,20 +39,29 @@ function showClass(cls) {
 
 function updatePriceDisplay(cls) {
   let priceDisplay = "";
+
   if (selectedSeats.length > 0) {
-    let total = 0;
-    selectedSeats.forEach((s) => {
-      const price = s.class === "business" ? businessPrice : economyPrice;
-      if (price !== null && !isNaN(price)) {
-        total += price;
+    // Calculate total price for selected seats
+    let totalPrice = 0;
+    selectedSeats.forEach((seat) => {
+      const seatPrice =
+        seat.class === "business" ? businessPrice : economyPrice;
+      // Validate price is a valid number before adding to total
+      if (seatPrice !== null && !isNaN(seatPrice)) {
+        totalPrice += seatPrice;
       }
     });
-    priceDisplay = `Total Price: $${total} (${selectedSeats.length} seats)`;
+    priceDisplay = `Total Price: $${totalPrice} (${selectedSeats.length} seats)`;
   } else {
+    // Display price for the current class when no seats are selected
     if (cls === "economy") {
-      if (hasEconomy) priceDisplay = `Price: $${economyPrice}`;
-      else priceDisplay = `Economy Sold Out ($${economyPrice})`;
+      if (hasEconomy) {
+        priceDisplay = `Price: $${economyPrice}`;
+      } else {
+        priceDisplay = `Economy Sold Out ($${economyPrice})`;
+      }
     } else if (cls === "business") {
+      // Check both availability and valid price for business class
       if (hasBusiness && businessPrice !== null && !isNaN(businessPrice)) {
         priceDisplay = `Price: $${businessPrice}`;
       } else {
@@ -60,6 +69,7 @@ function updatePriceDisplay(cls) {
       }
     }
   }
+
   document.getElementById("selected-price-display").innerText = priceDisplay;
 }
 
@@ -100,9 +110,7 @@ function updateForm() {
   const container = document.getElementById("selected-seats-container");
   container.innerHTML = "";
 
-  const extraContainer = document.getElementById(
-    "extra-passengers-container"
-  );
+  const extraContainer = document.getElementById("extra-passengers-container");
   extraContainer.innerHTML = "";
 
   if (selectedSeats.length === 0) {
@@ -133,4 +141,3 @@ function updateForm() {
     container.appendChild(inputClass);
   });
 }
-

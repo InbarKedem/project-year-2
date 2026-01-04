@@ -2,6 +2,9 @@ import db
 from datetime import datetime, timedelta
 from functools import wraps
 
+# Order statuses that should be excluded when checking seat availability
+EXCLUDED_ORDER_STATUSES = ('Client Cancellation', 'System Cancellation')
+
 def update_all_flight_statuses():
     """
     Updates flight statuses based on current time, departure time, and seat availability.
@@ -27,27 +30,27 @@ def update_all_flight_statuses():
             UPDATE Flight F
             SET flight_status = 'Fully Booked'
             WHERE F.flight_status = 'Active'
-            AND F.departure_time > NOW()
-            AND NOT EXISTS (
-                -- Check if there are any available seats
-                SELECT 1
-                FROM Seat S
-                WHERE S.aircraft_id = F.aircraft_id
-                AND NOT EXISTS (
-                    -- Check if this seat is booked in an active order
-                    SELECT 1
-                    FROM Order_Seats OS
-                    JOIN Order_Table O ON OS.order_code = O.order_code
-                    WHERE OS.aircraft_id = S.aircraft_id
-                    AND OS.is_business = S.is_business
-                    AND OS.row_number = S.row_number
-                    AND OS.column_number = S.column_number
-                    AND O.source_airport_id = F.source_airport_id
-                    AND O.dest_airport_id = F.dest_airport_id
-                    AND O.departure_time = F.departure_time
-                    AND O.order_status NOT IN ('Client Cancellation', 'System Cancellation')
-                )
-            )
+              AND F.departure_time > NOW()
+              AND NOT EXISTS (
+                  -- Check if there are any available seats
+                  SELECT 1
+                  FROM Seat S
+                  WHERE S.aircraft_id = F.aircraft_id
+                    AND NOT EXISTS (
+                        -- Check if this seat is booked in an active order
+                        SELECT 1
+                        FROM Order_Seats OS
+                        JOIN Order_Table O ON OS.order_code = O.order_code
+                        WHERE OS.aircraft_id = S.aircraft_id
+                          AND OS.is_business = S.is_business
+                          AND OS.row_number = S.row_number
+                          AND OS.column_number = S.column_number
+                          AND O.source_airport_id = F.source_airport_id
+                          AND O.dest_airport_id = F.dest_airport_id
+                          AND O.departure_time = F.departure_time
+                          AND O.order_status NOT IN ('Client Cancellation', 'System Cancellation')
+                    )
+              )
         """)
         
         # 3. Update 'Fully Booked' flights back to 'Active' if seats become available
@@ -56,27 +59,27 @@ def update_all_flight_statuses():
             UPDATE Flight F
             SET flight_status = 'Active'
             WHERE F.flight_status = 'Fully Booked'
-            AND F.departure_time > NOW()
-            AND EXISTS (
-                -- Check if there are any available seats
-                SELECT 1
-                FROM Seat S
-                WHERE S.aircraft_id = F.aircraft_id
-                AND NOT EXISTS (
-                    -- Check if this seat is booked in an active order
-                    SELECT 1
-                    FROM Order_Seats OS
-                    JOIN Order_Table O ON OS.order_code = O.order_code
-                    WHERE OS.aircraft_id = S.aircraft_id
-                    AND OS.is_business = S.is_business
-                    AND OS.row_number = S.row_number
-                    AND OS.column_number = S.column_number
-                    AND O.source_airport_id = F.source_airport_id
-                    AND O.dest_airport_id = F.dest_airport_id
-                    AND O.departure_time = F.departure_time
-                    AND O.order_status NOT IN ('Client Cancellation', 'System Cancellation')
-                )
-            )
+              AND F.departure_time > NOW()
+              AND EXISTS (
+                  -- Check if there are any available seats
+                  SELECT 1
+                  FROM Seat S
+                  WHERE S.aircraft_id = F.aircraft_id
+                    AND NOT EXISTS (
+                        -- Check if this seat is booked in an active order
+                        SELECT 1
+                        FROM Order_Seats OS
+                        JOIN Order_Table O ON OS.order_code = O.order_code
+                        WHERE OS.aircraft_id = S.aircraft_id
+                          AND OS.is_business = S.is_business
+                          AND OS.row_number = S.row_number
+                          AND OS.column_number = S.column_number
+                          AND O.source_airport_id = F.source_airport_id
+                          AND O.dest_airport_id = F.dest_airport_id
+                          AND O.departure_time = F.departure_time
+                          AND O.order_status NOT IN ('Client Cancellation', 'System Cancellation')
+                    )
+              )
         """)
     except Exception as e:
         # Error updating flight_statuses - fail silently
@@ -434,9 +437,9 @@ def cancel_flight(source_id, dest_id, departure_time):
                 SELECT order_code, total_payment, customer_email
                 FROM Order_Table 
                 WHERE source_airport_id = %s 
-                AND dest_airport_id = %s 
-                AND departure_time = %s
-                AND order_status NOT IN ('Client Cancellation', 'System Cancellation')
+                  AND dest_airport_id = %s 
+                  AND departure_time = %s
+                  AND order_status NOT IN ('Client Cancellation', 'System Cancellation')
             """, (source_id, dest_id, departure_time))
             
             total_refund = sum(int(order['total_payment']) for order in affected_orders)
@@ -448,9 +451,9 @@ def cancel_flight(source_id, dest_id, departure_time):
                 SET order_status = 'System Cancellation',
                     total_payment = 0
                 WHERE source_airport_id = %s 
-                AND dest_airport_id = %s 
-                AND departure_time = %s
-                AND order_status NOT IN ('Client Cancellation', 'System Cancellation')
+                  AND dest_airport_id = %s 
+                  AND departure_time = %s
+                  AND order_status NOT IN ('Client Cancellation', 'System Cancellation')
             """, (source_id, dest_id, departure_time))
             
             # Build detailed refund message
@@ -514,9 +517,9 @@ def update_flight_status(source_id, dest_id, departure_time, new_status):
                 UPDATE Order_Table 
                 SET order_status = 'System Cancellation'
                 WHERE source_airport_id = %s 
-                AND dest_airport_id = %s 
-                AND departure_time = %s
-                AND order_status NOT IN ('Client Cancellation', 'System Cancellation')
+                  AND dest_airport_id = %s 
+                  AND departure_time = %s
+                  AND order_status NOT IN ('Client Cancellation', 'System Cancellation')
             """, (source_id, dest_id, departure_time))
             return True, "Flight status updated to Canceled. All related orders have been cancelled."
         
