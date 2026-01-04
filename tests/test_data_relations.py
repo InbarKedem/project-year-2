@@ -555,6 +555,47 @@ class TestDataCompleteness:
         cursor.close()
         conn.close()
         assert len(violations) == 0, f"Found {len(violations)} Orders without seat assignments"
+    
+    def test_all_airport_pairs_have_routes(self):
+        """Verify every pair of airports has a route from one to another."""
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get all airports
+        cursor.execute("SELECT airport_id FROM Airport ORDER BY airport_id")
+        airport_ids = [row[0] for row in cursor.fetchall()]
+        
+        if len(airport_ids) < 2:
+            cursor.close()
+            conn.close()
+            pytest.skip("Not enough airports to test routes")
+        
+        # Get all routes
+        cursor.execute("SELECT source_airport_id, dest_airport_id FROM Flight_Route")
+        existing_routes = set((row[0], row[1]) for row in cursor.fetchall())
+        
+        # Generate all expected routes (every airport to every other airport)
+        expected_routes = set()
+        for source in airport_ids:
+            for dest in airport_ids:
+                if source != dest:
+                    expected_routes.add((source, dest))
+        
+        # Find missing routes
+        missing_routes = expected_routes - existing_routes
+        
+        cursor.close()
+        conn.close()
+        
+        expected_count = len(airport_ids) * (len(airport_ids) - 1)
+        actual_count = len(existing_routes)
+        
+        assert len(missing_routes) == 0, (
+            f"Missing {len(missing_routes)} routes. "
+            f"Expected {expected_count} routes for {len(airport_ids)} airports, "
+            f"but found {actual_count}. "
+            f"Missing routes: {sorted(missing_routes)[:10]}{'...' if len(missing_routes) > 10 else ''}"
+        )
 
 class TestSeedDataPreservation:
     """Test that seed data is preserved."""

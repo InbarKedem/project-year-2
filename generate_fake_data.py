@@ -359,82 +359,61 @@ def generate_faker_airports(cursor, min_count=20):
         execute_insert(cursor, query, airport)
     print(f"Generated {len(airports)} additional airports")
 
-def generate_faker_routes(cursor, min_count=20):
-    """Generate additional routes between airports."""
-    print(f"Generating {min_count} routes with faker...")
-    cursor.execute("SELECT COUNT(*) FROM Flight_Route")
-    current_count = cursor.fetchone()[0]
-    needed = max(0, min_count - current_count)
-    
-    if needed == 0:
-        print(f"Already have {current_count} routes, skipping...")
-        return
+def ensure_all_airport_routes(cursor):
+    """Ensure every pair of airports has a route from one to another."""
+    print("Ensuring all airport pairs have routes...")
     
     # Get all airports
-    cursor.execute("SELECT airport_id FROM Airport")
+    cursor.execute("SELECT airport_id FROM Airport ORDER BY airport_id")
     airport_ids = [row[0] for row in cursor.fetchall()]
     
     if len(airport_ids) < 2:
         print("Not enough airports to generate routes")
         return
     
-    routes = set()
     # Get existing routes
     cursor.execute("SELECT source_airport_id, dest_airport_id FROM Flight_Route")
     existing = set((row[0], row[1]) for row in cursor.fetchall())
     
-    # Generate all possible routes first
-    all_possible_routes = []
+    # Generate all possible routes (every airport to every other airport)
+    all_routes = []
     for source in airport_ids:
         for dest in airport_ids:
             if source != dest:
-                all_possible_routes.append((source, dest))
+                all_routes.append((source, dest))
     
-    # Remove existing routes
-    available_routes = [r for r in all_possible_routes if r not in existing]
+    # Find missing routes
+    missing_routes = [r for r in all_routes if r not in existing]
     
-    # Randomly select needed routes
-    if len(available_routes) < needed:
-        # If not enough unique routes, we'll generate some duplicates (which INSERT IGNORE will handle)
-        needed = len(available_routes)
+    if not missing_routes:
+        expected_count = len(airport_ids) * (len(airport_ids) - 1)
+        print(f"All {expected_count} routes already exist for {len(airport_ids)} airports")
+        return
     
-    selected_routes = random.sample(available_routes, min(needed, len(available_routes)))
-    
-    for source, dest in selected_routes:
-        # Generate duration: 180-720 minutes (3-12 hours)
-        duration = random.randint(180, 720)
-        routes.add((source, dest, duration))
-    
+    # Generate routes for missing pairs
     query = "INSERT IGNORE INTO Flight_Route (source_airport_id, dest_airport_id, flight_duration) VALUES (%s, %s, %s)"
     inserted_count = 0
-    for route in routes:
+    for source, dest in missing_routes:
+        # Generate duration: 180-720 minutes (3-12 hours)
+        duration = random.randint(180, 720)
         try:
-            cursor.execute(query, route)
+            cursor.execute(query, (source, dest, duration))
             inserted_count += 1
         except mysql.connector.errors.IntegrityError:
             pass  # Duplicate route, skip
     
-    # If we still don't have enough, try to add more
     cursor.execute("SELECT COUNT(*) FROM Flight_Route")
     final_count = cursor.fetchone()[0]
-    if final_count < min_count:
-        # Try to add more routes, even if they might be duplicates
-        additional_needed = min_count - final_count
-        attempts = 0
-        max_attempts = 1000
-        while final_count < min_count and attempts < max_attempts:
-            source = random.choice(airport_ids)
-            dest = random.choice(airport_ids)
-            if source != dest:
-                duration = random.randint(180, 720)
-                try:
-                    cursor.execute(query, (source, dest, duration))
-                    final_count += 1
-                except mysql.connector.errors.IntegrityError:
-                    pass
-            attempts += 1
+    expected_count = len(airport_ids) * (len(airport_ids) - 1)
+    print(f"Ensured all routes exist: {final_count} routes (expected {expected_count} for {len(airport_ids)} airports, inserted {inserted_count} new routes)")
     
-    print(f"Generated routes. Total routes now: {final_count}")
+    if final_count < expected_count:
+        print(f"WARNING: Missing {expected_count - final_count} routes")
+
+def generate_faker_routes(cursor, min_count=20):
+    """Generate routes - ensures every airport pair has a route."""
+    # Ensure all routes exist (n*(n-1) routes for n airports)
+    ensure_all_airport_routes(cursor)
 
 def generate_faker_aircraft(cursor, min_count=20):
     """Generate additional aircraft."""
