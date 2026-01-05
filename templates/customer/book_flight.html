@@ -29,7 +29,7 @@
 <script>
   // Initialize seat selection with template variables
   const economyPrice = Number("{{ economy_price }}");
-  const businessPrice = Number("{{ business_price }}");
+  const businessPrice = {% if business_price %}Number("{{ business_price }}"){% else %}null{% endif %};
   const hasEconomy = "{{ has_economy }}" === "True";
   const hasBusiness = "{{ has_business }}" === "True";
 </script>

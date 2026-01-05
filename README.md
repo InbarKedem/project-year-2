@@ -40,10 +40,19 @@ The system is deployed and accessible at the following URL:
 
 Per the project requirements, here are the testing credentials for the two required user types:
 
-| User Type    | Username / Email | Password   |
-| :----------- | :--------------- | :--------- |
-| **Manager**  | `111111111`      | `admin123` |
-| **Customer** | `reg1@test.com`  | `pass1`    |
+#### Manager Accounts
+
+| Username    | Password       |
+| :---------- | :------------- |
+| `111111111` | `Admin@2024`   |
+| `222222222` | `Manager#2024` |
+
+#### Customer Accounts
+
+| Email           | Password        |
+| :-------------- | :-------------- |
+| `reg1@test.com` | `Customer@2024` |
+| `reg2@test.com` | `User#2024`     |
 
 ---
 

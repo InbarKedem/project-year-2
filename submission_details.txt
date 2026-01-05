@@ -2,10 +2,20 @@ Site URL: https://inbarkedem.pythonanywhere.com
 
 Login Credentials:
 
-1. Manager:
+Managers:
+1. Manager 1:
    Username: 111111111
-   Password: admin123
+   Password: Admin@2024
 
-2. Regular User (Customer):
+2. Manager 2:
+   Username: 222222222
+   Password: Manager#2024
+
+Registered Customers:
+1. Customer 1:
    Email: reg1@test.com
-   Password: pass1
+   Password: Customer@2024
+
+2. Customer 2:
+   Email: reg2@test.com
+   Password: User#2024

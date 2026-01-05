@@ -22,7 +22,7 @@
       id="btn-business"
       onclick="showClass('business')"
     >
-      Business ({% if business_price > 0 %}${{ business_price }}{% else %}N/A{%
+      Business ({% if business_price and business_price > 0 %}${{ business_price }}{% else %}Not Available{%
       endif %})
     </button>
   </div>

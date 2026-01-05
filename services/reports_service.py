@@ -17,7 +17,7 @@ def get_occupancy_report():
                                 AND F.departure_time = O.departure_time
                                 AND O.order_status = 'Active'
         LEFT JOIN Order_Seats OS ON O.order_code = OS.order_code
-        WHERE F.departure_time < NOW() AND F.flight_status != 'Cancelled'
+        WHERE F.departure_time < NOW() AND F.flight_status != 'Canceled'
         GROUP BY F.source_airport_id, F.dest_airport_id, F.departure_time, F.aircraft_id
     """)
 
@@ -57,7 +57,7 @@ def get_employee_hours_report():
                       AND EFA.departure_time = F.departure_time
         JOIN Flight_Route FR ON F.source_airport_id = FR.source_airport_id 
                              AND F.dest_airport_id = FR.dest_airport_id
-        WHERE F.flight_status != 'Cancelled'
+        WHERE F.flight_status != 'Canceled'
         GROUP BY E.id_number
     """)
 
@@ -66,8 +66,8 @@ def get_cancellation_report():
         SELECT 
             DATE_FORMAT(order_date, '%Y-%m') as month,
             COUNT(*) as total_orders,
-            SUM(CASE WHEN order_status LIKE '%Cancelled%' THEN 1 ELSE 0 END) as cancelled_orders,
-            (SUM(CASE WHEN order_status LIKE '%Cancelled%' THEN 1 ELSE 0 END) / COUNT(*)) * 100 as cancellation_rate
+            SUM(CASE WHEN order_status IN ('System Cancellation', 'Client Cancellation') THEN 1 ELSE 0 END) as cancelled_orders,
+            (SUM(CASE WHEN order_status IN ('System Cancellation', 'Client Cancellation') THEN 1 ELSE 0 END) / COUNT(*)) * 100 as cancellation_rate
         FROM Order_Table
         GROUP BY DATE_FORMAT(order_date, '%Y-%m')
     """)
@@ -78,9 +78,9 @@ def get_plane_activity_report():
         SELECT 
             F.aircraft_id,
             DATE_FORMAT(F.departure_time, '%Y-%m') as month,
-            COUNT(CASE WHEN F.flight_status != 'Cancelled' THEN 1 END) as flights_performed,
-            COUNT(CASE WHEN F.flight_status = 'Cancelled' THEN 1 END) as flights_cancelled,
-            (SUM(CASE WHEN F.flight_status != 'Cancelled' THEN FR.flight_duration ELSE 0 END) / (30 * 24 * 60)) * 100 as utilization,
+            COUNT(CASE WHEN F.flight_status != 'Canceled' THEN 1 END) as flights_performed,
+            COUNT(CASE WHEN F.flight_status = 'Canceled' THEN 1 END) as flights_cancelled,
+            (SUM(CASE WHEN F.flight_status != 'Canceled' THEN FR.flight_duration ELSE 0 END) / (30 * 24 * 60)) * 100 as utilization,
             (SELECT CONCAT(A1.airport_name, ' -> ', A2.airport_name) 
              FROM Flight F2 
              JOIN Airport A1 ON F2.source_airport_id = A1.airport_id

@@ -53,9 +53,9 @@ def add_flight():
 
         # Validate prices are not negative
         try:
-            economy_price_float = float(economy_price) if economy_price else 0
-            business_price_float = float(business_price) if business_price else 0
-            if economy_price_float < 0 or business_price_float < 0:
+            economy_price_int = int(economy_price) if economy_price else 0
+            business_price_int = int(business_price) if business_price else 0
+            if economy_price_int < 0 or business_price_int < 0:
                 flash('Flight prices cannot be negative.', 'danger')
             elif source_id == dest_id:
                 flash('Source and Destination airports cannot be the same.', 'danger')
@@ -66,24 +66,62 @@ def add_flight():
                 if departure_time:
                     try:
                         departure_dt = datetime.strptime(departure_time, '%Y-%m-%dT%H:%M')
-                        if departure_dt < datetime.now():
-                            flash('Departure time cannot be in the past.', 'danger')
+                        current_time = datetime.now()
+                        # Ensure departure time is in the future (not equal to or before current time)
+                        if departure_dt <= current_time:
+                            flash('Departure time must be in the future. Please select a future date and time.', 'danger')
                         else:
-                            # Validate crew count matches requirements
-                            validation_result = validate_crew_count(crew_ids, aircraft_id, source_id, dest_id, departure_time)
-                            if not validation_result[0]:
-                                flash(validation_result[1], 'danger')
-                            else:
-                                success, message = create_flight(
-                                    source_id, dest_id, departure_time, aircraft_id, 
-                                    economy_price, business_price, crew_ids
-                                )
+                            # Validate aircraft is operational by departure time
+                            from db import query_db
+                            aircraft = query_db("SELECT purchase_date FROM Aircraft WHERE aircraft_id = %s", (aircraft_id,), one=True)
+                            if aircraft and aircraft.get('purchase_date'):
+                                purchase_date = aircraft['purchase_date']
+                                # Handle different date formats
+                                if isinstance(purchase_date, str):
+                                    try:
+                                        purchase_date = datetime.strptime(purchase_date, '%Y-%m-%d').date()
+                                    except ValueError:
+                                        try:
+                                            purchase_date = datetime.strptime(purchase_date, '%Y-%m-%d %H:%M:%S').date()
+                                        except ValueError:
+                                            purchase_date = None
+                                elif isinstance(purchase_date, datetime):
+                                    purchase_date = purchase_date.date()
                                 
-                                if success:
-                                    flash(message, 'success')
-                                    return redirect(url_for('manager.manager_dashboard'))
+                                if purchase_date and purchase_date > departure_dt.date():
+                                    flash(f'Selected aircraft is not operational by the flight departure date. Aircraft becomes operational on {purchase_date.strftime("%Y-%m-%d")}, but flight is scheduled for {departure_dt.strftime("%Y-%m-%d %H:%M")}.', 'danger')
                                 else:
-                                    flash(message, 'danger')
+                                    # Validate crew count matches requirements
+                                    validation_result = validate_crew_count(crew_ids, aircraft_id, source_id, dest_id, departure_time)
+                                    if not validation_result[0]:
+                                        flash(validation_result[1], 'danger')
+                                    else:
+                                        success, message = create_flight(
+                                            source_id, dest_id, departure_time, aircraft_id, 
+                                            economy_price_int, business_price_int, crew_ids
+                                        )
+                                        
+                                        if success:
+                                            flash(message, 'success')
+                                            return redirect(url_for('manager.manager_dashboard'))
+                                        else:
+                                            flash(message, 'danger')
+                            else:
+                                # Validate crew count matches requirements
+                                validation_result = validate_crew_count(crew_ids, aircraft_id, source_id, dest_id, departure_time)
+                                if not validation_result[0]:
+                                    flash(validation_result[1], 'danger')
+                                else:
+                                    success, message = create_flight(
+                                        source_id, dest_id, departure_time, aircraft_id, 
+                                        economy_price_int, business_price_int, crew_ids
+                                    )
+                                    
+                                    if success:
+                                        flash(message, 'success')
+                                        return redirect(url_for('manager.manager_dashboard'))
+                                    else:
+                                        flash(message, 'danger')
                     except ValueError:
                         flash('Invalid departure time format.', 'danger')
                 else:
@@ -140,11 +178,11 @@ def manage_flights():
             
             # Can cancel only if:
             # - >= 72 hours before departure
-            # - status is not 'Cancelled'
+            # - status is not 'Canceled'
             # - status is not 'Completed'
             f['can_cancel'] = (
                 hours_until_flight >= 72 
-                and f.get('flight_status') != 'Cancelled' 
+                and f.get('flight_status') != 'Canceled' 
                 and f.get('flight_status') != 'Completed'
             )
             

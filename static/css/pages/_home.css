@@ -300,6 +300,12 @@
   color: var(--color-primary);
 }
 
+.price-tag--unavailable {
+  color: var(--color-gray-medium);
+  font-style: italic;
+  opacity: 0.7;
+}
+
 .flight-card .actions {
   padding: var(--spacing-lg);
   border-left: 1px solid var(--color-border);
