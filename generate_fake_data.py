@@ -4,10 +4,8 @@ Merges seed data with improved naming and extends with faker-generated data.
 """
 import mysql.connector
 from faker import Faker
-from faker.providers import BaseProvider
 from datetime import datetime, timedelta
 import random
-import sys
 import math
 from db import DB_CONFIG
 
@@ -22,6 +20,24 @@ LONG_FLIGHT_MIN_HOURS = 6
 # Initialize faker with English locale only
 fake_en = Faker('en_US')
 
+# Well-known names for employees and users
+WELL_KNOWN_FIRST_NAMES = [
+    'Michael', 'David', 'James', 'Robert', 'John', 'William', 'Richard', 'Joseph',
+    'Thomas', 'Christopher', 'Daniel', 'Matthew', 'Anthony', 'Mark', 'Donald',
+    'Steven', 'Paul', 'Andrew', 'Joshua', 'Kenneth', 'Kevin', 'Brian', 'George',
+    'Sarah', 'Emily', 'Jessica', 'Jennifer', 'Michelle', 'Melissa', 'Amy',
+    'Rebecca', 'Laura', 'Elizabeth', 'Lauren', 'Nicole', 'Ashley', 'Amanda',
+    'Lisa', 'Stephanie', 'Kimberly', 'Megan', 'Rachel', 'Angela', 'Emma'
+]
+
+WELL_KNOWN_LAST_NAMES = [
+    'Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis',
+    'Rodriguez', 'Martinez', 'Hernandez', 'Lopez', 'Wilson', 'Anderson', 'Thomas',
+    'Taylor', 'Moore', 'Jackson', 'Martin', 'Lee', 'Thompson', 'White', 'Harris',
+    'Clark', 'Lewis', 'Robinson', 'Walker', 'Young', 'King', 'Wright', 'Scott',
+    'Green', 'Adams', 'Baker', 'Nelson', 'Hill', 'Campbell', 'Mitchell', 'Roberts'
+]
+
 def get_db_connection():
     """Get database connection."""
     return mysql.connector.connect(**DB_CONFIG)
@@ -32,6 +48,15 @@ def execute_insert(cursor, query, values):
         cursor.execute(query, values)
     except mysql.connector.errors.IntegrityError:
         pass  # Ignore duplicates
+
+def format_employee_id(prefix, index):
+    """Format employee ID with proper zero-padding."""
+    if index < 10:
+        return f'{prefix}00000{index}'
+    elif index < 100:
+        return f'{prefix}0000{index}'
+    else:
+        return f'{prefix}000{index}'
 
 def insert_seed_airports(cursor):
     """Insert seed airports with improved naming."""
@@ -249,24 +274,20 @@ def insert_seed_seats(cursor):
     
     # Generate seats for each aircraft class
     for aircraft_id in [1, 2, 3, 4, 5, 6]:
-        # Check if aircraft is large
         cursor.execute("SELECT is_large FROM Aircraft WHERE aircraft_id = %s", (aircraft_id,))
         result = cursor.fetchone()
-        if result and result[0]:
-            # Large plane: Business and Economy
-            # Business seats
-            for row in range(1, 3):
-                for col in range(1, 3):
-                    execute_insert(cursor, query, (aircraft_id, True, row, col))
-            # Economy seats
-            for row in range(1, 6):
-                for col in range(1, 5):
-                    execute_insert(cursor, query, (aircraft_id, False, row, col))
+        is_large = result and result[0]
+        
+        if is_large:
+            # Large plane: Business (2x2) and Economy (5x4)
+            seats = [(aircraft_id, True, row, col) for row in range(1, 3) for col in range(1, 3)]
+            seats.extend([(aircraft_id, False, row, col) for row in range(1, 6) for col in range(1, 5)])
         else:
-            # Small plane: Economy only
-            for row in range(1, 6):
-                for col in range(1, 5):
-                    execute_insert(cursor, query, (aircraft_id, False, row, col))
+            # Small plane: Economy only (5x4)
+            seats = [(aircraft_id, False, row, col) for row in range(1, 6) for col in range(1, 5)]
+        
+        for seat in seats:
+            execute_insert(cursor, query, seat)
 
 def insert_seed_employees(cursor):
     """Insert seed employees with improved names."""
@@ -297,7 +318,7 @@ def insert_seed_employees(cursor):
         ('Paul', 'Joshua', 'Cook')
     ]
     for i, (first, middle, last) in enumerate(pilot_names, 1):
-        pilot_id = f'30000000{i}' if i < 10 else f'3000000{i}' if i < 100 else f'300000{i}'
+        pilot_id = format_employee_id('3000000', i)
         pilots.append((
             pilot_id, first, middle, last, 'Tel Aviv', fake_en.street_name(),
             i, f'050{3000000 + i}', '2022-01-01'
@@ -322,7 +343,7 @@ def insert_seed_employees(cursor):
         ('Penelope', 'Layla', 'Turner')
     ]
     for i, (first, middle, last) in enumerate(attendant_names, 1):
-        attendant_id = f'40000000{i}' if i < 10 else f'4000000{i}' if i < 100 else f'400000{i}'
+        attendant_id = format_employee_id('4000000', i)
         attendants.append((
             attendant_id, first, middle, last, 'Tel Aviv', fake_en.street_name(),
             i, f'050{4000000 + i}', '2023-01-01'
@@ -348,28 +369,10 @@ def insert_seed_flight_crew(cursor):
     print("Inserting seed flight crew...")
     
     # Pilots: first 16 trained for long flights (4x original 4), rest not
-    pilots_crew = []
-    for i in range(1, 41):
-        if i < 10:
-            pilot_id = f'30000000{i}'
-        elif i < 100:
-            pilot_id = f'3000000{i}'
-        else:
-            pilot_id = f'300000{i}'
-        trained = i <= 16  # 4x original 4
-        pilots_crew.append((pilot_id, trained, True))
+    pilots_crew = [(format_employee_id('3000000', i), i <= 16, True) for i in range(1, 41)]
     
     # Attendants: first 24 trained for long flights (4x original 6), rest not
-    attendants_crew = []
-    for i in range(1, 41):
-        if i < 10:
-            attendant_id = f'40000000{i}'
-        elif i < 100:
-            attendant_id = f'4000000{i}'
-        else:
-            attendant_id = f'400000{i}'
-        trained = i <= 24  # 4x original 6
-        attendants_crew.append((attendant_id, trained, False))
+    attendants_crew = [(format_employee_id('4000000', i), i <= 24, False) for i in range(1, 41)]
     
     query = "INSERT IGNORE INTO Flight_Crew (id_number, trained_for_long_flights, is_pilot) VALUES (%s, %s, %s)"
     for crew in pilots_crew + attendants_crew:
@@ -594,7 +597,7 @@ def generate_faker_routes(cursor, min_count=20):
     # Ensure all routes exist (n*(n-1) routes for n airports)
     ensure_all_airport_routes(cursor)
 
-def generate_faker_aircraft(cursor, min_count=20):
+def generate_faker_aircraft(cursor, min_count=50):
     """Generate additional aircraft."""
     print(f"Generating {min_count} aircraft with faker...")
     cursor.execute("SELECT MAX(aircraft_id) FROM Aircraft")
@@ -608,13 +611,12 @@ def generate_faker_aircraft(cursor, min_count=20):
         return
     
     manufacturers = ['Boeing', 'Airbus', 'Dassault', 'Embraer', 'Bombardier']
-    aircraft = []
-    for i in range(needed):
-        aircraft_id = max_id + i + 1
-        manufacturer = random.choice(manufacturers)
-        purchase_date = fake_en.date_between(start_date='-10y', end_date='today')
-        is_large = random.choice([True, False])  # Mix of large and small
-        aircraft.append((aircraft_id, manufacturer, purchase_date, is_large))
+    aircraft = [
+        (max_id + i + 1, random.choice(manufacturers), 
+         fake_en.date_between(start_date='-10y', end_date='today'),
+         random.choice([True, False]))
+        for i in range(needed)
+    ]
     
     query = "INSERT IGNORE INTO Aircraft (aircraft_id, manufacturer, purchase_date, is_large) VALUES (%s, %s, %s, %s)"
     for ac in aircraft:
@@ -664,9 +666,12 @@ def generate_faker_seats(cursor):
         if cursor.fetchone()[0] > 0:
             continue
         
-        for row in range(1, num_rows + 1):
-            for col in range(1, num_columns + 1):
-                execute_insert(cursor, query, (aircraft_id, is_business, row, col))
+        # Generate all seats for this class
+        seats = [(aircraft_id, is_business, row, col) 
+                 for row in range(1, num_rows + 1) 
+                 for col in range(1, num_columns + 1)]
+        for seat in seats:
+            execute_insert(cursor, query, seat)
     print("Generated seats for all aircraft classes")
 
 def generate_faker_employees(cursor, min_count=20):
@@ -684,32 +689,13 @@ def generate_faker_employees(cursor, min_count=20):
     cursor.execute("SELECT MAX(CAST(id_number AS UNSIGNED)) FROM Employee WHERE id_number REGEXP '^[0-9]+$'")
     max_id = cursor.fetchone()[0] or 0
     
-    # Well-known first names
-    well_known_first_names = [
-        'Michael', 'David', 'James', 'Robert', 'John', 'William', 'Richard', 'Joseph',
-        'Thomas', 'Christopher', 'Daniel', 'Matthew', 'Anthony', 'Mark', 'Donald',
-        'Steven', 'Paul', 'Andrew', 'Joshua', 'Kenneth', 'Kevin', 'Brian', 'George',
-        'Sarah', 'Emily', 'Jessica', 'Jennifer', 'Michelle', 'Melissa', 'Amy',
-        'Rebecca', 'Laura', 'Elizabeth', 'Lauren', 'Nicole', 'Ashley', 'Amanda',
-        'Lisa', 'Stephanie', 'Kimberly', 'Megan', 'Rachel', 'Angela', 'Emma'
-    ]
-    
-    # Well-known last names
-    well_known_last_names = [
-        'Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis',
-        'Rodriguez', 'Martinez', 'Hernandez', 'Lopez', 'Wilson', 'Anderson', 'Thomas',
-        'Taylor', 'Moore', 'Jackson', 'Martin', 'Lee', 'Thompson', 'White', 'Harris',
-        'Clark', 'Lewis', 'Robinson', 'Walker', 'Young', 'King', 'Wright', 'Scott',
-        'Green', 'Adams', 'Baker', 'Nelson', 'Hill', 'Campbell', 'Mitchell', 'Roberts'
-    ]
-    
     employees = []
     cities = ['Tel Aviv', 'Haifa', 'Jerusalem', 'Beer Sheva', 'Netanya', 'Eilat']
     for i in range(needed):
         emp_id = str(max_id + i + 1).zfill(9)
-        first_name = random.choice(well_known_first_names)
-        middle_name = random.choice(well_known_first_names) if random.random() > 0.5 else None
-        last_name = random.choice(well_known_last_names)
+        first_name = random.choice(WELL_KNOWN_FIRST_NAMES)
+        middle_name = random.choice(WELL_KNOWN_FIRST_NAMES) if random.random() > 0.5 else None
+        last_name = random.choice(WELL_KNOWN_LAST_NAMES)
         city = random.choice(cities)
         street = fake_en.street_name()
         house_number = random.randint(1, 200)
@@ -825,32 +811,13 @@ def generate_faker_users(cursor, min_count=20):
         print(f"Already have {current_count} users, skipping...")
         return
     
-    # Well-known first names
-    well_known_first_names = [
-        'Michael', 'David', 'James', 'Robert', 'John', 'William', 'Richard', 'Joseph',
-        'Thomas', 'Christopher', 'Daniel', 'Matthew', 'Anthony', 'Mark', 'Donald',
-        'Steven', 'Paul', 'Andrew', 'Joshua', 'Kenneth', 'Kevin', 'Brian', 'George',
-        'Sarah', 'Emily', 'Jessica', 'Jennifer', 'Michelle', 'Melissa', 'Amy',
-        'Rebecca', 'Laura', 'Elizabeth', 'Lauren', 'Nicole', 'Ashley', 'Amanda',
-        'Lisa', 'Stephanie', 'Kimberly', 'Megan', 'Rachel', 'Angela', 'Emma'
+    users = [
+        (fake_en.email(), 
+         random.choice(WELL_KNOWN_FIRST_NAMES),
+         random.choice(WELL_KNOWN_FIRST_NAMES) if random.random() > 0.5 else None,
+         random.choice(WELL_KNOWN_LAST_NAMES))
+        for _ in range(needed)
     ]
-    
-    # Well-known last names
-    well_known_last_names = [
-        'Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis',
-        'Rodriguez', 'Martinez', 'Hernandez', 'Lopez', 'Wilson', 'Anderson', 'Thomas',
-        'Taylor', 'Moore', 'Jackson', 'Martin', 'Lee', 'Thompson', 'White', 'Harris',
-        'Clark', 'Lewis', 'Robinson', 'Walker', 'Young', 'King', 'Wright', 'Scott',
-        'Green', 'Adams', 'Baker', 'Nelson', 'Hill', 'Campbell', 'Mitchell', 'Roberts'
-    ]
-    
-    users = []
-    for i in range(needed):
-        email = fake_en.email()
-        first_name = random.choice(well_known_first_names)
-        middle_name = random.choice(well_known_first_names) if random.random() > 0.5 else None
-        last_name = random.choice(well_known_last_names)
-        users.append((email, first_name, middle_name, last_name))
     
     query = "INSERT IGNORE INTO User (email, first_name, middle_name, last_name) VALUES (%s, %s, %s, %s)"
     for user in users:
@@ -1491,7 +1458,7 @@ def generate_all_fake_data(drop_schema=True):
         print("--- GENERATING FAKER DATA ---")
         generate_faker_airports(cursor, min_count=20)
         generate_faker_routes(cursor, min_count=20)
-        generate_faker_aircraft(cursor, min_count=20)
+        generate_faker_aircraft(cursor, min_count=50)
         generate_faker_aircraft_classes(cursor)
         generate_faker_seats(cursor)
         generate_faker_employees(cursor, min_count=20)
