@@ -610,7 +610,7 @@ def generate_faker_aircraft(cursor, min_count=50):
         print(f"Already have {current_count} aircraft, skipping...")
         return
     
-    manufacturers = ['Boeing', 'Airbus', 'Dassault', 'Embraer', 'Bombardier']
+    manufacturers = ['Boeing', 'Airbus', 'Dassault']
     aircraft = [
         (max_id + i + 1, random.choice(manufacturers), 
          fake_en.date_between(start_date='-10y', end_date='today'),
