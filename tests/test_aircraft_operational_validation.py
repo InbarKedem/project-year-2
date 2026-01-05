@@ -48,7 +48,7 @@ def setup_test_aircraft(aircraft_id, manufacturer, purchase_date, is_large=False
             for row in range(1, 11):
                 for col in range(1, 7):
                     cursor.execute(
-                        "INSERT INTO Seat (aircraft_id, is_business, row_number, column_number) VALUES (%s, %s, %s, %s)",
+                        "INSERT INTO Seat (aircraft_id, is_business, `row_number`, `column_number`) VALUES (%s, %s, %s, %s)",
                         (aircraft_id, False, row, col)
                     )
         conn.commit()
