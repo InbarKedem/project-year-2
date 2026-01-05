@@ -71,21 +71,57 @@ def add_flight():
                         if departure_dt <= current_time:
                             flash('Departure time must be in the future. Please select a future date and time.', 'danger')
                         else:
-                            # Validate crew count matches requirements
-                            validation_result = validate_crew_count(crew_ids, aircraft_id, source_id, dest_id, departure_time)
-                            if not validation_result[0]:
-                                flash(validation_result[1], 'danger')
-                            else:
-                                success, message = create_flight(
-                                    source_id, dest_id, departure_time, aircraft_id, 
-                                    economy_price_int, business_price_int, crew_ids
-                                )
+                            # Validate aircraft is operational by departure time
+                            from db import query_db
+                            aircraft = query_db("SELECT purchase_date FROM Aircraft WHERE aircraft_id = %s", (aircraft_id,), one=True)
+                            if aircraft and aircraft.get('purchase_date'):
+                                purchase_date = aircraft['purchase_date']
+                                # Handle different date formats
+                                if isinstance(purchase_date, str):
+                                    try:
+                                        purchase_date = datetime.strptime(purchase_date, '%Y-%m-%d').date()
+                                    except ValueError:
+                                        try:
+                                            purchase_date = datetime.strptime(purchase_date, '%Y-%m-%d %H:%M:%S').date()
+                                        except ValueError:
+                                            purchase_date = None
+                                elif isinstance(purchase_date, datetime):
+                                    purchase_date = purchase_date.date()
                                 
-                                if success:
-                                    flash(message, 'success')
-                                    return redirect(url_for('manager.manager_dashboard'))
+                                if purchase_date and purchase_date > departure_dt.date():
+                                    flash(f'Selected aircraft is not operational by the flight departure date. Aircraft becomes operational on {purchase_date.strftime("%Y-%m-%d")}, but flight is scheduled for {departure_dt.strftime("%Y-%m-%d %H:%M")}.', 'danger')
                                 else:
-                                    flash(message, 'danger')
+                                    # Validate crew count matches requirements
+                                    validation_result = validate_crew_count(crew_ids, aircraft_id, source_id, dest_id, departure_time)
+                                    if not validation_result[0]:
+                                        flash(validation_result[1], 'danger')
+                                    else:
+                                        success, message = create_flight(
+                                            source_id, dest_id, departure_time, aircraft_id, 
+                                            economy_price_int, business_price_int, crew_ids
+                                        )
+                                        
+                                        if success:
+                                            flash(message, 'success')
+                                            return redirect(url_for('manager.manager_dashboard'))
+                                        else:
+                                            flash(message, 'danger')
+                            else:
+                                # Validate crew count matches requirements
+                                validation_result = validate_crew_count(crew_ids, aircraft_id, source_id, dest_id, departure_time)
+                                if not validation_result[0]:
+                                    flash(validation_result[1], 'danger')
+                                else:
+                                    success, message = create_flight(
+                                        source_id, dest_id, departure_time, aircraft_id, 
+                                        economy_price_int, business_price_int, crew_ids
+                                    )
+                                    
+                                    if success:
+                                        flash(message, 'success')
+                                        return redirect(url_for('manager.manager_dashboard'))
+                                    else:
+                                        flash(message, 'danger')
                     except ValueError:
                         flash('Invalid departure time format.', 'danger')
                 else:

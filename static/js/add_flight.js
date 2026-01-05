@@ -36,7 +36,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Initialize min attribute
   updateMinDateTime();
-  
+
   // Update min attribute every minute to prevent selecting past dates if page is open for a while
   setInterval(updateMinDateTime, 60000); // Update every minute
 
@@ -50,7 +50,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Add a small buffer (1 second) to account for any timing differences
     if (selectedDateTime < now) {
-      window.popupManager.error("Departure time cannot be in the past. Please select a future date and time.");
+      window.popupManager.error(
+        "Departure time cannot be in the past. Please select a future date and time."
+      );
       // Reset to current time
       isUpdatingTime = true; // Set flag to prevent recursion
       updateMinDateTime();
@@ -403,11 +405,13 @@ document.addEventListener("DOMContentLoaded", function () {
         if (timeInput && timeInput.value) {
           const selectedDateTime = new Date(timeInput.value);
           const now = new Date();
-          
+
           // Ensure the selected time is in the future (with 1 second buffer)
           if (selectedDateTime <= now) {
             event.preventDefault();
-            window.popupManager.error("Departure time must be in the future. Please select a future date and time.");
+            window.popupManager.error(
+              "Departure time must be in the future. Please select a future date and time."
+            );
             // Update min and reset to current time
             updateMinDateTime();
             const year = now.getFullYear();
@@ -423,6 +427,44 @@ document.addEventListener("DOMContentLoaded", function () {
           event.preventDefault();
           window.popupManager.error("Please select a departure time.");
           return false;
+        }
+
+        // Validate aircraft is operational by departure time
+        if (aircraftSelect && aircraftSelect.value) {
+          const selectedAircraft =
+            aircraftSelect.options[aircraftSelect.selectedIndex];
+          if (selectedAircraft.disabled) {
+            event.preventDefault();
+            const reason = selectedAircraft.textContent.includes("UNAVAILABLE:")
+              ? selectedAircraft.textContent.split("UNAVAILABLE:")[1].trim()
+              : "Aircraft is not available for this flight.";
+            window.popupManager.error(
+              `Selected aircraft is not available: ${reason}`
+            );
+            aircraftSelect.focus();
+            return false;
+          }
+
+          // Check if the reason contains operational date information
+          const optionText = selectedAircraft.textContent;
+          if (optionText.includes("becomes operational")) {
+            event.preventDefault();
+            const operationalDateMatch = optionText.match(
+              /becomes operational on ([0-9]{4}-[0-9]{2}-[0-9]{2})/
+            );
+            if (operationalDateMatch) {
+              const operationalDate = operationalDateMatch[1];
+              window.popupManager.error(
+                `Selected aircraft becomes operational on ${operationalDate}, which is after the flight departure time.`
+              );
+            } else {
+              window.popupManager.error(
+                "Selected aircraft is not operational by the flight departure time."
+              );
+            }
+            aircraftSelect.focus();
+            return false;
+          }
         }
 
         // Validate prices are not negative

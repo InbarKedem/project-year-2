@@ -91,6 +91,28 @@ def get_aircraft_availability(source_id, dest_id, departure_time_str):
         aircraft['is_available'] = True
         aircraft['reason'] = ""
 
+        # Check if aircraft is operational (purchase_date <= departure_time)
+        if aircraft.get('purchase_date'):
+            purchase_date = aircraft['purchase_date']
+            # Handle different date formats
+            if isinstance(purchase_date, str):
+                try:
+                    purchase_date = datetime.strptime(purchase_date, '%Y-%m-%d').date()
+                except ValueError:
+                    try:
+                        purchase_date = datetime.strptime(purchase_date, '%Y-%m-%d %H:%M:%S').date()
+                    except ValueError:
+                        purchase_date = None
+            elif isinstance(purchase_date, datetime):
+                purchase_date = purchase_date.date()
+            
+            if purchase_date:
+                departure_date = departure_time.date()
+                if purchase_date > departure_date:
+                    aircraft['is_available'] = False
+                    aircraft['reason'] = f"Aircraft becomes operational on {purchase_date.strftime('%Y-%m-%d')}. Flight is scheduled for {departure_time.strftime('%Y-%m-%d %H:%M')}."
+                    continue
+
         # Check Size for Long Flights
         if is_long_flight and not aircraft['is_large']:
             aircraft['is_available'] = False
@@ -258,6 +280,42 @@ def get_crew_availability(source_id, dest_id, departure_time_str, aircraft_id=No
 
 def create_flight(source_id, dest_id, departure_time, aircraft_id, economy_price, business_price, crew_ids):
     try:
+        # Validate aircraft is operational before creating flight
+        aircraft = db.query_db("SELECT purchase_date FROM Aircraft WHERE aircraft_id = %s", (aircraft_id,), one=True)
+        if not aircraft:
+            return False, f"Aircraft {aircraft_id} not found."
+        
+        if aircraft.get('purchase_date'):
+            purchase_date = aircraft['purchase_date']
+            # Handle different date formats
+            if isinstance(purchase_date, str):
+                try:
+                    purchase_date = datetime.strptime(purchase_date, '%Y-%m-%d').date()
+                except ValueError:
+                    try:
+                        purchase_date = datetime.strptime(purchase_date, '%Y-%m-%d %H:%M:%S').date()
+                    except ValueError:
+                        purchase_date = None
+            elif isinstance(purchase_date, datetime):
+                purchase_date = purchase_date.date()
+            
+            if purchase_date:
+                # Parse departure_time if it's a string
+                if isinstance(departure_time, str):
+                    try:
+                        departure_dt = datetime.strptime(departure_time, '%Y-%m-%dT%H:%M')
+                    except ValueError:
+                        try:
+                            departure_dt = datetime.strptime(departure_time, '%Y-%m-%d %H:%M:%S')
+                        except ValueError:
+                            return False, "Invalid departure time format."
+                else:
+                    departure_dt = departure_time
+                
+                departure_date = departure_dt.date()
+                if purchase_date > departure_date:
+                    return False, f"Cannot create flight: Aircraft {aircraft_id} becomes operational on {purchase_date.strftime('%Y-%m-%d')}, but flight is scheduled for {departure_dt.strftime('%Y-%m-%d %H:%M')}."
+        
         # 1. Create Flight
         db.execute_db("""
             INSERT INTO Flight (source_airport_id, dest_airport_id, departure_time, flight_status, aircraft_id, economy_price, business_price)
