@@ -8,6 +8,7 @@ from faker.providers import BaseProvider
 from datetime import datetime, timedelta
 import random
 import sys
+import math
 from db import DB_CONFIG
 
 # Business rules constants
@@ -45,16 +46,164 @@ def insert_seed_airports(cursor):
     for airport in airports:
         execute_insert(cursor, query, airport)
 
+def get_airport_code(airport_name):
+    """Extract airport code from airport name like 'Ben Gurion (TLV)' -> 'TLV'."""
+    if '(' in airport_name and ')' in airport_name:
+        return airport_name.split('(')[1].split(')')[0].strip()
+    return None
+
+def get_airport_coordinates(airport_code):
+    """Get approximate coordinates for major airports (lat, lon)."""
+    # Major airport coordinates (latitude, longitude)
+    airport_coords = {
+        'TLV': (32.0114, 34.8867),   # Tel Aviv
+        'JFK': (40.6413, -73.7781),  # New York
+        'LHR': (51.4700, -0.4543),   # London
+        'CDG': (49.0097, 2.5479),    # Paris
+        'DXB': (25.2532, 55.3657),   # Dubai
+        'SIN': (1.3644, 103.9915),   # Singapore
+        'HND': (35.5494, 139.7798),  # Tokyo Haneda
+        'FRA': (50.0379, 8.5622),    # Frankfurt
+        'AMS': (52.3105, 4.7683),    # Amsterdam
+        'MAD': (40.4839, -3.5680),   # Madrid
+        'FCO': (41.8003, 12.2389),   # Rome
+        'BCN': (41.2971, 2.0785),     # Barcelona
+        'MUC': (48.3538, 11.7861),    # Munich
+        'VIE': (48.1103, 16.5697),    # Vienna
+        'ZRH': (47.4647, 8.5492),     # Zurich
+        'BRU': (50.9014, 4.4844),     # Brussels
+        'CPH': (55.6180, 12.6561),    # Copenhagen
+        'ARN': (59.6519, 17.9186),   # Stockholm
+        'OSL': (60.1939, 11.1004),   # Oslo
+        'HEL': (60.3172, 24.9633),    # Helsinki
+        'DUB': (53.4264, -6.2499),    # Dublin
+        'MAN': (53.3537, -2.2749),    # Manchester
+        'BHX': (52.4539, -1.7480),    # Birmingham
+        'GLA': (55.8719, -4.4331),    # Glasgow
+        'EDI': (55.9500, -3.3725),    # Edinburgh
+        'MXP': (45.6306, 8.7281),     # Milan
+        'VCE': (45.5053, 12.3519),    # Venice
+        'ATH': (37.9364, 23.9445),    # Athens
+        'IST': (41.2753, 28.7519),    # Istanbul
+        'CAI': (30.1127, 31.4000),   # Cairo
+        'DOH': (25.2611, 51.5651),    # Doha
+        'AUH': (24.4330, 54.6511),    # Abu Dhabi
+        'BKK': (13.6811, 100.7472),   # Bangkok
+        'HKG': (22.3080, 113.9185),   # Hong Kong
+        'ICN': (37.4602, 126.4407),   # Seoul
+        'SYD': (-33.9399, 151.1753),  # Sydney
+        'MEL': (-37.6733, 144.8433),  # Melbourne
+        'YYZ': (43.6772, -79.6306),   # Toronto
+        'YVR': (49.1947, -123.1792),  # Vancouver
+        'YUL': (45.4577, -73.7497),   # Montreal
+        'MEX': (19.4363, -99.0721),   # Mexico City
+        'GRU': (-23.4321, -46.4691),  # São Paulo
+        'EZE': (-34.8222, -58.5358),  # Buenos Aires
+        'JNB': (-26.1392, 28.2460),   # Johannesburg
+        'CPT': (-33.9648, 18.6017),   # Cape Town
+        'NBO': (-1.3192, 36.9278),    # Nairobi
+        'LOS': (6.5774, 3.3211),      # Lagos
+    }
+    return airport_coords.get(airport_code)
+
+def calculate_flight_duration_minutes(source_code, dest_code):
+    """Calculate realistic flight duration in minutes based on airport codes.
+    
+    Uses known durations for common routes, or calculates based on distance.
+    """
+    # Known realistic flight durations (in minutes) for common routes
+    known_durations = {
+        ('TLV', 'JFK'): 660,   # ~11 hours (Tel Aviv to New York)
+        ('JFK', 'TLV'): 660,   # ~11 hours (New York to Tel Aviv)
+        ('TLV', 'LHR'): 300,   # ~5 hours (Tel Aviv to London)
+        ('LHR', 'TLV'): 300,   # ~5 hours (London to Tel Aviv)
+        ('TLV', 'CDG'): 270,   # ~4.5 hours (Tel Aviv to Paris)
+        ('CDG', 'TLV'): 270,   # ~4.5 hours (Paris to Tel Aviv)
+        ('JFK', 'LHR'): 420,   # ~7 hours (New York to London)
+        ('LHR', 'JFK'): 420,   # ~7 hours (London to New York)
+        ('JFK', 'CDG'): 450,   # ~7.5 hours (New York to Paris)
+        ('CDG', 'JFK'): 450,   # ~7.5 hours (Paris to New York)
+        ('LHR', 'CDG'): 75,    # ~1.25 hours (London to Paris)
+        ('CDG', 'LHR'): 75,    # ~1.25 hours (Paris to London)
+        ('DXB', 'TLV'): 180,  # ~3 hours (Dubai to Tel Aviv)
+        ('TLV', 'DXB'): 180,   # ~3 hours (Tel Aviv to Dubai)
+        ('DXB', 'LHR'): 420,   # ~7 hours (Dubai to London)
+        ('LHR', 'DXB'): 420,   # ~7 hours (London to Dubai)
+        ('SIN', 'DXB'): 480,   # ~8 hours (Singapore to Dubai)
+        ('DXB', 'SIN'): 480,   # ~8 hours (Dubai to Singapore)
+        ('HND', 'JFK'): 780,   # ~13 hours (Tokyo to New York)
+        ('JFK', 'HND'): 780,   # ~13 hours (New York to Tokyo)
+        ('SYD', 'DXB'): 840,   # ~14 hours (Sydney to Dubai)
+        ('DXB', 'SYD'): 840,   # ~14 hours (Dubai to Sydney)
+    }
+    
+    # Check if we have a known duration
+    route_key = (source_code, dest_code)
+    if route_key in known_durations:
+        return known_durations[route_key]
+    
+    # Calculate based on distance using Haversine formula
+    source_coords = get_airport_coordinates(source_code)
+    dest_coords = get_airport_coordinates(dest_code)
+    
+    if source_coords and dest_coords:
+        # Haversine formula to calculate great-circle distance
+        lat1, lon1 = math.radians(source_coords[0]), math.radians(source_coords[1])
+        lat2, lon2 = math.radians(dest_coords[0]), math.radians(dest_coords[1])
+        
+        dlat = lat2 - lat1
+        dlon = lon2 - lon1
+        
+        a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2
+        c = 2 * math.asin(math.sqrt(a))
+        
+        # Earth radius in miles
+        R = 3959
+        distance_miles = R * c
+        
+        # Average commercial jet speed: ~500 mph (800 km/h)
+        # Add 30 minutes for takeoff/landing/taxiing
+        flight_hours = (distance_miles / 500) + 0.5
+        duration_minutes = int(flight_hours * 60)
+        
+        # Ensure minimum duration of 60 minutes and maximum of 1080 minutes (18 hours)
+        duration_minutes = max(60, min(1080, duration_minutes))
+        
+        return duration_minutes
+    else:
+        # Default duration if airport codes not found: 3-6 hours
+        return random.randint(180, 360)
+
+def get_flight_duration_from_airports(cursor, source_airport_id, dest_airport_id):
+    """Get realistic flight duration in minutes from airport IDs."""
+    # Get airport names
+    cursor.execute("SELECT airport_name FROM Airport WHERE airport_id = %s", (source_airport_id,))
+    source_result = cursor.fetchone()
+    cursor.execute("SELECT airport_name FROM Airport WHERE airport_id = %s", (dest_airport_id,))
+    dest_result = cursor.fetchone()
+    
+    if source_result and dest_result:
+        source_name = source_result[0]
+        dest_name = dest_result[0]
+        source_code = get_airport_code(source_name)
+        dest_code = get_airport_code(dest_name)
+        
+        if source_code and dest_code:
+            return calculate_flight_duration_minutes(source_code, dest_code)
+    
+    # Fallback: return a reasonable default (3-6 hours)
+    return random.randint(180, 360)
+
 def insert_seed_routes(cursor):
-    """Insert seed flight routes."""
+    """Insert seed flight routes with realistic durations."""
     print("Inserting seed routes...")
     routes = [
-        (1, 2, 660),  # TLV -> JFK (11h)
-        (2, 1, 660),  # JFK -> TLV
-        (1, 3, 300),  # TLV -> LHR (5h)
-        (3, 1, 300),  # LHR -> TLV
-        (1, 4, 270),  # TLV -> CDG (4.5h)
-        (4, 1, 270)   # CDG -> TLV
+        (1, 2, 660),  # TLV -> JFK (~11h)
+        (2, 1, 660),  # JFK -> TLV (~11h)
+        (1, 3, 300),  # TLV -> LHR (~5h)
+        (3, 1, 300),  # LHR -> TLV (~5h)
+        (1, 4, 270),  # TLV -> CDG (~4.5h)
+        (4, 1, 270)   # CDG -> TLV (~4.5h)
     ]
     query = "INSERT IGNORE INTO Flight_Route (source_airport_id, dest_airport_id, flight_duration) VALUES (%s, %s, %s)"
     for route in routes:
@@ -129,31 +278,51 @@ def insert_seed_employees(cursor):
         ('222222222', 'Sarah', 'Elizabeth', 'Johnson', 'Haifa', 'Park Avenue', 20, '0502345678', '2021-02-01')
     ]
     
-    # Pilots with realistic names
+    # Pilots with realistic names (40 pilots = 4x original 10)
     pilots = []
     pilot_names = [
         ('John', 'Michael', 'Smith'), ('David', 'Robert', 'Jones'), ('James', 'William', 'Brown'),
         ('Richard', 'Thomas', 'Davis'), ('Charles', 'Joseph', 'Miller'), ('Christopher', 'Daniel', 'Wilson'),
         ('Matthew', 'Mark', 'Moore'), ('Anthony', 'Donald', 'Taylor'), ('Steven', 'Paul', 'Anderson'),
-        ('Andrew', 'Joshua', 'Thomas')
+        ('Andrew', 'Joshua', 'Thomas'), ('Kenneth', 'Kevin', 'Harris'), ('Brian', 'George', 'Clark'),
+        ('Daniel', 'Mark', 'Lewis'), ('Thomas', 'Christopher', 'Robinson'), ('Joseph', 'Daniel', 'Walker'),
+        ('Michael', 'David', 'Young'), ('Robert', 'James', 'King'), ('William', 'Richard', 'Wright'),
+        ('Richard', 'Joseph', 'Scott'), ('Charles', 'Thomas', 'Green'), ('Christopher', 'Daniel', 'Adams'),
+        ('Matthew', 'Anthony', 'Baker'), ('Mark', 'Steven', 'Nelson'), ('Donald', 'Paul', 'Hill'),
+        ('Steven', 'Andrew', 'Campbell'), ('Paul', 'Joshua', 'Mitchell'), ('Andrew', 'Kenneth', 'Roberts'),
+        ('Joshua', 'Kevin', 'Turner'), ('Kenneth', 'Brian', 'Phillips'), ('Kevin', 'George', 'Campbell'),
+        ('Brian', 'Daniel', 'Parker'), ('George', 'Mark', 'Evans'), ('Daniel', 'Thomas', 'Edwards'),
+        ('Mark', 'Christopher', 'Collins'), ('Thomas', 'Matthew', 'Stewart'), ('Christopher', 'Anthony', 'Sanchez'),
+        ('Matthew', 'Steven', 'Morris'), ('Anthony', 'Paul', 'Rogers'), ('Steven', 'Andrew', 'Reed'),
+        ('Paul', 'Joshua', 'Cook')
     ]
     for i, (first, middle, last) in enumerate(pilot_names, 1):
-        pilot_id = f'30000000{i}' if i < 10 else '300000010'
+        pilot_id = f'30000000{i}' if i < 10 else f'3000000{i}' if i < 100 else f'300000{i}'
         pilots.append((
             pilot_id, first, middle, last, 'Tel Aviv', fake_en.street_name(),
             i, f'050{3000000 + i}', '2022-01-01'
         ))
     
-    # Attendants with realistic names
+    # Attendants with realistic names (40 attendants = 4x original 10)
     attendants = []
     attendant_names = [
         ('Sarah', 'Emily', 'Johnson'), ('Jessica', 'Amanda', 'Williams'), ('Jennifer', 'Lisa', 'Brown'),
         ('Michelle', 'Ashley', 'Davis'), ('Melissa', 'Nicole', 'Miller'), ('Amy', 'Angela', 'Wilson'),
         ('Rebecca', 'Stephanie', 'Moore'), ('Laura', 'Kimberly', 'Taylor'), ('Elizabeth', 'Megan', 'Anderson'),
-        ('Lauren', 'Rachel', 'Thomas')
+        ('Lauren', 'Rachel', 'Thomas'), ('Nicole', 'Ashley', 'Jackson'), ('Ashley', 'Amanda', 'White'),
+        ('Amanda', 'Lisa', 'Harris'), ('Lisa', 'Stephanie', 'Martin'), ('Stephanie', 'Kimberly', 'Thompson'),
+        ('Kimberly', 'Megan', 'Garcia'), ('Megan', 'Rachel', 'Martinez'), ('Rachel', 'Angela', 'Robinson'),
+        ('Angela', 'Emma', 'Clark'), ('Emma', 'Olivia', 'Rodriguez'), ('Olivia', 'Sophia', 'Lewis'),
+        ('Sophia', 'Isabella', 'Lee'), ('Isabella', 'Ava', 'Walker'), ('Ava', 'Mia', 'Hall'),
+        ('Mia', 'Charlotte', 'Allen'), ('Charlotte', 'Amelia', 'Young'), ('Amelia', 'Harper', 'King'),
+        ('Harper', 'Evelyn', 'Wright'), ('Evelyn', 'Abigail', 'Lopez'), ('Abigail', 'Emily', 'Hill'),
+        ('Emily', 'Sofia', 'Scott'), ('Sofia', 'Aria', 'Green'), ('Aria', 'Madison', 'Adams'),
+        ('Madison', 'Scarlett', 'Baker'), ('Scarlett', 'Victoria', 'Nelson'), ('Victoria', 'Aria', 'Carter'),
+        ('Aria', 'Grace', 'Mitchell'), ('Grace', 'Chloe', 'Perez'), ('Chloe', 'Penelope', 'Roberts'),
+        ('Penelope', 'Layla', 'Turner')
     ]
     for i, (first, middle, last) in enumerate(attendant_names, 1):
-        attendant_id = f'40000000{i}' if i < 10 else '400000010'
+        attendant_id = f'40000000{i}' if i < 10 else f'4000000{i}' if i < 100 else f'400000{i}'
         attendants.append((
             attendant_id, first, middle, last, 'Tel Aviv', fake_en.street_name(),
             i, f'050{4000000 + i}', '2023-01-01'
@@ -164,43 +333,53 @@ def insert_seed_employees(cursor):
     for emp in managers + pilots + attendants:
         execute_insert(cursor, query, emp)
     
-    # Verify all pilots were inserted (300000001-300000010)
-    cursor.execute("SELECT id_number FROM Employee WHERE (id_number LIKE '30000000%' OR id_number = '300000010') ORDER BY id_number")
+    # Verify all pilots were inserted (300000001-300000040)
+    cursor.execute("SELECT id_number FROM Employee WHERE id_number LIKE '3000000%' ORDER BY id_number")
     inserted_pilots = [row[0] for row in cursor.fetchall()]
-    if len(inserted_pilots) < 10:
-        print(f"WARNING: Only {len(inserted_pilots)} pilots inserted. Expected 10. IDs: {inserted_pilots}")
-        # Try to insert missing pilot
-        if '300000010' not in inserted_pilots:
-            pilot_10 = pilots[9]  # 10th pilot (index 9)
-            execute_insert(cursor, query, pilot_10)
+    if len(inserted_pilots) < 40:
+        print(f"WARNING: Only {len(inserted_pilots)} pilots inserted. Expected 40. IDs: {inserted_pilots}")
+        # Try to insert missing pilots
+        for pilot in pilots:
+            if pilot[0] not in inserted_pilots:
+                execute_insert(cursor, query, pilot)
 
 def insert_seed_flight_crew(cursor):
     """Insert seed flight crew assignments."""
     print("Inserting seed flight crew...")
     
-    # Pilots: first 4 trained for long flights, rest not
+    # Pilots: first 16 trained for long flights (4x original 4), rest not
     pilots_crew = []
-    for i in range(1, 11):
-        pilot_id = f'30000000{i}' if i < 10 else '300000010'
-        trained = i <= 4
+    for i in range(1, 41):
+        if i < 10:
+            pilot_id = f'30000000{i}'
+        elif i < 100:
+            pilot_id = f'3000000{i}'
+        else:
+            pilot_id = f'300000{i}'
+        trained = i <= 16  # 4x original 4
         pilots_crew.append((pilot_id, trained, True))
     
-    # Attendants: first 6 trained for long flights, rest not
+    # Attendants: first 24 trained for long flights (4x original 6), rest not
     attendants_crew = []
-    for i in range(1, 11):
-        attendant_id = f'40000000{i}' if i < 10 else '400000010'
-        trained = i <= 6
+    for i in range(1, 41):
+        if i < 10:
+            attendant_id = f'40000000{i}'
+        elif i < 100:
+            attendant_id = f'4000000{i}'
+        else:
+            attendant_id = f'400000{i}'
+        trained = i <= 24  # 4x original 6
         attendants_crew.append((attendant_id, trained, False))
     
     query = "INSERT IGNORE INTO Flight_Crew (id_number, trained_for_long_flights, is_pilot) VALUES (%s, %s, %s)"
     for crew in pilots_crew + attendants_crew:
         execute_insert(cursor, query, crew)
     
-    # Verify all pilots were inserted into Flight_Crew (300000001-300000010)
-    cursor.execute("SELECT id_number FROM Flight_Crew WHERE (id_number LIKE '30000000%' OR id_number = '300000010') AND is_pilot = TRUE ORDER BY id_number")
+    # Verify all pilots were inserted into Flight_Crew (300000001-300000040)
+    cursor.execute("SELECT id_number FROM Flight_Crew WHERE id_number LIKE '3000000%' AND is_pilot = TRUE ORDER BY id_number")
     inserted_crew_pilots = [row[0] for row in cursor.fetchall()]
-    if len(inserted_crew_pilots) < 10:
-        print(f"WARNING: Only {len(inserted_crew_pilots)} pilots in Flight_Crew. Expected 10. IDs: {inserted_crew_pilots}")
+    if len(inserted_crew_pilots) < 40:
+        print(f"WARNING: Only {len(inserted_crew_pilots)} pilots in Flight_Crew. Expected 40. IDs: {inserted_crew_pilots}")
         # Try to insert missing pilots
         for pilot_id, trained, is_pilot in pilots_crew:
             if pilot_id not in inserted_crew_pilots:
@@ -390,12 +569,12 @@ def ensure_all_airport_routes(cursor):
         print(f"All {expected_count} routes already exist for {len(airport_ids)} airports")
         return
     
-    # Generate routes for missing pairs
+    # Generate routes for missing pairs with realistic durations
     query = "INSERT IGNORE INTO Flight_Route (source_airport_id, dest_airport_id, flight_duration) VALUES (%s, %s, %s)"
     inserted_count = 0
     for source, dest in missing_routes:
-        # Generate duration: 180-720 minutes (3-12 hours)
-        duration = random.randint(180, 720)
+        # Calculate realistic duration based on airport locations
+        duration = get_flight_duration_from_airports(cursor, source, dest)
         try:
             cursor.execute(query, (source, dest, duration))
             inserted_count += 1
@@ -554,11 +733,11 @@ def generate_faker_flight_crew(cursor):
     # Estimate crew needs:
     # - Each flight needs 2-3 pilots and 3-6 attendants
     # - With 100 flights, we need good coverage
-    # - Minimum: 45 pilots (34 trained for long flights) and 55 attendants (37 trained for long flights)
-    min_pilots = 45
-    min_trained_pilots = 34  # For long flights
-    min_attendants = 55
-    min_trained_attendants = 37  # For long flights
+    # - Minimum: 180 pilots (136 trained for long flights) and 220 attendants (148 trained for long flights) - 4x original
+    min_pilots = 180  # 4x original 45
+    min_trained_pilots = 136  # 4x original 34, for long flights
+    min_attendants = 220  # 4x original 55
+    min_trained_attendants = 148  # 4x original 37, for long flights
     
     cursor.execute("SELECT COUNT(*) FROM Flight_Crew WHERE is_pilot = 1")
     current_pilots = cursor.fetchone()[0]

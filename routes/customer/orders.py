@@ -118,22 +118,18 @@ def my_orders():
         elif seat_class_filter == 'economy':
             query += " AND EXISTS (SELECT 1 FROM Order_Seats OS2 WHERE OS2.order_code = O.order_code AND OS2.is_business = 0)"
     
-    # Filter by minimum price
     if min_price:
         try:
             query += " AND O.total_payment >= %s"
-            params.append(int(min_price))
+            params.append(float(min_price))
         except ValueError:
-            # Invalid price format, skip this filter
             pass
     
-    # Filter by maximum price
     if max_price:
         try:
             query += " AND O.total_payment <= %s"
-            params.append(int(max_price))
+            params.append(float(max_price))
         except ValueError:
-            # Invalid price format, skip this filter
             pass
     
     # Default ordering: newest orders first
@@ -159,15 +155,16 @@ def my_orders():
                 'seats': []
             }
             
-            # Calculate total spending based on order status:
-            # - Active/Completed orders: full payment
-            # - Client Cancellation: 5% cancellation fee (stored in total_payment)
-            # - System Cancellation: 0 (full refund, not counted)
-            if row['order_status'] == 'Client Cancellation':
-                # Client cancelled orders have the 5% fee stored in total_payment
+            # Add to total spending:
+            # - Active/Confirmed orders: full payment
+            # - Customer Cancelled: 5% cancellation fee (stored in total_payment)
+            # - System Cancelled: 0 (full refund)
+            # - Cancelled (legacy): 0
+            if row['order_status'] == 'Customer Cancelled':
+                # Customer cancelled orders have the 5% fee stored in total_payment
                 total_spending += row['total_payment']
-            elif row['order_status'] not in ('System Cancellation', 'Client Cancellation'):
-                # Active, Completed orders - full payment
+            elif row['order_status'] not in ['Cancelled', 'System Cancelled']:
+                # Active, Confirmed orders - full payment
                 total_spending += row['total_payment']
         
         if row['row_number'] is not None:
@@ -216,8 +213,7 @@ def cancel_order(order_code):
         else:
             return redirect(url_for('customer.track_order'))
         
-    # Check if order is already cancelled
-    if order['order_status'] in ('System Cancellation', 'Client Cancellation'):
+    if order['order_status'] in ['Cancelled', 'Customer Cancelled', 'System Cancelled']:
         flash('Order is already cancelled.', 'warning')
         if 'user_id' in session:
             return redirect(url_for('customer.my_orders'))
@@ -242,25 +238,14 @@ def cancel_order(order_code):
             return render_template('customer/track_order.html', order=order)
 
     # 4. Apply Cancellation Fee (5%)
-    # Calculate cancellation fee and refund amount
-    # Note: In a real system, we would process the actual refund transaction here
-    total_payment = int(order['total_payment'])
-    cancellation_fee = round(total_payment * 0.05)
-    refund_amount = total_payment - cancellation_fee
+    # We don't have a refund column, so we'll just notify the user.
+    # In a real system, we would process the refund here.
+    fee = float(order['total_payment']) * 0.05
+    refund_amount = float(order['total_payment']) - fee
     
     try:
-        # Update order status to 'Client Cancellation' and store the cancellation fee
-        execute_db("""
-            UPDATE Order_Table 
-            SET order_status = 'Client Cancellation', total_payment = %s 
-            WHERE order_code = %s
-        """, (cancellation_fee, order_code))
-        
-        # Update flight status after cancellation (Fully Booked flights may become Active again)
-        from services.flight_service import update_all_flight_statuses
-        update_all_flight_statuses()
-        
-        flash(f'Order cancelled successfully. A 5% cancellation fee (${cancellation_fee}) was deducted. Refund amount: ${refund_amount}', 'success')
+        execute_db("UPDATE Order_Table SET order_status = 'Customer Cancelled', total_payment = %s WHERE order_code = %s", (fee, order_code))
+        flash(f'Order cancelled successfully. A 5% cancellation fee (${fee:.2f}) was deducted. Refund amount: ${refund_amount:.2f}', 'success')
     except Exception as e:
         flash(f'Error cancelling order: {e}', 'danger')
         

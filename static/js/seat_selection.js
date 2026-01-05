@@ -10,7 +10,7 @@ function showClass(cls) {
   if (classToggleTimeout) {
     clearTimeout(classToggleTimeout);
   }
-
+  
   classToggleTimeout = setTimeout(() => {
     // Toggle Buttons
     document
@@ -39,37 +39,21 @@ function showClass(cls) {
 
 function updatePriceDisplay(cls) {
   let priceDisplay = "";
-
   if (selectedSeats.length > 0) {
-    // Calculate total price for selected seats
-    let totalPrice = 0;
-    selectedSeats.forEach((seat) => {
-      const seatPrice =
-        seat.class === "business" ? businessPrice : economyPrice;
-      // Validate price is a valid number before adding to total
-      if (seatPrice !== null && !isNaN(seatPrice)) {
-        totalPrice += seatPrice;
-      }
+    let total = 0;
+    selectedSeats.forEach((s) => {
+      total += s.class === "business" ? businessPrice : economyPrice;
     });
-    priceDisplay = `Total Price: $${totalPrice} (${selectedSeats.length} seats)`;
+    priceDisplay = `Total Price: $${total} (${selectedSeats.length} seats)`;
   } else {
-    // Display price for the current class when no seats are selected
     if (cls === "economy") {
-      if (hasEconomy) {
-        priceDisplay = `Price: $${economyPrice}`;
-      } else {
-        priceDisplay = `Economy Sold Out ($${economyPrice})`;
-      }
+      if (hasEconomy) priceDisplay = `Price: $${economyPrice}`;
+      else priceDisplay = `Economy Sold Out ($${economyPrice})`;
     } else if (cls === "business") {
-      // Check both availability and valid price for business class
-      if (hasBusiness && businessPrice !== null && !isNaN(businessPrice)) {
-        priceDisplay = `Price: $${businessPrice}`;
-      } else {
-        priceDisplay = `Business Not Available`;
-      }
+      if (hasBusiness) priceDisplay = `Price: $${businessPrice}`;
+      else priceDisplay = `Business Sold Out ($${businessPrice})`;
     }
   }
-
   document.getElementById("selected-price-display").innerText = priceDisplay;
 }
 
@@ -110,7 +94,9 @@ function updateForm() {
   const container = document.getElementById("selected-seats-container");
   container.innerHTML = "";
 
-  const extraContainer = document.getElementById("extra-passengers-container");
+  const extraContainer = document.getElementById(
+    "extra-passengers-container"
+  );
   extraContainer.innerHTML = "";
 
   if (selectedSeats.length === 0) {
@@ -141,3 +127,4 @@ function updateForm() {
     container.appendChild(inputClass);
   });
 }
+
