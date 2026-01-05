@@ -36,6 +36,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Initialize min attribute
   updateMinDateTime();
+  
+  // Update min attribute every minute to prevent selecting past dates if page is open for a while
+  setInterval(updateMinDateTime, 60000); // Update every minute
 
   // Real-time validation for past dates
   let isUpdatingTime = false; // Flag to prevent infinite recursion
@@ -45,8 +48,9 @@ document.addEventListener("DOMContentLoaded", function () {
     const selectedDateTime = new Date(timeInput.value);
     const now = new Date();
 
+    // Add a small buffer (1 second) to account for any timing differences
     if (selectedDateTime < now) {
-      window.popupManager.error("Departure time cannot be in the past.");
+      window.popupManager.error("Departure time cannot be in the past. Please select a future date and time.");
       // Reset to current time
       isUpdatingTime = true; // Set flag to prevent recursion
       updateMinDateTime();
@@ -62,7 +66,9 @@ document.addEventListener("DOMContentLoaded", function () {
       setTimeout(() => {
         isUpdatingTime = false;
       }, 100);
+      return false;
     }
+    return true;
   }
 
   // Real-time validation for negative numbers in price fields
@@ -357,6 +363,8 @@ document.addEventListener("DOMContentLoaded", function () {
     // Real-time validation for departure time (past dates)
     timeInput.addEventListener("change", validateDepartureTime);
     timeInput.addEventListener("input", validateDepartureTime);
+    // Update min when user focuses on the input to ensure it's always current
+    timeInput.addEventListener("focus", updateMinDateTime);
 
     // Check on load if values are pre-filled (e.g. browser cache or edit mode)
     checkAvailability();
@@ -391,15 +399,30 @@ document.addEventListener("DOMContentLoaded", function () {
 
       // Add form validation before submission
       form.addEventListener("submit", function (event) {
-        // Validate past dates/times
+        // Validate past dates/times - this is the final check before submission
         if (timeInput && timeInput.value) {
           const selectedDateTime = new Date(timeInput.value);
           const now = new Date();
-          if (selectedDateTime < now) {
+          
+          // Ensure the selected time is in the future (with 1 second buffer)
+          if (selectedDateTime <= now) {
             event.preventDefault();
-            window.popupManager.error("Departure time cannot be in the past.");
+            window.popupManager.error("Departure time must be in the future. Please select a future date and time.");
+            // Update min and reset to current time
+            updateMinDateTime();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, "0");
+            const day = String(now.getDate()).padStart(2, "0");
+            const hours = String(now.getHours()).padStart(2, "0");
+            const minutes = String(now.getMinutes()).padStart(2, "0");
+            timeInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+            timeInput.focus();
             return false;
           }
+        } else {
+          event.preventDefault();
+          window.popupManager.error("Please select a departure time.");
+          return false;
         }
 
         // Validate prices are not negative

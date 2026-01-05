@@ -66,8 +66,10 @@ def add_flight():
                 if departure_time:
                     try:
                         departure_dt = datetime.strptime(departure_time, '%Y-%m-%dT%H:%M')
-                        if departure_dt < datetime.now():
-                            flash('Departure time cannot be in the past.', 'danger')
+                        current_time = datetime.now()
+                        # Ensure departure time is in the future (not equal to or before current time)
+                        if departure_dt <= current_time:
+                            flash('Departure time must be in the future. Please select a future date and time.', 'danger')
                         else:
                             # Validate crew count matches requirements
                             validation_result = validate_crew_count(crew_ids, aircraft_id, source_id, dest_id, departure_time)
