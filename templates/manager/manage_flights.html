@@ -266,7 +266,7 @@
                     <span class="detail-label">Pricing</span>
                     <div class="detail-value" style="text-align: right;">
                         <div>Economy: $${data.economy_price}</div>
-                        <div>Business: $${data.business_price}</div>
+                        <div>Business: ${data.business_price ? '$' + data.business_price : 'Not Available'}</div>
                     </div>
                 </div>
                 <div class="detail-row" style="display: block;">
