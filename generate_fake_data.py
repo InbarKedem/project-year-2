@@ -73,13 +73,15 @@ def execute_insert(cursor, query, values):
         pass  # Ignore duplicates
 
 def format_employee_id(prefix, index):
-    """Format employee ID with proper zero-padding."""
+    """Format employee ID with proper zero-padding to 9 digits total."""
+    # prefix is 7 chars (e.g., '3000000'), need 2 more digits for 9-char ID
+    # So for index 1-9: prefix + '00' + index, for 10-99: prefix + '0' + index, for 100+: prefix + index
     if index < 10:
-        return f'{prefix}00000{index}'
+        return f'{prefix}00{index}'
     elif index < 100:
-        return f'{prefix}0000{index}'
+        return f'{prefix}0{index}'
     else:
-        return f'{prefix}000{index}'
+        return f'{prefix}{index}'
 
 def insert_seed_airports(cursor):
     """Insert seed airports with improved naming."""
@@ -690,9 +692,15 @@ def generate_faker_employees(cursor, min_count=20):
     cities = ['Tel Aviv', 'Haifa', 'Jerusalem', 'Beer Sheva', 'Netanya', 'Eilat']
     for i in range(needed):
         emp_id = str(max_id + i + 1).zfill(9)
-        first_name = random.choice(WELL_KNOWN_FIRST_NAMES)
-        middle_name = random.choice(WELL_KNOWN_FIRST_NAMES) if random.random() > 0.5 else None
-        last_name = random.choice(WELL_KNOWN_LAST_NAMES)
+        # Use Hebrew names for employees (they will become pilots/attendants)
+        # Alternate between male and female names
+        if random.random() > 0.5:
+            first_name = random.choice(HEBREW_MALE_FIRST_NAMES)
+            middle_name = random.choice(HEBREW_MALE_FIRST_NAMES) if random.random() > 0.5 else None
+        else:
+            first_name = random.choice(HEBREW_FEMALE_FIRST_NAMES)
+            middle_name = random.choice(HEBREW_FEMALE_FIRST_NAMES) if random.random() > 0.5 else None
+        last_name = random.choice(HEBREW_LAST_NAMES)
         city = random.choice(cities)
         street = fake_en.street_name()
         house_number = random.randint(1, 200)
