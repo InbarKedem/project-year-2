@@ -38,6 +38,29 @@ WELL_KNOWN_LAST_NAMES = [
     'Green', 'Adams', 'Baker', 'Nelson', 'Hill', 'Campbell', 'Mitchell', 'Roberts'
 ]
 
+# Common Hebrew names for managers, pilots, and flight attendants
+HEBREW_MALE_FIRST_NAMES = [
+    'דוד', 'יוסף', 'משה', 'אברהם', 'יעקב', 'דני', 'רון', 'אור', 'נועם', 'איתי',
+    'יונתן', 'עמית', 'אלון', 'תומר', 'עומר', 'יובל', 'אורן', 'ארז', 'עידו', 'רועי',
+    'שי', 'עמיר', 'אליעד', 'אופק', 'אליאור', 'אלירן', 'אליאב', 'יואב', 'אוריאל', 'אליעזר',
+    'אליהו', 'אלישע', 'בנימין', 'גד', 'יהודה', 'ראובן', 'שמעון', 'אשר', 'נפתלי', 'דן',
+    'זבולון', 'אפרים', 'מנשה', 'יואל', 'עמוס', 'מיכאל', 'גבריאל', 'רפאל', 'אליה', 'אליאן'
+]
+
+HEBREW_FEMALE_FIRST_NAMES = [
+    'שרה', 'רחל', 'לאה', 'מיכל', 'תמר', 'נועה', 'מאיה', 'עדי', 'רותם', 'יעל',
+    'מור', 'ליאור', 'שירה', 'אביגיל', 'אלה', 'ענבר', 'רוני', 'דנה', 'ליה', 'רות',
+    'אסתר', 'מרים', 'חנה', 'דבורה', 'רבקה', 'אורית', 'עינת', 'לימור', 'שרית', 'מירי',
+    'אורלי', 'ענת', 'ליאת', 'שירי', 'מירב', 'נילי', 'גלית', 'טל', 'קרן', 'חגית'
+]
+
+HEBREW_LAST_NAMES = [
+    'כהן', 'לוי', 'מזרחי', 'דוד', 'אברהם', 'ישראלי', 'בן דוד', 'עזרא', 'שלום', 'יוסף',
+    'משה', 'יעקב', 'אהרון', 'יצחק', 'דניאל', 'שמואל', 'בן ישי', 'בן שמואל', 'בן משה', 'בן יוסף',
+    'בן יעקב', 'בן אברהם', 'בן יצחק', 'בן אהרון', 'בן דניאל', 'בן שמואל', 'בן יוסף', 'בן יעקב', 'בן אברהם', 'בן יצחק',
+    'בן אהרון', 'בן דניאל', 'בן שמואל', 'בן יוסף', 'בן יעקב', 'בן אברהם', 'בן יצחק', 'בן אהרון', 'בן דניאל', 'בן שמואל'
+]
+
 def get_db_connection():
     """Get database connection."""
     return mysql.connector.connect(**DB_CONFIG)
@@ -50,13 +73,15 @@ def execute_insert(cursor, query, values):
         pass  # Ignore duplicates
 
 def format_employee_id(prefix, index):
-    """Format employee ID with proper zero-padding."""
+    """Format employee ID with proper zero-padding to 9 digits total."""
+    # prefix is 7 chars (e.g., '3000000'), need 2 more digits for 9-char ID
+    # So for index 1-9: prefix + '00' + index, for 10-99: prefix + '0' + index, for 100+: prefix + index
     if index < 10:
-        return f'{prefix}00000{index}'
+        return f'{prefix}00{index}'
     elif index < 100:
-        return f'{prefix}0000{index}'
+        return f'{prefix}0{index}'
     else:
-        return f'{prefix}000{index}'
+        return f'{prefix}{index}'
 
 def insert_seed_airports(cursor):
     """Insert seed airports with improved naming."""
@@ -293,59 +318,33 @@ def insert_seed_employees(cursor):
     """Insert seed employees with improved names."""
     print("Inserting seed employees with improved names...")
     
-    # Managers with fixed English names
+    # Managers with Hebrew names
     managers = [
-        ('111111111', 'John', None, 'Smith', 'Tel Aviv', 'Main Street', 10, '0501234567', '2020-01-01'),
-        ('222222222', 'Sarah', 'Elizabeth', 'Johnson', 'Haifa', 'Park Avenue', 20, '0502345678', '2021-02-01')
+        ('111111111', random.choice(HEBREW_MALE_FIRST_NAMES), None, random.choice(HEBREW_LAST_NAMES), 'Tel Aviv', 'Main Street', 10, '0501234567', '2020-01-01'),
+        ('222222222', random.choice(HEBREW_MALE_FIRST_NAMES), random.choice(HEBREW_MALE_FIRST_NAMES), random.choice(HEBREW_LAST_NAMES), 'Haifa', 'Park Avenue', 20, '0502345678', '2021-02-01')
     ]
     
-    # Pilots with realistic names (40 pilots = 4x original 10)
+    # Pilots with Hebrew names (40 pilots = 4x original 10)
     pilots = []
-    pilot_names = [
-        ('John', 'Michael', 'Smith'), ('David', 'Robert', 'Jones'), ('James', 'William', 'Brown'),
-        ('Richard', 'Thomas', 'Davis'), ('Charles', 'Joseph', 'Miller'), ('Christopher', 'Daniel', 'Wilson'),
-        ('Matthew', 'Mark', 'Moore'), ('Anthony', 'Donald', 'Taylor'), ('Steven', 'Paul', 'Anderson'),
-        ('Andrew', 'Joshua', 'Thomas'), ('Kenneth', 'Kevin', 'Harris'), ('Brian', 'George', 'Clark'),
-        ('Daniel', 'Mark', 'Lewis'), ('Thomas', 'Christopher', 'Robinson'), ('Joseph', 'Daniel', 'Walker'),
-        ('Michael', 'David', 'Young'), ('Robert', 'James', 'King'), ('William', 'Richard', 'Wright'),
-        ('Richard', 'Joseph', 'Scott'), ('Charles', 'Thomas', 'Green'), ('Christopher', 'Daniel', 'Adams'),
-        ('Matthew', 'Anthony', 'Baker'), ('Mark', 'Steven', 'Nelson'), ('Donald', 'Paul', 'Hill'),
-        ('Steven', 'Andrew', 'Campbell'), ('Paul', 'Joshua', 'Mitchell'), ('Andrew', 'Kenneth', 'Roberts'),
-        ('Joshua', 'Kevin', 'Turner'), ('Kenneth', 'Brian', 'Phillips'), ('Kevin', 'George', 'Campbell'),
-        ('Brian', 'Daniel', 'Parker'), ('George', 'Mark', 'Evans'), ('Daniel', 'Thomas', 'Edwards'),
-        ('Mark', 'Christopher', 'Collins'), ('Thomas', 'Matthew', 'Stewart'), ('Christopher', 'Anthony', 'Sanchez'),
-        ('Matthew', 'Steven', 'Morris'), ('Anthony', 'Paul', 'Rogers'), ('Steven', 'Andrew', 'Reed'),
-        ('Paul', 'Joshua', 'Cook')
-    ]
-    for i, (first, middle, last) in enumerate(pilot_names, 1):
+    for i in range(1, 41):
         pilot_id = format_employee_id('3000000', i)
+        first_name = random.choice(HEBREW_MALE_FIRST_NAMES)
+        middle_name = random.choice(HEBREW_MALE_FIRST_NAMES) if random.random() > 0.5 else None
+        last_name = random.choice(HEBREW_LAST_NAMES)
         pilots.append((
-            pilot_id, first, middle, last, 'Tel Aviv', fake_en.street_name(),
+            pilot_id, first_name, middle_name, last_name, 'Tel Aviv', fake_en.street_name(),
             i, f'050{3000000 + i}', '2022-01-01'
         ))
     
-    # Attendants with realistic names (40 attendants = 4x original 10)
+    # Attendants with Hebrew names (40 attendants = 4x original 10)
     attendants = []
-    attendant_names = [
-        ('Sarah', 'Emily', 'Johnson'), ('Jessica', 'Amanda', 'Williams'), ('Jennifer', 'Lisa', 'Brown'),
-        ('Michelle', 'Ashley', 'Davis'), ('Melissa', 'Nicole', 'Miller'), ('Amy', 'Angela', 'Wilson'),
-        ('Rebecca', 'Stephanie', 'Moore'), ('Laura', 'Kimberly', 'Taylor'), ('Elizabeth', 'Megan', 'Anderson'),
-        ('Lauren', 'Rachel', 'Thomas'), ('Nicole', 'Ashley', 'Jackson'), ('Ashley', 'Amanda', 'White'),
-        ('Amanda', 'Lisa', 'Harris'), ('Lisa', 'Stephanie', 'Martin'), ('Stephanie', 'Kimberly', 'Thompson'),
-        ('Kimberly', 'Megan', 'Garcia'), ('Megan', 'Rachel', 'Martinez'), ('Rachel', 'Angela', 'Robinson'),
-        ('Angela', 'Emma', 'Clark'), ('Emma', 'Olivia', 'Rodriguez'), ('Olivia', 'Sophia', 'Lewis'),
-        ('Sophia', 'Isabella', 'Lee'), ('Isabella', 'Ava', 'Walker'), ('Ava', 'Mia', 'Hall'),
-        ('Mia', 'Charlotte', 'Allen'), ('Charlotte', 'Amelia', 'Young'), ('Amelia', 'Harper', 'King'),
-        ('Harper', 'Evelyn', 'Wright'), ('Evelyn', 'Abigail', 'Lopez'), ('Abigail', 'Emily', 'Hill'),
-        ('Emily', 'Sofia', 'Scott'), ('Sofia', 'Aria', 'Green'), ('Aria', 'Madison', 'Adams'),
-        ('Madison', 'Scarlett', 'Baker'), ('Scarlett', 'Victoria', 'Nelson'), ('Victoria', 'Aria', 'Carter'),
-        ('Aria', 'Grace', 'Mitchell'), ('Grace', 'Chloe', 'Perez'), ('Chloe', 'Penelope', 'Roberts'),
-        ('Penelope', 'Layla', 'Turner')
-    ]
-    for i, (first, middle, last) in enumerate(attendant_names, 1):
+    for i in range(1, 41):
         attendant_id = format_employee_id('4000000', i)
+        first_name = random.choice(HEBREW_FEMALE_FIRST_NAMES)
+        middle_name = random.choice(HEBREW_FEMALE_FIRST_NAMES) if random.random() > 0.5 else None
+        last_name = random.choice(HEBREW_LAST_NAMES)
         attendants.append((
-            attendant_id, first, middle, last, 'Tel Aviv', fake_en.street_name(),
+            attendant_id, first_name, middle_name, last_name, 'Tel Aviv', fake_en.street_name(),
             i, f'050{4000000 + i}', '2023-01-01'
         ))
     
@@ -693,9 +692,15 @@ def generate_faker_employees(cursor, min_count=20):
     cities = ['Tel Aviv', 'Haifa', 'Jerusalem', 'Beer Sheva', 'Netanya', 'Eilat']
     for i in range(needed):
         emp_id = str(max_id + i + 1).zfill(9)
-        first_name = random.choice(WELL_KNOWN_FIRST_NAMES)
-        middle_name = random.choice(WELL_KNOWN_FIRST_NAMES) if random.random() > 0.5 else None
-        last_name = random.choice(WELL_KNOWN_LAST_NAMES)
+        # Use Hebrew names for employees (they will become pilots/attendants)
+        # Alternate between male and female names
+        if random.random() > 0.5:
+            first_name = random.choice(HEBREW_MALE_FIRST_NAMES)
+            middle_name = random.choice(HEBREW_MALE_FIRST_NAMES) if random.random() > 0.5 else None
+        else:
+            first_name = random.choice(HEBREW_FEMALE_FIRST_NAMES)
+            middle_name = random.choice(HEBREW_FEMALE_FIRST_NAMES) if random.random() > 0.5 else None
+        last_name = random.choice(HEBREW_LAST_NAMES)
         city = random.choice(cities)
         street = fake_en.street_name()
         house_number = random.randint(1, 200)
