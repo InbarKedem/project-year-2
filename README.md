@@ -114,8 +114,13 @@ The project is built using **Flask (Python)** and **MySQL**.
 ## 📝 Features Implemented
 
 - **Authentication:** Registration and Login for Customers and Managers.
-- **Customer Interface:** Flight search, Ticket booking, Order history view.
+- **Customer Interface:** Flight search, Ticket booking, Seat selection, Order history view.
 - **Manager Interface:**
   - **Flight Management:** Add flights, Cancel flights (72h rule), View status.
-  - **Staff Management:** Add Pilots and Flight Attendants.
+  - **Staff Management:** Add Pilots and Flight Attendants (with Hebrew names).
   - **Reports:** Occupancy, Revenue, Employee Hours, Cancellations.
+
+## 📋 Additional Notes
+
+- **Employee Names:** All managers, pilots, and flight attendants are generated with Hebrew names.
+- **Database Initialization:** Run `python init_db.py` to initialize the database with seed data and generate fake data for testing.
