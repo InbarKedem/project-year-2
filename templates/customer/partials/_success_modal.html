@@ -1,4 +1,5 @@
 {% if booking_success %}
+{% set is_registered = session.get('user_id') and session.get('role') == 'customer' %}
 <div class="modal-overlay">
   <div class="modal-content">
     <div class="modal-header">
@@ -7,7 +8,11 @@
     <div class="modal-body">
       <p>Your flight has been successfully booked.</p>
       <p class="order-code">Order ID: <strong>{{ new_order_code }}</strong></p>
+      {% if is_registered %}
       <p>You can track your order status in the "My Orders" section.</p>
+      {% else %}
+      <p>You can track your order status using the Order ID above.</p>
+      {% endif %}
     </div>
     <div class="modal-footer">
       <a href="{{ url_for('customer.index') }}" class="btn btn--outline"
@@ -16,9 +21,11 @@
       <a href="{{ url_for('customer.track_order') }}" class="btn btn--outline"
         >Track Order</a
       >
+      {% if is_registered %}
       <a href="{{ url_for('customer.my_orders') }}" class="btn btn--primary"
         >Go to My Orders</a
       >
+      {% endif %}
     </div>
   </div>
 </div>
