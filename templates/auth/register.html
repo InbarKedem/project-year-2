@@ -1,4 +1,8 @@
-{% extends 'layout/base.html' %} {% block content %}
+{% extends 'layout/base.html' %}
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/register_form.js') }}"></script>
+{% endblock %}
+{% block content %}
 <div class="auth-container register-container">
   <h2 class="auth-container__title">Register New Account</h2>
   <form
