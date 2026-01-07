@@ -2,8 +2,10 @@ from flask import render_template, request, redirect, url_for, flash, session
 from db import query_db, execute_db
 from datetime import datetime
 from routes.customer import customer_bp
+from services.flight_service import update_order_statuses
 
 @customer_bp.route('/track_order', methods=['GET', 'POST'])
+@update_order_statuses
 def track_order():
     # Prevent managers from tracking orders
     if session.get('role') == 'manager':
@@ -56,6 +58,7 @@ def track_order():
     return render_template('customer/track_order.html', order=order)
 
 @customer_bp.route('/my_orders')
+@update_order_statuses
 def my_orders():
     if session.get('role') != 'customer':
         flash('Please log in as a customer to view your orders.', 'warning')
@@ -162,6 +165,13 @@ def my_orders():
     for row in raw_orders:
         code = row['order_code']
         if code not in orders_map:
+            # #region agent log
+            import json
+            try:
+                with open(r'c:\Users\inked\PycharmProjects\project\.cursor\debug.log', 'a', encoding='utf-8') as f:
+                    f.write(json.dumps({"sessionId":"debug-session","runId":"pre-fix","hypothesisId":"C","location":"orders.py:my_orders:processing_order","message":"Processing order","data":{"order_code":code,"order_status":row['order_status'],"departure_time":str(row['departure_time']),"timestamp":datetime.now().isoformat()},"timestamp":int(datetime.now().timestamp()*1000)}) + '\n')
+            except: pass
+            # #endregion
             # System Cancellation orders should show 0 payment (full refund)
             display_payment = 0 if row['order_status'] == 'System Cancellation' else row['total_payment']
             
@@ -179,6 +189,12 @@ def my_orders():
                 departure_time_obj is not None and
                 departure_time_obj > datetime.now()
             )
+            # #region agent log
+            try:
+                with open(r'c:\Users\inked\PycharmProjects\project\.cursor\debug.log', 'a', encoding='utf-8') as f:
+                    f.write(json.dumps({"sessionId":"debug-session","runId":"pre-fix","hypothesisId":"C","location":"orders.py:my_orders:order_can_cancel","message":"Order can_cancel calculated","data":{"order_code":code,"can_cancel":can_cancel,"order_status":row['order_status'],"departure_time":str(departure_time_obj) if departure_time_obj else None,"now":datetime.now().isoformat(),"timestamp":datetime.now().isoformat()},"timestamp":int(datetime.now().timestamp()*1000)}) + '\n')
+            except: pass
+            # #endregion
             
             orders_map[code] = {
                 'order_code': row['order_code'],
@@ -222,6 +238,7 @@ def my_orders():
                           airports=airports)
 
 @customer_bp.route('/cancel_order/<int:order_code>', methods=['POST'])
+@update_order_statuses
 def cancel_order(order_code):
     # Prevent managers from canceling orders
     if session.get('role') == 'manager':

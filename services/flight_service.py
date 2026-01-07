@@ -21,6 +21,50 @@ def update_all_flight_statuses():
         # Error updating flight_statuses - fail silently
         pass
 
+def update_all_order_statuses():
+    """
+    Updates order statuses based on current time and flight departure time.
+    Orders that have associated flights that have already departed (departure_time < NOW())
+    and are still 'Active' will be updated to 'Completed'.
+    This function should be called before any order-related queries to ensure
+    order statuses are always up-to-date.
+    """
+    # #region agent log
+    import json
+    try:
+        with open(r'c:\Users\inked\PycharmProjects\project\.cursor\debug.log', 'a', encoding='utf-8') as f:
+            f.write(json.dumps({"sessionId":"debug-session","runId":"pre-fix","hypothesisId":"A","location":"flight_service.py:update_all_order_statuses:entry","message":"update_all_order_statuses called","data":{"timestamp":datetime.now().isoformat()},"timestamp":int(datetime.now().timestamp()*1000)}) + '\n')
+    except: pass
+    # #endregion
+    try:
+        # #region agent log
+        try:
+            with open(r'c:\Users\inked\PycharmProjects\project\.cursor\debug.log', 'a', encoding='utf-8') as f:
+                f.write(json.dumps({"sessionId":"debug-session","runId":"pre-fix","hypothesisId":"A","location":"flight_service.py:update_all_order_statuses:before_update","message":"Before updating orders","data":{"timestamp":datetime.now().isoformat()},"timestamp":int(datetime.now().timestamp()*1000)}) + '\n')
+        except: pass
+        # #endregion
+        result = db.execute_db("""
+            UPDATE Order_Table 
+            SET order_status = 'Completed'
+            WHERE order_status = 'Active'
+            AND departure_time < NOW()
+        """)
+        # #region agent log
+        try:
+            with open(r'c:\Users\inked\PycharmProjects\project\.cursor\debug.log', 'a', encoding='utf-8') as f:
+                f.write(json.dumps({"sessionId":"debug-session","runId":"pre-fix","hypothesisId":"A","location":"flight_service.py:update_all_order_statuses:after_update","message":"After updating orders","data":{"rows_affected":getattr(result,'rowcount',None) if hasattr(result,'rowcount') else None,"timestamp":datetime.now().isoformat()},"timestamp":int(datetime.now().timestamp()*1000)}) + '\n')
+        except: pass
+        # #endregion
+    except Exception as e:
+        # #region agent log
+        try:
+            with open(r'c:\Users\inked\PycharmProjects\project\.cursor\debug.log', 'a', encoding='utf-8') as f:
+                f.write(json.dumps({"sessionId":"debug-session","runId":"pre-fix","hypothesisId":"A","location":"flight_service.py:update_all_order_statuses:error","message":"Error updating order statuses","data":{"error":str(e),"timestamp":datetime.now().isoformat()},"timestamp":int(datetime.now().timestamp()*1000)}) + '\n')
+        except: pass
+        # #endregion
+        # Error updating order_statuses - fail silently
+        pass
+
 def update_flight_statuses(func):
     """
     Decorator that calls update_all_flight_statuses() before executing the wrapped function.
@@ -29,6 +73,36 @@ def update_flight_statuses(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         update_all_flight_statuses()
+        return func(*args, **kwargs)
+    return wrapper
+
+def update_order_statuses(func):
+    """
+    Decorator that calls update_all_order_statuses() before executing the wrapped function.
+    Works with both route handlers and service functions.
+    """
+    # #region agent log
+    import json
+    try:
+        with open(r'c:\Users\inked\PycharmProjects\project\.cursor\debug.log', 'a', encoding='utf-8') as f:
+            f.write(json.dumps({"sessionId":"debug-session","runId":"pre-fix","hypothesisId":"B","location":"flight_service.py:update_order_statuses:decorator_called","message":"update_order_statuses decorator applied","data":{"function":func.__name__,"timestamp":datetime.now().isoformat()},"timestamp":int(datetime.now().timestamp()*1000)}) + '\n')
+    except: pass
+    # #endregion
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        # #region agent log
+        try:
+            with open(r'c:\Users\inked\PycharmProjects\project\.cursor\debug.log', 'a', encoding='utf-8') as f:
+                f.write(json.dumps({"sessionId":"debug-session","runId":"pre-fix","hypothesisId":"B","location":"flight_service.py:update_order_statuses:wrapper_entry","message":"Wrapper called, updating order statuses","data":{"function":func.__name__,"timestamp":datetime.now().isoformat()},"timestamp":int(datetime.now().timestamp()*1000)}) + '\n')
+        except: pass
+        # #endregion
+        update_all_order_statuses()
+        # #region agent log
+        try:
+            with open(r'c:\Users\inked\PycharmProjects\project\.cursor\debug.log', 'a', encoding='utf-8') as f:
+                f.write(json.dumps({"sessionId":"debug-session","runId":"pre-fix","hypothesisId":"B","location":"flight_service.py:update_order_statuses:wrapper_after_update","message":"Order statuses updated, calling function","data":{"function":func.__name__,"timestamp":datetime.now().isoformat()},"timestamp":int(datetime.now().timestamp()*1000)}) + '\n')
+        except: pass
+        # #endregion
         return func(*args, **kwargs)
     return wrapper
 
