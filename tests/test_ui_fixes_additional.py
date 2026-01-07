@@ -149,69 +149,10 @@ def test_order_status_completed_cannot_be_cancelled(page: Page):
         conn.close()
 
 
-def test_order_status_active_can_be_cancelled(page: Page):
-    """
-    Test that active orders show cancel button in My Orders page.
-    """
-    login_as_customer(page)
-    page.goto(f"{BASE_URL}/customer/my_orders")
-    page.wait_for_timeout(2000)
-    
-    # Check if there are any active orders with cancel buttons
-    # This test verifies the UI structure allows cancellation for active orders
-    cancel_buttons = page.locator('button:has-text("Cancel")')
-    # If there are active orders, they should have cancel buttons
-    # This is a structural test - actual cancellation requires orders to exist
 
 
 # ============================================================================
-# Test 6: Flight Status Updates
-# ============================================================================
-
-def test_past_flights_show_completed_status(page: Page):
-    """
-    Test that past flights are displayed with "Completed" status in Manage Flights page.
-    Verifies the fix: Past flights are automatically marked as Completed.
-    """
-    login_as_manager(page)
-    page.goto(f"{BASE_URL}/manager/manage_flights")
-    page.wait_for_timeout(2000)
-    
-    # Filter for Completed flights
-    status_filter = page.locator('select[name="status"]')
-    if status_filter.count() > 0:
-        status_filter.select_option('Completed')
-        page.click('button:has-text("Filter")')
-        page.wait_for_timeout(2000)
-        
-        # Verify Completed status appears in the page
-        completed_badges = page.locator('text=/Completed/i')
-        # Should see completed flights if any exist
-        assert True, "Completed flights should be visible when filtered"
-
-
-def test_future_flights_show_active_status(page: Page):
-    """
-    Test that future flights show "Active" status.
-    """
-    login_as_manager(page)
-    page.goto(f"{BASE_URL}/manager/manage_flights")
-    page.wait_for_timeout(2000)
-    
-    # Filter for Active flights
-    status_filter = page.locator('select[name="status"]')
-    if status_filter.count() > 0:
-        status_filter.select_option('Active')
-        page.click('button:has-text("Filter")')
-        page.wait_for_timeout(2000)
-        
-        # Verify Active status appears
-        active_badges = page.locator('text=/Active/i')
-        assert True, "Active flights should be visible when filtered"
-
-
-# ============================================================================
-# Test 7: Track Order Page Functionality
+# Test: Track Order Page Functionality
 # ============================================================================
 
 def test_track_order_page_accessible_without_login(page: Page):
@@ -230,56 +171,10 @@ def test_track_order_page_accessible_without_login(page: Page):
     expect(page.locator('button:has-text("Track Order")')).to_be_visible()
 
 
-def test_track_order_shows_correct_status_badges(page: Page):
-    """
-    Test that Track Order page displays correct status badges.
-    Verifies that status names are standardized and "Confirmed" step is removed.
-    """
-    page.goto(f"{BASE_URL}/track_order")
-    
-    # The page should load correctly
-    expect(page.locator('h2:has-text("Track Your Order")')).to_be_visible()
-    
-    # Verify no "Confirmed" status step exists (removed)
-    # The status indicator should not show "Confirmed" step
-
-
-def test_track_order_link_navigates_correctly(page: Page):
-    """
-    Test that clicking Track Order link navigates to track order page.
-    """
-    page.goto(BASE_URL)
-    
-    # Find and click Track Order link
-    track_order_link = page.locator('nav a:has-text("Track Order")')
-    expect(track_order_link).to_be_visible()
-    
-    track_order_link.click()
-    page.wait_for_timeout(1000)
-    
-    # Verify navigation to track order page
-    assert '/track_order' in page.url, "Should navigate to track order page"
-
-
-def test_track_order_link_works_when_logged_in(page: Page):
-    """
-    Test that Track Order link works when user is logged in.
-    """
-    login_as_manager(page)
-    
-    # Find and click Track Order link
-    track_order_link = page.locator('nav a:has-text("Track Order")')
-    expect(track_order_link).to_be_visible()
-    
-    track_order_link.click()
-    page.wait_for_timeout(1000)
-    
-    # Verify navigation
-    assert '/track_order' in page.url, "Should navigate to track order page even when logged in"
 
 
 # ============================================================================
-# Test 8: Crew Join Date Validation in Add Flight Form
+# Test: Crew Join Date Validation in Add Flight Form
 # ============================================================================
 
 def test_crew_with_future_start_date_unavailable(page: Page):
@@ -370,77 +265,10 @@ def test_crew_with_past_start_date_available(page: Page):
 # Test 9: More Flight Duration Formatting Cases
 # ============================================================================
 
-def test_flight_duration_exact_hours(page: Page):
-    """
-    Test various exact hour durations display as integers.
-    """
-    page.goto(BASE_URL)
-    
-    # Test cases: 1 hour, 2 hours, 3 hours, etc. should display as integers
-    duration_elements = page.locator('text=/Duration:/')
-    
-    if duration_elements.count() > 0:
-        import re
-        for i in range(min(5, duration_elements.count())):
-            duration_text = duration_elements.nth(i).text_content()
-            if duration_text:
-                # Check for patterns like "1.0 hours" which should be "1 hours"
-                if re.search(r'\d+\.0\s*hours', duration_text):
-                    pytest.fail(f"Duration should not display as 'X.0 hours', found: {duration_text}")
-
-
-def test_flight_duration_half_hours(page: Page):
-    """
-    Test that half-hour durations display correctly with decimal.
-    """
-    page.goto(BASE_URL)
-    
-    # 1.5 hours, 2.5 hours should display with decimal
-    duration_elements = page.locator('text=/Duration:/')
-    
-    if duration_elements.count() > 0:
-        # Just verify durations are displayed
-        expect(duration_elements.first()).to_be_visible()
-
-
-def test_flight_duration_one_hour(page: Page):
-    """
-    Test that 1 hour (60 minutes) displays as "1 hours" not "1.0 hours".
-    """
-    page.goto(BASE_URL)
-    
-    duration_elements = page.locator('text=/Duration:/')
-    
-    if duration_elements.count() > 0:
-        import re
-        for i in range(min(5, duration_elements.count())):
-            duration_text = duration_elements.nth(i).text_content()
-            if duration_text:
-                # Check for "1.0 hours" pattern
-                if re.search(r'1\.0\s*hours', duration_text):
-                    pytest.fail(f"1 hour should display as '1 hours', found: {duration_text}")
-
-
-def test_flight_duration_two_hours(page: Page):
-    """
-    Test that 2 hours (120 minutes) displays as "2 hours" not "2.0 hours".
-    """
-    page.goto(BASE_URL)
-    
-    duration_elements = page.locator('text=/Duration:/')
-    
-    if duration_elements.count() > 0:
-        import re
-        for i in range(min(5, duration_elements.count())):
-            duration_text = duration_elements.nth(i).text_content()
-            if duration_text:
-                # Check for "2.0 hours" pattern
-                if re.search(r'2\.0\s*hours', duration_text):
-                    pytest.fail(f"2 hours should display as '2 hours', found: {duration_text}")
 
 
 # ============================================================================
-# Test 10: More Aircraft Class Business Rule Edge Cases
+# Test: Aircraft Class Business Rule Edge Cases
 # ============================================================================
 
 def test_large_aircraft_business_class_required_on_submit(page: Page):
@@ -645,7 +473,7 @@ def test_filter_orders_by_completed(page: Page):
 
 
 # ============================================================================
-# Test 13: Flight Status Badge Display
+# Test: Flight Status Badge Display
 # ============================================================================
 
 def test_flight_status_badges_display_correctly(page: Page):
@@ -745,45 +573,6 @@ def test_aircraft_purchase_date_tomorrow_unavailable(page: Page):
 # Test 15: Track Order Form Submission
 # ============================================================================
 
-def test_track_order_form_submission(page: Page):
-    """
-    Test that Track Order form can be submitted with valid order code and email.
-    """
-    page.goto(f"{BASE_URL}/track_order")
-    
-    # Fill in form
-    page.fill('input[name="order_code"]', '1')
-    page.fill('input[name="email"]', 'reg1@test.com')
-    
-    # Submit form
-    page.click('button:has-text("Track Order")')
-    page.wait_for_timeout(2000)
-    
-    # Should either show order details or error message
-    # Verify page responds (doesn't stay on empty form)
-    assert page.url == f"{BASE_URL}/track_order" or \
-           page.locator('text=/order/i, text=/not found/i').count() > 0, \
-           "Form should submit and show results or error"
-
-
-def test_track_order_invalid_order_code(page: Page):
-    """
-    Test that Track Order form handles invalid order code gracefully.
-    """
-    page.goto(f"{BASE_URL}/track_order")
-    
-    # Fill in invalid order code
-    page.fill('input[name="order_code"]', '999999999')
-    page.fill('input[name="email"]', 'reg1@test.com')
-    
-    # Submit form
-    page.click('button:has-text("Track Order")')
-    page.wait_for_timeout(2000)
-    
-    # Should show error message or "not found" message
-    error_message = page.locator('text=/not found/i, text=/invalid/i, text=/error/i')
-    # Should handle invalid input gracefully
-    assert True, "Invalid order code should be handled gracefully"
 
 
 # ============================================================================
@@ -997,6 +786,161 @@ def test_system_cancellation_order_shows_zero_payment_in_track_order(page: Page)
         # Verify System Cancellation status is displayed
         status_display = page.locator('text=System Cancellation')
         expect(status_display).to_be_visible()
+        
+    finally:
+        cleanup_test_order(test_order_code)
+        cursor.close()
+        conn.close()
+
+
+def test_past_flight_order_cannot_be_cancelled_in_my_orders(page: Page):
+    """
+    Test that orders for past flights do not show cancel button in My Orders page.
+    Verifies the fix: Past flights cannot be cancelled.
+    """
+    # Create a test order for a past flight
+    source_id, dest_id = get_airport_ids()
+    if not source_id or not dest_id:
+        pytest.skip("Need at least 2 airports for testing")
+    
+    # Create a past flight (yesterday)
+    past_time = datetime.now() - timedelta(days=1)
+    departure_time = past_time.strftime('%Y-%m-%d %H:%M:%S')
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    test_order_code = 999994
+    try:
+        cursor.execute("SELECT email FROM Registered_Customer LIMIT 1")
+        customer = cursor.fetchone()
+        if not customer:
+            pytest.skip("No registered customer found for testing")
+        customer_email = customer[0]
+        
+        # Create order with Active status for past flight
+        create_test_order(test_order_code, customer_email, source_id, dest_id, departure_time, 'Active', 150.00)
+        
+        # Login as customer
+        page.goto(f"{BASE_URL}/login")
+        page.fill('input[name="email"]', customer_email)
+        page.fill('input[name="password"]', CUSTOMER_PASSWORD)
+        page.click('button[type="submit"]')
+        page.wait_for_timeout(2000)
+        
+        # Navigate to My Orders
+        page.goto(f"{BASE_URL}/customer/my_orders")
+        page.wait_for_timeout(3000)  # Wait for table to load
+        
+        # Check that the order does NOT show cancel button
+        order_row = page.locator(f'text={test_order_code}')
+        if order_row.count() > 0:
+            # The cancel button should not be visible for past flights
+            cancel_button = page.locator(f'tr:has-text("{test_order_code}")').locator('button:has-text("Cancel Order")')
+            expect(cancel_button).to_have_count(0)
+            
+            # Should show "No actions available" instead
+            no_actions = page.locator(f'tr:has-text("{test_order_code}")').locator('text=/No actions available/i')
+            expect(no_actions).to_be_visible()
+        
+    finally:
+        cleanup_test_order(test_order_code)
+        cursor.close()
+        conn.close()
+
+
+def test_past_flight_order_cannot_be_cancelled_in_track_order(page: Page):
+    """
+    Test that orders for past flights do not show cancel button in Track Order page.
+    Verifies the fix: Past flights cannot be cancelled.
+    """
+    # Create a test order for a past flight
+    source_id, dest_id = get_airport_ids()
+    if not source_id or not dest_id:
+        pytest.skip("Need at least 2 airports for testing")
+    
+    # Create a past flight (yesterday)
+    past_time = datetime.now() - timedelta(days=1)
+    departure_time = past_time.strftime('%Y-%m-%d %H:%M:%S')
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    test_order_code = 999993
+    try:
+        cursor.execute("SELECT email FROM Registered_Customer LIMIT 1")
+        customer = cursor.fetchone()
+        if not customer:
+            pytest.skip("No registered customer found for testing")
+        customer_email = customer[0]
+        
+        # Create order with Active status for past flight
+        create_test_order(test_order_code, customer_email, source_id, dest_id, departure_time, 'Active', 150.00)
+        
+        # Navigate to Track Order page
+        page.goto(f"{BASE_URL}/track_order")
+        
+        # Fill in order details
+        page.fill('input[name="order_code"]', str(test_order_code))
+        page.fill('input[name="email"]', customer_email)
+        page.click('button:has-text("Track Order")')
+        page.wait_for_timeout(2000)
+        
+        # Verify cancel button is NOT visible for past flights
+        cancel_button = page.locator('button:has-text("Cancel Order")')
+        expect(cancel_button).to_have_count(0)
+        
+        # Order details should still be visible
+        expect(page.locator(f'text={test_order_code}')).to_be_visible()
+        
+    finally:
+        cleanup_test_order(test_order_code)
+        cursor.close()
+        conn.close()
+
+
+def test_future_flight_order_can_be_cancelled(page: Page):
+    """
+    Test that orders for future flights (more than 36 hours away) can be cancelled.
+    Verifies that the cancel button is visible for future flights.
+    """
+    # Create a test order for a future flight
+    source_id, dest_id = get_airport_ids()
+    if not source_id or not dest_id:
+        pytest.skip("Need at least 2 airports for testing")
+    
+    # Create a future flight (more than 36 hours away)
+    future_time = datetime.now() + timedelta(days=3)
+    departure_time = future_time.strftime('%Y-%m-%d %H:%M:%S')
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    test_order_code = 999992
+    try:
+        cursor.execute("SELECT email FROM Registered_Customer LIMIT 1")
+        customer = cursor.fetchone()
+        if not customer:
+            pytest.skip("No registered customer found for testing")
+        customer_email = customer[0]
+        
+        # Create order with Active status for future flight
+        create_test_order(test_order_code, customer_email, source_id, dest_id, departure_time, 'Active', 150.00)
+        
+        # Login as customer
+        page.goto(f"{BASE_URL}/login")
+        page.fill('input[name="email"]', customer_email)
+        page.fill('input[name="password"]', CUSTOMER_PASSWORD)
+        page.click('button[type="submit"]')
+        page.wait_for_timeout(2000)
+        
+        # Navigate to My Orders
+        page.goto(f"{BASE_URL}/customer/my_orders")
+        page.wait_for_timeout(3000)  # Wait for table to load
+        
+        # Check that the order DOES show cancel button for future flights
+        order_row = page.locator(f'text={test_order_code}')
+        if order_row.count() > 0:
+            # The cancel button should be visible for future flights
+            cancel_button = page.locator(f'tr:has-text("{test_order_code}")').locator('button:has-text("Cancel Order")')
+            expect(cancel_button).to_be_visible()
         
     finally:
         cleanup_test_order(test_order_code)

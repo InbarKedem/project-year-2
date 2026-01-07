@@ -86,7 +86,8 @@
         totalPayment: {{ 0 if order.order_status == 'System Cancellation' else order.total_payment }},
         status: "{{ order.order_status }}",
         statusClass: "status-{{ order.order_status|lower|replace(' ', '-') }}",
-        canCancel: {{ 'true' if order.order_status == 'Active' and order.order_status != 'Completed' else 'false' }},
+        departureTime: "{{ order.departure_time }}",
+        canCancel: {{ 'true' if order.can_cancel else 'false' }},
         cancelUrl: "{{ url_for('customer.cancel_order', order_code=order.order_code) }}"
       }{% if not loop.last %},{% endif %}
       {% endfor %}

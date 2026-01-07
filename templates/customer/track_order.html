@@ -90,7 +90,7 @@
       </div>
     </div>
 
-    {% if order.order_status == 'Active' %}
+    {% if order.order_status == 'Active' and order.can_cancel %}
     <div class="order-actions">
       <form
         action="{{ url_for('customer.cancel_order', order_code=order.order_code) }}"
