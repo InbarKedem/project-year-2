@@ -623,7 +623,9 @@ def generate_faker_aircraft(cursor, min_count=50):
     print(f"Generated {len(aircraft)} additional aircraft")
 
 def generate_faker_aircraft_classes(cursor):
-    """Generate aircraft classes for all aircraft."""
+    """Generate aircraft classes for all aircraft.
+    Enforces business rule: Large aircraft MUST have business class, Small aircraft MUST NOT have business class.
+    """
     print("Generating aircraft classes for all aircraft...")
     cursor.execute("SELECT aircraft_id, is_large FROM Aircraft")
     aircraft_list = cursor.fetchall()
@@ -637,7 +639,7 @@ def generate_faker_aircraft_classes(cursor):
             continue
         
         if is_large:
-            # Big plane: Business and Economy
+            # Big plane: MUST have Business and Economy
             business_rows = random.randint(2, 4)
             business_cols = random.randint(2, 4)
             economy_rows = random.randint(8, 15)
@@ -645,11 +647,62 @@ def generate_faker_aircraft_classes(cursor):
             execute_insert(cursor, query, (aircraft_id, True, business_rows, business_cols))
             execute_insert(cursor, query, (aircraft_id, False, economy_rows, economy_cols))
         else:
-            # Small plane: Economy only
+            # Small plane: Economy only (NO business class)
             economy_rows = random.randint(5, 10)
             economy_cols = random.randint(4, 6)
             execute_insert(cursor, query, (aircraft_id, False, economy_rows, economy_cols))
     print("Generated aircraft classes for all aircraft")
+
+def validate_aircraft_class_rules(cursor):
+    """Validate that aircraft class business rules are enforced:
+    - Large aircraft MUST have business class
+    - Small aircraft MUST NOT have business class
+    """
+    print("Validating aircraft class business rules...")
+    
+    # Check 1: All large aircraft must have business class
+    cursor.execute("""
+        SELECT a.aircraft_id, a.is_large
+        FROM Aircraft a
+        LEFT JOIN Aircraft_Class ac ON a.aircraft_id = ac.aircraft_id AND ac.is_business = TRUE
+        WHERE a.is_large = TRUE AND ac.aircraft_id IS NULL
+    """)
+    large_without_business = cursor.fetchall()
+    if large_without_business:
+        print(f"ERROR: Found {len(large_without_business)} large aircraft without business class!")
+        for aircraft_id, is_large in large_without_business:
+            print(f"  Aircraft {aircraft_id} (is_large={is_large}) is missing business class")
+        # Fix: Add business class to large aircraft missing it
+        query = "INSERT IGNORE INTO Aircraft_Class (aircraft_id, is_business, num_rows, num_columns) VALUES (%s, %s, %s, %s)"
+        for aircraft_id, _ in large_without_business:
+            business_rows = random.randint(2, 4)
+            business_cols = random.randint(2, 4)
+            execute_insert(cursor, query, (aircraft_id, True, business_rows, business_cols))
+            print(f"  Fixed: Added business class to aircraft {aircraft_id}")
+    
+    # Check 2: No small aircraft should have business class
+    cursor.execute("""
+        SELECT DISTINCT a.aircraft_id, a.is_large
+        FROM Aircraft a
+        JOIN Aircraft_Class ac ON a.aircraft_id = ac.aircraft_id
+        WHERE a.is_large = FALSE AND ac.is_business = TRUE
+    """)
+    small_with_business = cursor.fetchall()
+    if small_with_business:
+        print(f"ERROR: Found {len(small_with_business)} small aircraft with business class!")
+        for aircraft_id, is_large in small_with_business:
+            print(f"  Aircraft {aircraft_id} (is_large={is_large}) incorrectly has business class")
+        # Fix: Remove business class from small aircraft
+        for aircraft_id, _ in small_with_business:
+            cursor.execute("DELETE FROM Aircraft_Class WHERE aircraft_id = %s AND is_business = TRUE", (aircraft_id,))
+            # Also delete seats for business class
+            cursor.execute("DELETE FROM Seat WHERE aircraft_id = %s AND is_business = TRUE", (aircraft_id,))
+            print(f"  Fixed: Removed business class from aircraft {aircraft_id}")
+    
+    if not large_without_business and not small_with_business:
+        print("All aircraft class business rules are correctly enforced")
+    else:
+        print("Fixed violations and re-validated")
 
 def generate_faker_seats(cursor):
     """Generate seats for all aircraft classes."""
@@ -1150,9 +1203,13 @@ def generate_faker_orders(cursor, min_count=20):
         
         status = random.choice(statuses)
         
-        # Apply 5% cancellation fee for Client Cancellation orders
+        # Apply payment rules based on status:
+        # - Client Cancellation: 5% cancellation fee
+        # - System Cancellation: 0 (full refund)
         if status == 'Client Cancellation':
             total_payment = round(total_payment * 0.05)
+        elif status == 'System Cancellation':
+            total_payment = 0  # Full refund for system cancellations
         
         orders.append((order_code, order_date, total_payment, status, customer_email, source_id, dest_id, departure_time))
         
@@ -1214,10 +1271,14 @@ def generate_faker_orders(cursor, min_count=20):
                 )
                 status = random.choice(statuses)
                 
-                # Apply 5% cancellation fee for Client Cancellation orders
+                # Apply payment rules based on status:
+                # - Client Cancellation: 5% cancellation fee
+                # - System Cancellation: 0 (full refund)
                 final_price = price
                 if status == 'Client Cancellation':
                     final_price = round(price * 0.05)
+                elif status == 'System Cancellation':
+                    final_price = 0  # Full refund for system cancellations
                 
                 try:
                     cursor.execute(query, (order_code, order_date, final_price, status, customer_email, source_id, dest_id, departure_time))
@@ -1444,6 +1505,7 @@ def generate_all_fake_data(drop_schema=True):
         insert_seed_routes(cursor)
         insert_seed_aircraft(cursor)
         insert_seed_aircraft_classes(cursor)
+        validate_aircraft_class_rules(cursor)  # Ensure seed data follows business rules
         insert_seed_seats(cursor)
         insert_seed_employees(cursor)
         insert_seed_flight_crew(cursor)
@@ -1465,6 +1527,7 @@ def generate_all_fake_data(drop_schema=True):
         generate_faker_routes(cursor, min_count=20)
         generate_faker_aircraft(cursor, min_count=50)
         generate_faker_aircraft_classes(cursor)
+        validate_aircraft_class_rules(cursor)  # Ensure business rules are enforced
         generate_faker_seats(cursor)
         generate_faker_employees(cursor, min_count=20)
         generate_faker_flight_crew(cursor)

@@ -32,6 +32,9 @@ def track_order():
         
         if result:
             order = result[0]
+            # System Cancellation orders should show 0 payment (full refund)
+            if order['order_status'] == 'System Cancellation':
+                order['total_payment'] = 0
         else:
             flash('Order not found. Please check your details.', 'danger')
             
@@ -144,10 +147,13 @@ def my_orders():
     for row in raw_orders:
         code = row['order_code']
         if code not in orders_map:
+            # System Cancellation orders should show 0 payment (full refund)
+            display_payment = 0 if row['order_status'] == 'System Cancellation' else row['total_payment']
+            
             orders_map[code] = {
                 'order_code': row['order_code'],
                 'order_date': row['order_date'],
-                'total_payment': row['total_payment'],
+                'total_payment': display_payment,
                 'order_status': row['order_status'],
                 'departure_time': row['departure_time'],
                 'source_airport': row['source_airport'],
@@ -156,15 +162,15 @@ def my_orders():
             }
             
             # Add to total spending:
-            # - Active/Confirmed orders: full payment
-            # - Customer Cancelled: 5% cancellation fee (stored in total_payment)
-            # - System Cancelled: 0 (full refund)
+            # - Active orders: full payment
+            # - Client Cancellation: 5% cancellation fee (stored in total_payment)
+            # - System Cancellation: 0 (full refund)
             # - Cancelled (legacy): 0
-            if row['order_status'] == 'Customer Cancelled':
-                # Customer cancelled orders have the 5% fee stored in total_payment
+            if row['order_status'] == 'Client Cancellation':
+                # Client cancelled orders have the 5% fee stored in total_payment
                 total_spending += row['total_payment']
-            elif row['order_status'] not in ['Cancelled', 'System Cancelled']:
-                # Active, Confirmed orders - full payment
+            elif row['order_status'] not in ['Cancelled', 'System Cancellation']:
+                # Active orders - full payment
                 total_spending += row['total_payment']
         
         if row['row_number'] is not None:
@@ -213,12 +219,19 @@ def cancel_order(order_code):
         else:
             return redirect(url_for('customer.track_order'))
         
-    if order['order_status'] in ['Cancelled', 'Customer Cancelled', 'System Cancelled']:
+    if order['order_status'] in ['Cancelled', 'Client Cancellation', 'System Cancellation']:
         flash('Order is already cancelled.', 'warning')
         if 'user_id' in session:
             return redirect(url_for('customer.my_orders'))
         else:
             # Re-render track order with the order details
+            return render_template('customer/track_order.html', order=order)
+    
+    if order['order_status'] == 'Completed':
+        flash('Cannot cancel a completed order.', 'warning')
+        if 'user_id' in session:
+            return redirect(url_for('customer.my_orders'))
+        else:
             return render_template('customer/track_order.html', order=order)
 
     # 3. Check 36-hour Rule
@@ -244,7 +257,7 @@ def cancel_order(order_code):
     refund_amount = float(order['total_payment']) - fee
     
     try:
-        execute_db("UPDATE Order_Table SET order_status = 'Customer Cancelled', total_payment = %s WHERE order_code = %s", (fee, order_code))
+        execute_db("UPDATE Order_Table SET order_status = 'Client Cancellation', total_payment = %s WHERE order_code = %s", (fee, order_code))
         flash(f'Order cancelled successfully. A 5% cancellation fee (${fee:.2f}) was deducted. Refund amount: ${refund_amount:.2f}', 'success')
     except Exception as e:
         flash(f'Error cancelling order: {e}', 'danger')
@@ -271,5 +284,8 @@ def cancel_order(order_code):
             WHERE O.order_code = %s
         """
         updated_order = query_db(query, (order_code,), one=True)
+        # System Cancellation orders should show 0 payment (full refund)
+        if updated_order and updated_order['order_status'] == 'System Cancellation':
+            updated_order['total_payment'] = 0
         return render_template('customer/track_order.html', order=updated_order)
 

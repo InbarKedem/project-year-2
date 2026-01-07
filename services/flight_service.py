@@ -5,7 +5,7 @@ from functools import wraps
 def update_all_flight_statuses():
     """
     Updates flight statuses based on current time and departure time.
-    Flights that have already departed (departure_time < NOW()) and are still 'Active'
+    Flights that have already departed (departure_time < NOW()) and are still 'Active' or 'Fully Booked'
     will be updated to 'Completed'.
     This function should be called before any flight-related queries to ensure
     flight statuses are always up-to-date.
@@ -14,7 +14,7 @@ def update_all_flight_statuses():
         db.execute_db("""
             UPDATE Flight 
             SET flight_status = 'Completed'
-            WHERE flight_status = 'Active' 
+            WHERE flight_status IN ('Active', 'Fully Booked')
             AND departure_time < NOW()
         """)
     except Exception as e:
@@ -40,7 +40,7 @@ def get_all_aircrafts():
 
 def get_all_pilots():
     return db.query_db("""
-        SELECT E.id_number, E.first_name, E.last_name, FC.trained_for_long_flights
+        SELECT E.id_number, E.first_name, E.last_name, FC.trained_for_long_flights, E.start_work_date
         FROM Employee E 
         JOIN Flight_Crew FC ON E.id_number = FC.id_number 
         WHERE FC.is_pilot = 1
@@ -48,7 +48,7 @@ def get_all_pilots():
 
 def get_all_attendants():
     return db.query_db("""
-        SELECT E.id_number, E.first_name, E.last_name, FC.trained_for_long_flights
+        SELECT E.id_number, E.first_name, E.last_name, FC.trained_for_long_flights, E.start_work_date
         FROM Employee E 
         JOIN Flight_Crew FC ON E.id_number = FC.id_number 
         WHERE FC.is_pilot = 0
@@ -108,6 +108,7 @@ def get_aircraft_availability(source_id, dest_id, departure_time_str):
             
             if purchase_date:
                 departure_date = departure_time.date()
+                # Allow aircraft to be used on the same date it was purchased (purchase_date <= departure_date)
                 if purchase_date > departure_date:
                     aircraft['is_available'] = False
                     aircraft['reason'] = f"Aircraft becomes operational on {purchase_date.strftime('%Y-%m-%d')}. Flight is scheduled for {departure_time.strftime('%Y-%m-%d %H:%M')}."
@@ -221,6 +222,26 @@ def get_crew_availability(source_id, dest_id, departure_time_str, aircraft_id=No
         crew['is_available'] = True
         crew['reason'] = ""
 
+        # Check if crew member has joined the company (start_work_date <= departure_time)
+        if crew.get('start_work_date'):
+            start_work_date = crew['start_work_date']
+            # Handle different date formats
+            if isinstance(start_work_date, str):
+                try:
+                    start_work_date = datetime.strptime(start_work_date, '%Y-%m-%d').date()
+                except ValueError:
+                    try:
+                        start_work_date = datetime.strptime(start_work_date, '%Y-%m-%d %H:%M:%S').date()
+                    except ValueError:
+                        start_work_date = None
+            elif isinstance(start_work_date, datetime):
+                start_work_date = start_work_date.date()
+            
+            if start_work_date and start_work_date > departure_time.date():
+                crew['is_available'] = False
+                crew['reason'] = f"Has not joined company yet (starts on {start_work_date.strftime('%Y-%m-%d')})"
+                continue
+
         # Check Training for Long Flights
         if is_long_flight and not crew['trained_for_long_flights']:
             crew['is_available'] = False
@@ -313,8 +334,53 @@ def create_flight(source_id, dest_id, departure_time, aircraft_id, economy_price
                     departure_dt = departure_time
                 
                 departure_date = departure_dt.date()
+                # Allow aircraft to be used on the same date it was purchased (purchase_date <= departure_date)
                 if purchase_date > departure_date:
                     return False, f"Cannot create flight: Aircraft {aircraft_id} becomes operational on {purchase_date.strftime('%Y-%m-%d')}, but flight is scheduled for {departure_dt.strftime('%Y-%m-%d %H:%M')}."
+        
+        # Parse departure_time for crew validation
+        if isinstance(departure_time, str):
+            try:
+                departure_dt = datetime.strptime(departure_time, '%Y-%m-%dT%H:%M')
+            except ValueError:
+                try:
+                    departure_dt = datetime.strptime(departure_time, '%Y-%m-%d %H:%M:%S')
+                except ValueError:
+                    return False, "Invalid departure time format."
+        else:
+            departure_dt = departure_time
+        departure_date = departure_dt.date()
+        
+        # Validate all crew members have joined before flight departure
+        if crew_ids:
+            invalid_crew = []
+            for crew_id in crew_ids:
+                crew_member = db.query_db("""
+                    SELECT E.start_work_date, E.first_name, E.last_name
+                    FROM Employee E
+                    WHERE E.id_number = %s
+                """, (crew_id,), one=True)
+                
+                if crew_member and crew_member.get('start_work_date'):
+                    start_work_date = crew_member['start_work_date']
+                    # Handle different date formats
+                    if isinstance(start_work_date, str):
+                        try:
+                            start_work_date = datetime.strptime(start_work_date, '%Y-%m-%d').date()
+                        except ValueError:
+                            try:
+                                start_work_date = datetime.strptime(start_work_date, '%Y-%m-%d %H:%M:%S').date()
+                            except ValueError:
+                                start_work_date = None
+                    elif isinstance(start_work_date, datetime):
+                        start_work_date = start_work_date.date()
+                    
+                    if start_work_date and start_work_date > departure_date:
+                        name = f"{crew_member.get('first_name', '')} {crew_member.get('last_name', '')}".strip()
+                        invalid_crew.append(f"{name} (starts on {start_work_date.strftime('%Y-%m-%d')})")
+            
+            if invalid_crew:
+                return False, f"Cannot assign crew members who haven't joined yet: {', '.join(invalid_crew)}. Flight departs on {departure_date.strftime('%Y-%m-%d')}."
         
         # 1. Create Flight
         db.execute_db("""
@@ -433,21 +499,21 @@ def cancel_flight(source_id, dest_id, departure_time):
                 WHERE source_airport_id = %s 
                 AND dest_airport_id = %s 
                 AND departure_time = %s
-                AND order_status NOT IN ('Cancelled', 'Customer Cancelled', 'System Cancelled')
+                AND order_status NOT IN ('Cancelled', 'Client Cancellation', 'System Cancellation')
             """, (source_id, dest_id, departure_time))
             
             total_refund = sum(float(order['total_payment']) for order in affected_orders)
             order_count = len(affected_orders)
             
-            # Update all related orders to 'System Cancelled' and set total_payment to 0 (full refund)
+            # Update all related orders to 'System Cancellation' and set total_payment to 0 (full refund)
             db.execute_db("""
                 UPDATE Order_Table 
-                SET order_status = 'System Cancelled',
+                SET order_status = 'System Cancellation',
                     total_payment = 0.00
                 WHERE source_airport_id = %s 
                 AND dest_airport_id = %s 
                 AND departure_time = %s
-                AND order_status NOT IN ('Cancelled', 'Customer Cancelled', 'System Cancelled')
+                AND order_status NOT IN ('Cancelled', 'Client Cancellation', 'System Cancellation')
             """, (source_id, dest_id, departure_time))
             
             # Build detailed refund message
@@ -505,15 +571,15 @@ def update_flight_status(source_id, dest_id, departure_time, new_status):
             WHERE source_airport_id = %s AND dest_airport_id = %s AND departure_time = %s
         """, (new_status, source_id, dest_id, departure_time))
         
-        # If status is set to 'Cancelled', update all related orders to 'System Cancelled'
+        # If status is set to 'Cancelled', update all related orders to 'System Cancellation'
         if new_status == 'Cancelled':
             db.execute_db("""
                 UPDATE Order_Table 
-                SET order_status = 'System Cancelled'
+                SET order_status = 'System Cancellation'
                 WHERE source_airport_id = %s 
                 AND dest_airport_id = %s 
                 AND departure_time = %s
-                AND order_status NOT IN ('Cancelled', 'Customer Cancelled', 'System Cancelled')
+                AND order_status NOT IN ('Cancelled', 'Client Cancellation', 'System Cancellation')
             """, (source_id, dest_id, departure_time))
             return True, "Flight status updated to Cancelled. All related orders have been cancelled."
         
@@ -545,6 +611,16 @@ def add_aircraft(aircraft_id, manufacturer, purchase_date, is_large, business_co
         # Validate economy_config is provided
         if not economy_config or 'num_rows' not in economy_config or 'num_columns' not in economy_config:
             return False, 'Economy class configuration is required.'
+        
+        # Enforce business rule: Large aircraft MUST have business class
+        if is_large == 1:
+            if not business_config or 'num_rows' not in business_config or 'num_columns' not in business_config:
+                return False, 'Large aircraft must have business class. Please provide business class configuration.'
+        
+        # Enforce business rule: Small aircraft MUST NOT have business class
+        if is_large == 0:
+            if business_config:
+                return False, 'Small aircraft cannot have business class. Please remove business class configuration.'
         
         # Insert into Aircraft table
         db.execute_db("""
