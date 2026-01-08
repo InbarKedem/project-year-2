@@ -126,36 +126,79 @@
 </div>
 
 <script>
-  // Show/hide business class configuration based on checkbox
-  document
-    .getElementById("has_business")
-    .addEventListener("change", function () {
-      const businessConfig = document.getElementById("business-config");
-      const businessRows = document.getElementById("business_rows");
-      const businessColumns = document.getElementById("business_columns");
+  const isLargeCheckbox = document.getElementById("is_large");
+  const hasBusinessCheckbox = document.getElementById("has_business");
+  const businessConfig = document.getElementById("business-config");
+  const businessRows = document.getElementById("business_rows");
+  const businessColumns = document.getElementById("business_columns");
 
-      if (this.checked) {
-        businessConfig.style.display = "block";
-        businessRows.setAttribute("required", "required");
-        businessColumns.setAttribute("required", "required");
-      } else {
+  // Auto-check business class when large aircraft is selected
+  isLargeCheckbox.addEventListener("change", function () {
+    if (this.checked) {
+      // Large aircraft MUST have business class
+      hasBusinessCheckbox.checked = true;
+      hasBusinessCheckbox.disabled = true; // Prevent unchecking
+      businessConfig.style.display = "block";
+      businessRows.setAttribute("required", "required");
+      businessColumns.setAttribute("required", "required");
+    } else {
+      // Small aircraft MUST NOT have business class
+      hasBusinessCheckbox.checked = false;
+      hasBusinessCheckbox.disabled = false; // Allow checking for future changes
+      businessConfig.style.display = "none";
+      businessRows.removeAttribute("required");
+      businessColumns.removeAttribute("required");
+      businessRows.value = "";
+      businessColumns.value = "";
+    }
+  });
+
+  // Show/hide business class configuration based on checkbox (for manual changes when not large)
+  hasBusinessCheckbox.addEventListener("change", function () {
+    if (this.checked) {
+      businessConfig.style.display = "block";
+      businessRows.setAttribute("required", "required");
+      businessColumns.setAttribute("required", "required");
+    } else {
+      // Only allow hiding if not a large aircraft
+      if (!isLargeCheckbox.checked) {
         businessConfig.style.display = "none";
         businessRows.removeAttribute("required");
         businessColumns.removeAttribute("required");
         businessRows.value = "";
         businessColumns.value = "";
+      } else {
+        // If large aircraft, prevent unchecking
+        this.checked = true;
+        alert("Large aircraft must have business class.");
       }
-    });
+    }
+  });
 
   // Form validation
   document
     .getElementById("aircraft-form")
     .addEventListener("submit", function (e) {
-      const hasBusiness = document.getElementById("has_business").checked;
-      const businessRows = document.getElementById("business_rows").value;
-      const businessColumns = document.getElementById("business_columns").value;
+      const isLarge = isLargeCheckbox.checked;
+      const hasBusiness = hasBusinessCheckbox.checked;
+      const businessRowsValue = businessRows.value;
+      const businessColumnsValue = businessColumns.value;
 
-      if (hasBusiness && (!businessRows || !businessColumns)) {
+      // Enforce business rule: Large aircraft MUST have business class
+      if (isLarge && !hasBusiness) {
+        e.preventDefault();
+        alert("Large aircraft must have business class. Please check 'Has Business Class' and fill in the configuration.");
+        return false;
+      }
+
+      // Enforce business rule: Small aircraft MUST NOT have business class
+      if (!isLarge && hasBusiness) {
+        e.preventDefault();
+        alert("Small aircraft cannot have business class. Please uncheck 'Has Business Class'.");
+        return false;
+      }
+
+      if (hasBusiness && (!businessRowsValue || !businessColumnsValue)) {
         e.preventDefault();
         alert("Please fill in business class rows and columns.");
         return false;

@@ -88,6 +88,7 @@ def add_flight():
                                 elif isinstance(purchase_date, datetime):
                                     purchase_date = purchase_date.date()
                                 
+                                # Allow aircraft to be used on the same date it was purchased (purchase_date <= departure_date)
                                 if purchase_date and purchase_date > departure_dt.date():
                                     flash(f'Selected aircraft is not operational by the flight departure date. Aircraft becomes operational on {purchase_date.strftime("%Y-%m-%d")}, but flight is scheduled for {departure_dt.strftime("%Y-%m-%d %H:%M")}.', 'danger')
                                 else:
@@ -300,6 +301,12 @@ def add_aircraft_route():
         # Validate required fields
         if not all([aircraft_id, manufacturer, purchase_date, economy_rows, economy_columns]):
             flash('Please fill in all required fields.', 'danger')
+        # Enforce business rule: Large aircraft MUST have business class
+        elif is_large == 1 and not has_business:
+            flash('Large aircraft must have business class. Please check "Has Business Class" and provide business class configuration.', 'danger')
+        # Enforce business rule: Small aircraft MUST NOT have business class
+        elif is_large == 0 and has_business:
+            flash('Small aircraft cannot have business class. Please uncheck "Has Business Class".', 'danger')
         else:
             try:
                 economy_config = {

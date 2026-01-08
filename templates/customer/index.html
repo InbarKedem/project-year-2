@@ -88,7 +88,7 @@
                         <p>{{ flight.departure_time }}</p>
                     </div>
                     <div class="details">
-                        <p>Duration: {% set hours = flight.flight_duration / 60.0 %}{% if hours == hours|int %}{{ hours|int }} hours{% else %}{{ "%.1f"|format(hours) }} hours{% endif %}</p>
+                        <p>Duration: {% set hours = flight.flight_duration / 60.0 %}{% set hours_int = hours|int %}{% set hours_decimal = hours - hours_int %}{% if hours_decimal < 0.01 and hours_decimal > -0.01 %}{{ hours_int }} hours{% else %}{{ "%.1f"|format(hours) }} hours{% endif %}</p>
                         <p>Aircraft: {{ flight.manufacturer }}</p>
                     </div>
                     <div class="price">

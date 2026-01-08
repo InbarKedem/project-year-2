@@ -71,7 +71,6 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.status-confirmed,
 .status-active,
 .status-completed {
   background-color: var(--color-success);

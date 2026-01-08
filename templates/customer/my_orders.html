@@ -83,10 +83,11 @@
         flight: "{{ order.source_airport }} -> {{ order.dest_airport }}",
         departure: "{{ order.departure_time }}",
         seats: {% if order.seats %}[{% for seat in order.seats %}{"row": {{ seat.row }}, "col": {{ seat.col }}, "isBusiness": {{ 'true' if seat.is_business else 'false' }}}{% if not loop.last %},{% endif %}{% endfor %}]{% else %}[]{% endif %},
-        totalPayment: {{ order.total_payment }},
+        totalPayment: {{ 0 if order.order_status == 'System Cancellation' else order.total_payment }},
         status: "{{ order.order_status }}",
         statusClass: "status-{{ order.order_status|lower|replace(' ', '-') }}",
-        canCancel: {{ 'true' if order.order_status == 'Active' else 'false' }},
+        departureTime: "{{ order.departure_time }}",
+        canCancel: {{ 'true' if order.can_cancel else 'false' }},
         cancelUrl: "{{ url_for('customer.cancel_order', order_code=order.order_code) }}"
       }{% if not loop.last %},{% endif %}
       {% endfor %}
@@ -123,12 +124,21 @@
           }
         },
         {
-          title: "Total Payment",
+          title: "Total Payment (5% payment if customer cancelled)",
           field: "totalPayment",
           widthGrow: 1,
-          minWidth: 120,
+          minWidth: 200,
           formatter: function(cell, formatterParams) {
-            return '$' + parseFloat(cell.getValue()).toFixed(2);
+            const rowData = cell.getRow().getData();
+            const status = rowData.status;
+            const payment = parseFloat(cell.getValue());
+            
+            // System Cancellation should show 0 (full refund)
+            if (status === 'System Cancellation') {
+              return '$0.00';
+            }
+            
+            return '$' + payment.toFixed(2);
           }
         },
         {

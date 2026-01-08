@@ -2,8 +2,10 @@ from flask import render_template, request, redirect, url_for, flash, session
 from db import query_db, execute_db
 from datetime import datetime
 from routes.customer import customer_bp
+from services.flight_service import update_order_statuses
 
 @customer_bp.route('/track_order', methods=['GET', 'POST'])
+@update_order_statuses
 def track_order():
     # Prevent managers from tracking orders
     if session.get('role') == 'manager':
@@ -32,12 +34,31 @@ def track_order():
         
         if result:
             order = result[0]
+            # System Cancellation orders should show 0 payment (full refund)
+            if order['order_status'] == 'System Cancellation':
+                order['total_payment'] = 0
+            
+            # Check if order can be cancelled (Active status, not Completed, and flight is in the future)
+            departure_time_obj = order['departure_time']
+            if isinstance(departure_time_obj, str):
+                try:
+                    departure_time_obj = datetime.strptime(departure_time_obj, '%Y-%m-%d %H:%M:%S')
+                except ValueError:
+                    departure_time_obj = None
+            
+            order['can_cancel'] = (
+                order['order_status'] == 'Active' and 
+                order['order_status'] != 'Completed' and
+                departure_time_obj is not None and
+                departure_time_obj > datetime.now()
+            )
         else:
             flash('Order not found. Please check your details.', 'danger')
             
     return render_template('customer/track_order.html', order=order)
 
 @customer_bp.route('/my_orders')
+@update_order_statuses
 def my_orders():
     if session.get('role') != 'customer':
         flash('Please log in as a customer to view your orders.', 'warning')
@@ -144,27 +165,46 @@ def my_orders():
     for row in raw_orders:
         code = row['order_code']
         if code not in orders_map:
+            # System Cancellation orders should show 0 payment (full refund)
+            display_payment = 0 if row['order_status'] == 'System Cancellation' else row['total_payment']
+            
+            # Check if order can be cancelled (Active status, not Completed, and flight is in the future)
+            departure_time_obj = row['departure_time']
+            if isinstance(departure_time_obj, str):
+                try:
+                    departure_time_obj = datetime.strptime(departure_time_obj, '%Y-%m-%d %H:%M:%S')
+                except ValueError:
+                    departure_time_obj = None
+            
+            can_cancel = (
+                row['order_status'] == 'Active' and 
+                row['order_status'] != 'Completed' and
+                departure_time_obj is not None and
+                departure_time_obj > datetime.now()
+            )
+            
             orders_map[code] = {
                 'order_code': row['order_code'],
                 'order_date': row['order_date'],
-                'total_payment': row['total_payment'],
+                'total_payment': display_payment,
                 'order_status': row['order_status'],
                 'departure_time': row['departure_time'],
                 'source_airport': row['source_airport'],
                 'dest_airport': row['dest_airport'],
+                'can_cancel': can_cancel,
                 'seats': []
             }
             
             # Add to total spending:
-            # - Active/Confirmed orders: full payment
-            # - Customer Cancelled: 5% cancellation fee (stored in total_payment)
-            # - System Cancelled: 0 (full refund)
+            # - Active orders: full payment
+            # - Client Cancellation: 5% cancellation fee (stored in total_payment)
+            # - System Cancellation: 0 (full refund)
             # - Cancelled (legacy): 0
-            if row['order_status'] == 'Customer Cancelled':
-                # Customer cancelled orders have the 5% fee stored in total_payment
+            if row['order_status'] == 'Client Cancellation':
+                # Client cancelled orders have the 5% fee stored in total_payment
                 total_spending += row['total_payment']
-            elif row['order_status'] not in ['Cancelled', 'System Cancelled']:
-                # Active, Confirmed orders - full payment
+            elif row['order_status'] not in ['Cancelled', 'System Cancellation']:
+                # Active orders - full payment
                 total_spending += row['total_payment']
         
         if row['row_number'] is not None:
@@ -185,6 +225,7 @@ def my_orders():
                           airports=airports)
 
 @customer_bp.route('/cancel_order/<int:order_code>', methods=['POST'])
+@update_order_statuses
 def cancel_order(order_code):
     # Prevent managers from canceling orders
     if session.get('role') == 'manager':
@@ -213,20 +254,36 @@ def cancel_order(order_code):
         else:
             return redirect(url_for('customer.track_order'))
         
-    if order['order_status'] in ['Cancelled', 'Customer Cancelled', 'System Cancelled']:
+    if order['order_status'] in ['Cancelled', 'Client Cancellation', 'System Cancellation']:
         flash('Order is already cancelled.', 'warning')
         if 'user_id' in session:
             return redirect(url_for('customer.my_orders'))
         else:
             # Re-render track order with the order details
             return render_template('customer/track_order.html', order=order)
+    
+    if order['order_status'] == 'Completed':
+        flash('Cannot cancel a completed order.', 'warning')
+        if 'user_id' in session:
+            return redirect(url_for('customer.my_orders'))
+        else:
+            return render_template('customer/track_order.html', order=order)
 
-    # 3. Check 36-hour Rule
+    # 3. Check if flight is in the past
     departure_time = order['departure_time']
     # Ensure departure_time is datetime object
     if isinstance(departure_time, str):
         departure_time = datetime.strptime(departure_time, '%Y-%m-%d %H:%M:%S')
-        
+    
+    # Check if flight has already departed (in the past)
+    if departure_time < datetime.now():
+        flash('Cannot cancel an order for a flight that has already departed.', 'danger')
+        if 'user_id' in session:
+            return redirect(url_for('customer.my_orders'))
+        else:
+            return render_template('customer/track_order.html', order=order)
+    
+    # 4. Check 36-hour Rule
     time_diff = departure_time - datetime.now()
     hours_until_flight = time_diff.total_seconds() / 3600
     
@@ -237,14 +294,14 @@ def cancel_order(order_code):
         else:
             return render_template('customer/track_order.html', order=order)
 
-    # 4. Apply Cancellation Fee (5%)
+    # 5. Apply Cancellation Fee (5%)
     # We don't have a refund column, so we'll just notify the user.
     # In a real system, we would process the refund here.
     fee = float(order['total_payment']) * 0.05
     refund_amount = float(order['total_payment']) - fee
     
     try:
-        execute_db("UPDATE Order_Table SET order_status = 'Customer Cancelled', total_payment = %s WHERE order_code = %s", (fee, order_code))
+        execute_db("UPDATE Order_Table SET order_status = 'Client Cancellation', total_payment = %s WHERE order_code = %s", (fee, order_code))
         flash(f'Order cancelled successfully. A 5% cancellation fee (${fee:.2f}) was deducted. Refund amount: ${refund_amount:.2f}', 'success')
     except Exception as e:
         flash(f'Error cancelling order: {e}', 'danger')
@@ -271,5 +328,8 @@ def cancel_order(order_code):
             WHERE O.order_code = %s
         """
         updated_order = query_db(query, (order_code,), one=True)
+        # System Cancellation orders should show 0 payment (full refund)
+        if updated_order and updated_order['order_status'] == 'System Cancellation':
+            updated_order['total_payment'] = 0
         return render_template('customer/track_order.html', order=updated_order)
 

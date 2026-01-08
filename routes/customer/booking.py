@@ -100,7 +100,7 @@ def book_flight():
         
         execute_db("""
             INSERT INTO Order_Table (order_code, order_date, total_payment, order_status, customer_email, source_airport_id, dest_airport_id, departure_time)
-            VALUES (%s, NOW(), %s, 'Confirmed', %s, %s, %s, %s)
+            VALUES (%s, NOW(), %s, 'Active', %s, %s, %s, %s)
         """, (order_code, total_price, email, source_id, dest_id, time_str))
         
         # 3. Book Seats
@@ -169,7 +169,7 @@ def book_flight():
         FROM Order_Seats OS
         JOIN Order_Table O ON OS.order_code = O.order_code
         WHERE O.source_airport_id = %s AND O.dest_airport_id = %s AND O.departure_time = %s
-        AND O.order_status NOT IN ('Cancelled', 'Customer Cancelled', 'System Cancelled')
+        AND O.order_status NOT IN ('Cancelled', 'Client Cancellation', 'System Cancellation')
     """
     occupied_seats = query_db(occupied_query, (source_id, dest_id, time_str))
     

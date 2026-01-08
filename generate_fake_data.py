@@ -72,6 +72,164 @@ def execute_insert(cursor, query, values):
     except mysql.connector.errors.IntegrityError:
         pass  # Ignore duplicates
 
+def validate_crew_join_date(cursor, employee_id, departure_time):
+    """
+    Validate that crew member's start_work_date is before or equal to departure_time.
+    
+    Args:
+        cursor: Database cursor
+        employee_id: Employee ID to check
+        departure_time: Flight departure time (datetime or string)
+    
+    Returns:
+        True if valid (start_work_date <= departure_time), False otherwise
+    """
+    try:
+        # Get employee start_work_date
+        cursor.execute("SELECT start_work_date FROM Employee WHERE id_number = %s", (employee_id,))
+        result = cursor.fetchone()
+        if not result or not result[0]:
+            return True  # No start date means always valid
+        
+        start_work_date = result[0]
+        
+        # Parse start_work_date
+        if isinstance(start_work_date, str):
+            try:
+                start_work_date = datetime.strptime(start_work_date, '%Y-%m-%d').date()
+            except ValueError:
+                try:
+                    start_work_date = datetime.strptime(start_work_date, '%Y-%m-%d %H:%M:%S').date()
+                except ValueError:
+                    return True  # Can't parse, assume valid
+        elif isinstance(start_work_date, datetime):
+            start_work_date = start_work_date.date()
+        elif hasattr(start_work_date, 'date'):
+            start_work_date = start_work_date.date()
+        
+        # Parse departure_time
+        if isinstance(departure_time, str):
+            try:
+                departure_dt = datetime.strptime(departure_time, '%Y-%m-%d %H:%M:%S')
+            except ValueError:
+                try:
+                    departure_dt = datetime.strptime(departure_time, '%Y-%m-%dT%H:%M')
+                except ValueError:
+                    return True  # Can't parse, assume valid
+        else:
+            departure_dt = departure_time
+        
+        departure_date = departure_dt.date() if isinstance(departure_dt, datetime) else departure_dt
+        
+        # Validate: start_work_date must be <= departure_date
+        return start_work_date <= departure_date
+    except Exception:
+        return True  # On error, assume valid to avoid blocking generation
+
+def check_crew_conflict(cursor, employee_id, departure_time, flight_duration_minutes):
+    """
+    Check if crew member has a conflicting assignment at the same time.
+    
+    Args:
+        cursor: Database cursor
+        employee_id: Employee ID to check
+        departure_time: Flight departure time (datetime or string)
+        flight_duration_minutes: Flight duration in minutes
+    
+    Returns:
+        True if there's a conflict, False otherwise
+    """
+    try:
+        # Parse departure_time
+        if isinstance(departure_time, str):
+            try:
+                departure_dt = datetime.strptime(departure_time, '%Y-%m-%d %H:%M:%S')
+            except ValueError:
+                try:
+                    departure_dt = datetime.strptime(departure_time, '%Y-%m-%dT%H:%M')
+                except ValueError:
+                    return False  # Can't parse, assume no conflict
+        else:
+            departure_dt = departure_time
+        
+        # Calculate arrival time (departure + duration)
+        arrival_time = departure_dt + timedelta(minutes=flight_duration_minutes)
+        
+        # Check for overlapping assignments
+        # A conflict exists if another flight's time window overlaps with this one
+        cursor.execute("""
+            SELECT EFA.source_airport_id, EFA.dest_airport_id, EFA.departure_time, FR.flight_duration
+            FROM Employee_Flight_Assignment EFA
+            JOIN Flight_Route FR ON EFA.source_airport_id = FR.source_airport_id
+                AND EFA.dest_airport_id = FR.dest_airport_id
+            WHERE EFA.employee_id = %s
+            AND (
+                (EFA.departure_time >= %s AND EFA.departure_time < %s)
+                OR (EFA.departure_time + INTERVAL FR.flight_duration MINUTE > %s 
+                    AND EFA.departure_time + INTERVAL FR.flight_duration MINUTE <= %s)
+                OR (EFA.departure_time < %s AND EFA.departure_time + INTERVAL FR.flight_duration MINUTE > %s)
+            )
+        """, (employee_id, departure_dt, arrival_time, departure_dt, arrival_time, departure_dt, departure_dt))
+        
+        conflicts = cursor.fetchall()
+        return len(conflicts) > 0
+    except Exception:
+        return False  # On error, assume no conflict
+
+def validate_aircraft_purchase_date(cursor, aircraft_id, departure_time):
+    """
+    Validate that aircraft purchase_date is before or equal to departure_time.
+    
+    Args:
+        cursor: Database cursor
+        aircraft_id: Aircraft ID to check
+        departure_time: Flight departure time (datetime or string)
+    
+    Returns:
+        True if valid (purchase_date <= departure_time), False otherwise
+    """
+    try:
+        # Get aircraft purchase_date
+        cursor.execute("SELECT purchase_date FROM Aircraft WHERE aircraft_id = %s", (aircraft_id,))
+        result = cursor.fetchone()
+        if not result or not result[0]:
+            return True  # No purchase date means always valid
+        
+        purchase_date = result[0]
+        
+        # Parse purchase_date
+        if isinstance(purchase_date, str):
+            try:
+                purchase_date = datetime.strptime(purchase_date, '%Y-%m-%d').date()
+            except ValueError:
+                try:
+                    purchase_date = datetime.strptime(purchase_date, '%Y-%m-%d %H:%M:%S').date()
+                except ValueError:
+                    return True  # Can't parse, assume valid
+        elif isinstance(purchase_date, datetime):
+            purchase_date = purchase_date.date()
+        elif hasattr(purchase_date, 'date'):
+            purchase_date = purchase_date.date()
+        
+        # Parse departure_time
+        if isinstance(departure_time, str):
+            try:
+                departure_dt = datetime.strptime(departure_time, '%Y-%m-%d %H:%M:%S')
+            except ValueError:
+                try:
+                    departure_dt = datetime.strptime(departure_time, '%Y-%m-%dT%H:%M')
+                except ValueError:
+                    return True  # Can't parse, assume valid
+        else:
+            departure_dt = departure_time
+        
+        departure_date = departure_dt.date() if isinstance(departure_dt, datetime) else departure_dt
+        
+        # Validate: purchase_date must be <= departure_date
+        return purchase_date <= departure_date
+    except Exception:
+        return True  # On error, assume valid to avoid blocking generation
+
 def format_employee_id(prefix, index):
     """Format employee ID with proper zero-padding to 9 digits total."""
     # prefix is 7 chars (e.g., '3000000'), need 2 more digits for 9-char ID
@@ -482,6 +640,18 @@ def insert_seed_orders(cursor):
     query = "INSERT IGNORE INTO Order_Table (order_code, order_date, total_payment, order_status, customer_email, source_airport_id, dest_airport_id, departure_time) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
     for order in orders:
         execute_insert(cursor, query, order)
+    
+    # Validate seed order statuses based on flight departure times
+    # Update 'Active' orders for past flights to 'Completed'
+    cursor.execute("""
+        UPDATE Order_Table
+        SET order_status = 'Completed'
+        WHERE order_status = 'Active'
+        AND departure_time < NOW()
+    """)
+    updated_count = cursor.rowcount
+    if updated_count > 0:
+        print(f"  Updated {updated_count} seed orders for past flights to Completed")
 
 def insert_seed_order_seats(cursor):
     """Insert seed order seats."""
@@ -623,7 +793,9 @@ def generate_faker_aircraft(cursor, min_count=50):
     print(f"Generated {len(aircraft)} additional aircraft")
 
 def generate_faker_aircraft_classes(cursor):
-    """Generate aircraft classes for all aircraft."""
+    """Generate aircraft classes for all aircraft.
+    Enforces business rule: Large aircraft MUST have business class, Small aircraft MUST NOT have business class.
+    """
     print("Generating aircraft classes for all aircraft...")
     cursor.execute("SELECT aircraft_id, is_large FROM Aircraft")
     aircraft_list = cursor.fetchall()
@@ -637,7 +809,7 @@ def generate_faker_aircraft_classes(cursor):
             continue
         
         if is_large:
-            # Big plane: Business and Economy
+            # Big plane: MUST have Business and Economy
             business_rows = random.randint(2, 4)
             business_cols = random.randint(2, 4)
             economy_rows = random.randint(8, 15)
@@ -645,11 +817,62 @@ def generate_faker_aircraft_classes(cursor):
             execute_insert(cursor, query, (aircraft_id, True, business_rows, business_cols))
             execute_insert(cursor, query, (aircraft_id, False, economy_rows, economy_cols))
         else:
-            # Small plane: Economy only
+            # Small plane: Economy only (NO business class)
             economy_rows = random.randint(5, 10)
             economy_cols = random.randint(4, 6)
             execute_insert(cursor, query, (aircraft_id, False, economy_rows, economy_cols))
     print("Generated aircraft classes for all aircraft")
+
+def validate_aircraft_class_rules(cursor):
+    """Validate that aircraft class business rules are enforced:
+    - Large aircraft MUST have business class
+    - Small aircraft MUST NOT have business class
+    """
+    print("Validating aircraft class business rules...")
+    
+    # Check 1: All large aircraft must have business class
+    cursor.execute("""
+        SELECT a.aircraft_id, a.is_large
+        FROM Aircraft a
+        LEFT JOIN Aircraft_Class ac ON a.aircraft_id = ac.aircraft_id AND ac.is_business = TRUE
+        WHERE a.is_large = TRUE AND ac.aircraft_id IS NULL
+    """)
+    large_without_business = cursor.fetchall()
+    if large_without_business:
+        print(f"ERROR: Found {len(large_without_business)} large aircraft without business class!")
+        for aircraft_id, is_large in large_without_business:
+            print(f"  Aircraft {aircraft_id} (is_large={is_large}) is missing business class")
+        # Fix: Add business class to large aircraft missing it
+        query = "INSERT IGNORE INTO Aircraft_Class (aircraft_id, is_business, num_rows, num_columns) VALUES (%s, %s, %s, %s)"
+        for aircraft_id, _ in large_without_business:
+            business_rows = random.randint(2, 4)
+            business_cols = random.randint(2, 4)
+            execute_insert(cursor, query, (aircraft_id, True, business_rows, business_cols))
+            print(f"  Fixed: Added business class to aircraft {aircraft_id}")
+    
+    # Check 2: No small aircraft should have business class
+    cursor.execute("""
+        SELECT DISTINCT a.aircraft_id, a.is_large
+        FROM Aircraft a
+        JOIN Aircraft_Class ac ON a.aircraft_id = ac.aircraft_id
+        WHERE a.is_large = FALSE AND ac.is_business = TRUE
+    """)
+    small_with_business = cursor.fetchall()
+    if small_with_business:
+        print(f"ERROR: Found {len(small_with_business)} small aircraft with business class!")
+        for aircraft_id, is_large in small_with_business:
+            print(f"  Aircraft {aircraft_id} (is_large={is_large}) incorrectly has business class")
+        # Fix: Remove business class from small aircraft
+        for aircraft_id, _ in small_with_business:
+            cursor.execute("DELETE FROM Aircraft_Class WHERE aircraft_id = %s AND is_business = TRUE", (aircraft_id,))
+            # Also delete seats for business class
+            cursor.execute("DELETE FROM Seat WHERE aircraft_id = %s AND is_business = TRUE", (aircraft_id,))
+            print(f"  Fixed: Removed business class from aircraft {aircraft_id}")
+    
+    if not large_without_business and not small_with_business:
+        print("All aircraft class business rules are correctly enforced")
+    else:
+        print("Fixed violations and re-validated")
 
 def generate_faker_seats(cursor):
     """Generate seats for all aircraft classes."""
@@ -909,11 +1132,6 @@ def generate_faker_flights(cursor, min_count=50):
         
         # Business rule: Long flights (6+ hours) only use Big planes
         is_long = duration >= (LONG_FLIGHT_MIN_HOURS * 60)
-        if is_long:
-            aircraft_id = random.choice(big_aircraft)
-        else:
-            # Short flights can use both
-            aircraft_id = random.choice(big_aircraft + small_aircraft)
         
         # Determine status first to set appropriate departure time
         status_choice = random.choice(status_distribution)
@@ -934,6 +1152,28 @@ def generate_faker_flights(cursor, min_count=50):
             # Active flights (some will become Fully Booked later)
             departure_time = fake_en.date_time_between(start_date=start_date, end_date=end_date)
             status = 'Active'
+        
+        # Select aircraft with purchase date validation
+        aircraft_id = None
+        max_retries = 10
+        retry_count = 0
+        
+        while aircraft_id is None and retry_count < max_retries:
+            if is_long:
+                candidate_aircraft = random.choice(big_aircraft)
+            else:
+                # Short flights can use both
+                candidate_aircraft = random.choice(big_aircraft + small_aircraft)
+            
+            # Validate aircraft purchase date
+            if validate_aircraft_purchase_date(cursor, candidate_aircraft, departure_time):
+                aircraft_id = candidate_aircraft
+            else:
+                retry_count += 1
+        
+        # Skip this flight if no valid aircraft found
+        if aircraft_id is None:
+            continue
         
         # Generate prices (integers only)
         base_price = random.randint(300, 1200)
@@ -991,7 +1231,19 @@ def generate_faker_crew_assignments(cursor):
             num_attendants = SMALL_PLANE_ATTENDANTS
         
         # Select pilots (must be trained for long flights if it's a long flight)
-        available_pilots = [p for p in pilots if not is_long or p[1]]  # Trained if long flight
+        # Also validate join dates and check for conflicts
+        available_pilots = []
+        for p in pilots:
+            # Check training requirement
+            if is_long and not p[1]:
+                continue  # Not trained for long flights
+            # Check join date
+            if not validate_crew_join_date(cursor, p[0], departure_time):
+                continue  # Not yet joined
+            # Check for conflicts
+            if check_crew_conflict(cursor, p[0], departure_time, duration):
+                continue  # Has conflicting assignment
+            available_pilots.append(p)
         
         if len(available_pilots) < num_pilots:
             # Not enough pilots - try to assign what we have, or skip this flight
@@ -1004,7 +1256,19 @@ def generate_faker_crew_assignments(cursor):
             selected_pilots = random.sample(available_pilots, num_pilots)
         
         # Select attendants (must be trained for long flights if it's a long flight)
-        available_attendants = [a for a in attendants if not is_long or a[1]]  # Trained if long flight
+        # Also validate join dates and check for conflicts
+        available_attendants = []
+        for a in attendants:
+            # Check training requirement
+            if is_long and not a[1]:
+                continue  # Not trained for long flights
+            # Check join date
+            if not validate_crew_join_date(cursor, a[0], departure_time):
+                continue  # Not yet joined
+            # Check for conflicts
+            if check_crew_conflict(cursor, a[0], departure_time, duration):
+                continue  # Has conflicting assignment
+            available_attendants.append(a)
         
         if len(available_attendants) < num_attendants:
             # Not enough attendants - try to assign what we have, or skip this flight
@@ -1048,9 +1312,16 @@ def generate_faker_crew_assignments(cursor):
                     num_pilots = SMALL_PLANE_PILOTS
                     num_attendants = SMALL_PLANE_ATTENDANTS
                 
-                # Try with all pilots/attendants (relax training requirement if needed)
-                all_pilots = pilots if not is_long else [p for p in pilots if p[1]] or pilots
-                all_attendants = attendants if not is_long else [a for a in attendants if a[1]] or attendants
+                # Try with all pilots/attendants (relax training requirement if needed, but still validate join dates and conflicts)
+                all_pilots = []
+                for p in (pilots if not is_long else [p for p in pilots if p[1]] or pilots):
+                    if validate_crew_join_date(cursor, p[0], departure_time) and not check_crew_conflict(cursor, p[0], departure_time, duration):
+                        all_pilots.append(p)
+                
+                all_attendants = []
+                for a in (attendants if not is_long else [a for a in attendants if a[1]] or attendants):
+                    if validate_crew_join_date(cursor, a[0], departure_time) and not check_crew_conflict(cursor, a[0], departure_time, duration):
+                        all_attendants.append(a)
                 
                 if len(all_pilots) >= num_pilots and len(all_attendants) >= num_attendants:
                     selected_pilots = random.sample(all_pilots, num_pilots)
@@ -1126,7 +1397,7 @@ def generate_faker_orders(cursor, min_count=20):
         is_business = random.random() < 0.3 and business_price is not None
         price = business_price if is_business else economy_price
         
-        # Get available seats for this flight
+        # Get available seats for this flight (explicitly exclude canceled orders)
         cursor.execute("""
             SELECT s.row_number, s.column_number FROM Seat s
             WHERE s.aircraft_id = %s AND s.is_business = %s
@@ -1135,6 +1406,7 @@ def generate_faker_orders(cursor, min_count=20):
                 FROM Order_Seats os
                 JOIN Order_Table ot ON os.order_code = ot.order_code
                 WHERE ot.source_airport_id = %s AND ot.dest_airport_id = %s AND ot.departure_time = %s
+                AND ot.order_status NOT IN ('Client Cancellation', 'System Cancellation')
             )
             ORDER BY s.row_number, s.column_number
             LIMIT 10
@@ -1150,9 +1422,18 @@ def generate_faker_orders(cursor, min_count=20):
         
         status = random.choice(statuses)
         
-        # Apply 5% cancellation fee for Client Cancellation orders
+        # Validate order status matches flight departure time
+        # 'Completed' orders can only exist for past flights
+        if status == 'Completed' and departure_time > datetime.now():
+            status = 'Active'  # Force Active for future flights
+        
+        # Apply payment rules based on status:
+        # - Client Cancellation: 5% cancellation fee
+        # - System Cancellation: 0 (full refund)
         if status == 'Client Cancellation':
             total_payment = round(total_payment * 0.05)
+        elif status == 'System Cancellation':
+            total_payment = 0  # Full refund for system cancellations
         
         orders.append((order_code, order_date, total_payment, status, customer_email, source_id, dest_id, departure_time))
         
@@ -1166,6 +1447,17 @@ def generate_faker_orders(cursor, min_count=20):
         try:
             cursor.execute(query, order)
             inserted_count += 1
+            
+            # If System Cancellation, also cancel the corresponding flight
+            if order[3] == 'System Cancellation':  # order[3] is order_status
+                cursor.execute("""
+                    UPDATE Flight 
+                    SET flight_status = 'Canceled'
+                    WHERE source_airport_id = %s 
+                    AND dest_airport_id = %s 
+                    AND departure_time = %s
+                    AND flight_status != 'Canceled'
+                """, (order[5], order[6], order[7]))  # order[5]=source_id, order[6]=dest_id, order[7]=departure_time
         except mysql.connector.errors.IntegrityError:
             pass  # Duplicate order code, skip
     
@@ -1201,6 +1493,7 @@ def generate_faker_orders(cursor, min_count=20):
                     FROM Order_Seats os
                     JOIN Order_Table ot ON os.order_code = ot.order_code
                     WHERE ot.source_airport_id = %s AND ot.dest_airport_id = %s AND ot.departure_time = %s
+                    AND ot.order_status NOT IN ('Client Cancellation', 'System Cancellation')
                 )
                 LIMIT 1
             """, (aircraft_id, is_business, source_id, dest_id, departure_time))
@@ -1214,14 +1507,35 @@ def generate_faker_orders(cursor, min_count=20):
                 )
                 status = random.choice(statuses)
                 
-                # Apply 5% cancellation fee for Client Cancellation orders
+                # Validate order status matches flight departure time
+                # 'Completed' orders can only exist for past flights
+                if status == 'Completed' and departure_time > datetime.now():
+                    status = 'Active'  # Force Active for future flights
+                
+                # Apply payment rules based on status:
+                # - Client Cancellation: 5% cancellation fee
+                # - System Cancellation: 0 (full refund)
                 final_price = price
                 if status == 'Client Cancellation':
                     final_price = round(price * 0.05)
+                elif status == 'System Cancellation':
+                    final_price = 0  # Full refund for system cancellations
                 
                 try:
                     cursor.execute(query, (order_code, order_date, final_price, status, customer_email, source_id, dest_id, departure_time))
                     cursor.execute(query_seats, (order_code, aircraft_id, is_business, row_num, col_num))
+                    
+                    # If System Cancellation, also cancel the corresponding flight
+                    if status == 'System Cancellation':
+                        cursor.execute("""
+                            UPDATE Flight 
+                            SET flight_status = 'Canceled'
+                            WHERE source_airport_id = %s 
+                            AND dest_airport_id = %s 
+                            AND departure_time = %s
+                            AND flight_status != 'Canceled'
+                        """, (source_id, dest_id, departure_time))
+                    
                     final_count += 1
                 except mysql.connector.errors.IntegrityError:
                     pass
@@ -1354,6 +1668,134 @@ def create_fully_booked_flights(cursor):
             # Skip if there's a conflict
             pass
 
+def validate_orders_for_canceled_flights(cursor):
+    """
+    Validate that all orders for canceled flights are marked as System Cancellation with payment = 0.
+    """
+    print("Validating orders for canceled flights...")
+    cursor.execute("""
+        UPDATE Order_Table O
+        JOIN Flight F ON O.source_airport_id = F.source_airport_id
+            AND O.dest_airport_id = F.dest_airport_id
+            AND O.departure_time = F.departure_time
+        SET O.order_status = 'System Cancellation',
+            O.total_payment = 0
+        WHERE F.flight_status = 'Canceled'
+        AND O.order_status = 'Active'
+    """)
+    updated_count = cursor.rowcount
+    if updated_count > 0:
+        print(f"  Updated {updated_count} orders for canceled flights to System Cancellation")
+
+def update_orders_for_past_flights(cursor):
+    """
+    Update all Active orders for past flights to Completed status.
+    """
+    print("Updating orders for past flights...")
+    cursor.execute("""
+        UPDATE Order_Table
+        SET order_status = 'Completed'
+        WHERE order_status = 'Active'
+        AND departure_time < NOW()
+    """)
+    updated_count = cursor.rowcount
+    if updated_count > 0:
+        print(f"  Updated {updated_count} orders for past flights to Completed")
+
+def validate_order_flight_relationships(cursor):
+    """
+    Comprehensive validation of order-flight relationships.
+    Ensures:
+    - No Completed orders for future flights
+    - All System Cancellation orders have corresponding Canceled flights
+    - All orders for canceled flights are System Cancellation
+    - All orders for past flights are Completed
+    """
+    print("Validating order-flight relationships...")
+    
+    # Check 1: No Completed orders for future flights
+    cursor.execute("""
+        SELECT COUNT(*) FROM Order_Table
+        WHERE order_status = 'Completed'
+        AND departure_time > NOW()
+    """)
+    invalid_completed = cursor.fetchone()[0]
+    if invalid_completed > 0:
+        print(f"  WARNING: Found {invalid_completed} Completed orders for future flights")
+        cursor.execute("""
+            UPDATE Order_Table
+            SET order_status = 'Active'
+            WHERE order_status = 'Completed'
+            AND departure_time > NOW()
+        """)
+        print(f"  Fixed: Updated {cursor.rowcount} orders to Active")
+    
+    # Check 2: All System Cancellation orders should have Canceled flights
+    cursor.execute("""
+        SELECT COUNT(*) FROM Order_Table O
+        LEFT JOIN Flight F ON O.source_airport_id = F.source_airport_id
+            AND O.dest_airport_id = F.dest_airport_id
+            AND O.departure_time = F.departure_time
+        WHERE O.order_status = 'System Cancellation'
+        AND (F.flight_status IS NULL OR F.flight_status != 'Canceled')
+    """)
+    invalid_system_cancel = cursor.fetchone()[0]
+    if invalid_system_cancel > 0:
+        print(f"  WARNING: Found {invalid_system_cancel} System Cancellation orders without Canceled flights")
+        cursor.execute("""
+            UPDATE Flight F
+            JOIN Order_Table O ON F.source_airport_id = O.source_airport_id
+                AND F.dest_airport_id = O.dest_airport_id
+                AND F.departure_time = O.departure_time
+            SET F.flight_status = 'Canceled'
+            WHERE O.order_status = 'System Cancellation'
+            AND F.flight_status != 'Canceled'
+        """)
+        print(f"  Fixed: Updated {cursor.rowcount} flights to Canceled")
+    
+    # Check 3: All orders for canceled flights should be System Cancellation
+    cursor.execute("""
+        SELECT COUNT(*) FROM Order_Table O
+        JOIN Flight F ON O.source_airport_id = F.source_airport_id
+            AND O.dest_airport_id = F.dest_airport_id
+            AND O.departure_time = F.departure_time
+        WHERE F.flight_status = 'Canceled'
+        AND O.order_status != 'System Cancellation'
+    """)
+    invalid_canceled_flight_orders = cursor.fetchone()[0]
+    if invalid_canceled_flight_orders > 0:
+        print(f"  WARNING: Found {invalid_canceled_flight_orders} orders for Canceled flights that are not System Cancellation")
+        cursor.execute("""
+            UPDATE Order_Table O
+            JOIN Flight F ON O.source_airport_id = F.source_airport_id
+                AND O.dest_airport_id = F.dest_airport_id
+                AND O.departure_time = F.departure_time
+            SET O.order_status = 'System Cancellation',
+                O.total_payment = 0
+            WHERE F.flight_status = 'Canceled'
+            AND O.order_status != 'System Cancellation'
+        """)
+        print(f"  Fixed: Updated {cursor.rowcount} orders to System Cancellation")
+    
+    # Check 4: All orders for past flights should be Completed
+    cursor.execute("""
+        SELECT COUNT(*) FROM Order_Table
+        WHERE order_status = 'Active'
+        AND departure_time < NOW()
+    """)
+    invalid_past_orders = cursor.fetchone()[0]
+    if invalid_past_orders > 0:
+        print(f"  WARNING: Found {invalid_past_orders} Active orders for past flights")
+        cursor.execute("""
+            UPDATE Order_Table
+            SET order_status = 'Completed'
+            WHERE order_status = 'Active'
+            AND departure_time < NOW()
+        """)
+        print(f"  Fixed: Updated {cursor.rowcount} orders to Completed")
+    
+    print("  Order-flight relationship validation complete")
+
 def update_flight_statuses_realistic(cursor):
     """Update flight statuses to reflect reality based on seat availability and departure time."""
     # Import the update function from flight_service
@@ -1444,6 +1886,7 @@ def generate_all_fake_data(drop_schema=True):
         insert_seed_routes(cursor)
         insert_seed_aircraft(cursor)
         insert_seed_aircraft_classes(cursor)
+        validate_aircraft_class_rules(cursor)  # Ensure seed data follows business rules
         insert_seed_seats(cursor)
         insert_seed_employees(cursor)
         insert_seed_flight_crew(cursor)
@@ -1465,6 +1908,7 @@ def generate_all_fake_data(drop_schema=True):
         generate_faker_routes(cursor, min_count=20)
         generate_faker_aircraft(cursor, min_count=50)
         generate_faker_aircraft_classes(cursor)
+        validate_aircraft_class_rules(cursor)  # Ensure business rules are enforced
         generate_faker_seats(cursor)
         generate_faker_employees(cursor, min_count=20)
         generate_faker_flight_crew(cursor)
@@ -1479,9 +1923,19 @@ def generate_all_fake_data(drop_schema=True):
         print("Creating Fully Booked flights...")
         create_fully_booked_flights(cursor)
         
+        # Run validation functions to ensure data consistency
+        print("\n--- VALIDATING DATA CONSISTENCY ---")
+        validate_orders_for_canceled_flights(cursor)
+        update_orders_for_past_flights(cursor)
+        validate_order_flight_relationships(cursor)
+        
         # Update all flight statuses to reflect reality
         print("Updating flight statuses to reflect reality...")
         update_flight_statuses_realistic(cursor)
+        
+        # Final validation pass after status updates
+        print("Running final validation pass...")
+        validate_order_flight_relationships(cursor)
         
         conn.commit()
         print("\n--- FAKER DATA GENERATED ---\n")
