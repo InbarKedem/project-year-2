@@ -15,11 +15,14 @@ def login():
             
             user = query_db('SELECT * FROM Manager WHERE id_number = %s AND password = %s', (id_number, password), one=True)
             if user:
-                # Fetch employee details for the name
+                # Fetch employee details for the name (may be missing in some datasets)
                 emp = query_db('SELECT * FROM Employee WHERE id_number = %s', (id_number,), one=True)
                 session['user_id'] = id_number
                 session['role'] = 'manager'
-                session['name'] = f"{emp['first_name']} {emp['last_name']}"
+                if emp:
+                    session['name'] = f"{emp['first_name']} {emp['last_name']}"
+                else:
+                    session['name'] = f"Manager {id_number}"
                 flash('Logged in successfully as Manager!', 'success')
                 return redirect(url_for('manager.manager_dashboard'))
             else:
