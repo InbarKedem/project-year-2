@@ -47,9 +47,11 @@
           <li>
             <a href="{{ url_for('customer.index') }}" class="nav__link">Home</a>
           </li>
+          {% if session.get('role') != 'manager' %}
           <li>
             <a href="{{ url_for('customer.track_order') }}" class="nav__link">Track Order</a>
           </li>
+          {% endif %}
           {% if session.get('role') == 'manager' %}
           <li>
             <a
