@@ -14,13 +14,8 @@
   <div class="card report-card">
     <h3>Average Flight Occupancy</h3>
     <p>Average occupancy of flights that took place.</p>
-    {% if occupancy_chart %}
+  {% if occupancy_chart or occupancy_report %}
     <div class="chart-container" id="occupancy-chart"></div>
-    {% elif occupancy_report %}
-    <div class="reports-empty-state">
-      <p><strong>No chart data available</strong></p>
-      <p>Chart could not be generated, but data exists.</p>
-    </div>
     {% else %}
     <div class="reports-empty-state">
       <p><strong>No data available</strong></p>
@@ -75,14 +70,9 @@
   <div class="card report-card">
     <h3>Employee Flight Hours</h3>
     <p>All employees by accumulated flight hours. Horizontal bars with vertical scrolling.</p>
-    {% if employee_hours_chart %}
+  {% if employee_hours_chart or employee_hours_report %}
     <div style="width: 100%; height: 800px; overflow-y: auto; overflow-x: hidden;">
       <div class="chart-container" id="employee-hours-chart"></div>
-    </div>
-    {% elif employee_hours_report %}
-    <div class="reports-empty-state">
-      <p><strong>No chart data available</strong></p>
-      <p>Chart could not be generated, but data exists.</p>
     </div>
     {% else %}
     <div class="reports-empty-state">
@@ -96,13 +86,8 @@
   <div class="card report-card">
     <h3>Monthly Cancellation Rate</h3>
     <p>Monthly analysis of order cancellations and cancellation rates.</p>
-    {% if cancellation_chart %}
+  {% if cancellation_chart or cancellation_report %}
     <div class="chart-container" id="cancellation-chart"></div>
-    {% elif cancellation_report %}
-    <div class="reports-empty-state">
-      <p><strong>No chart data available</strong></p>
-      <p>Chart could not be generated, but data exists.</p>
-    </div>
     {% else %}
     <div class="reports-empty-state">
       <p><strong>No data available</strong></p>
@@ -115,14 +100,9 @@
   <div class="card report-card">
     <h3>Plane Monthly Activity</h3>
     <p>Horizontal bar chart showing total flights performed (green) and cancelled (red) per aircraft. Scroll vertically to view all aircraft.</p>
-    {% if plane_activity_chart %}
+  {% if plane_activity_chart or plane_activity_report %}
     <div style="width: 100%; height: 800px; overflow-y: auto; overflow-x: hidden;">
       <div class="chart-container" id="plane-activity-chart"></div>
-    </div>
-    {% elif plane_activity_report %}
-    <div class="reports-empty-state">
-      <p><strong>No chart data available</strong></p>
-      <p>Chart could not be generated, but data exists.</p>
     </div>
     {% else %}
     <div class="reports-empty-state">
@@ -155,6 +135,74 @@
   {% if occupancy_chart %}
   var occupancyData = {{ occupancy_chart|safe }};
   Plotly.newPlot('occupancy-chart', occupancyData.data, occupancyData.layout, plotlyConfig);
+  {% elif occupancy_report %}
+  var occupancyReport = {{ occupancy_report|tojson|safe }};
+  var avgOccupancy = 0;
+  if (occupancyReport.length > 0 && occupancyReport[0].avg_occupancy_rate !== null) {
+    avgOccupancy = parseFloat(occupancyReport[0].avg_occupancy_rate) * 100;
+  }
+  var occupancyColor = '#dc3545';
+  if (avgOccupancy >= 80) {
+    occupancyColor = '#28a745';
+  } else if (avgOccupancy >= 60) {
+    occupancyColor = '#ffc107';
+  } else if (avgOccupancy >= 40) {
+    occupancyColor = '#fd7e14';
+  }
+  var occupancyFig = {
+    data: [{
+      type: 'indicator',
+      mode: 'gauge+number+delta',
+      value: avgOccupancy,
+      domain: {x: [0, 1], y: [0, 1]},
+      number: {
+        suffix: '%',
+        font: {size: 50, family: 'Montserrat, sans-serif', color: occupancyColor}
+      },
+      delta: {
+        reference: 75,
+        increasing: {color: '#28a745'},
+        decreasing: {color: '#dc3545'},
+        position: 'bottom'
+      },
+      gauge: {
+        axis: {range: [null, 100], tickwidth: 2, tickcolor: '#2c3e50'},
+        bar: {color: occupancyColor, thickness: 0.75},
+        bgcolor: 'white',
+        borderwidth: 2,
+        bordercolor: '#e0e0e0',
+        steps: [
+          {range: [0, 40], color: 'rgba(220, 53, 69, 0.15)'},
+          {range: [40, 60], color: 'rgba(253, 126, 20, 0.15)'},
+          {range: [60, 80], color: 'rgba(255, 193, 7, 0.15)'},
+          {range: [80, 100], color: 'rgba(40, 167, 69, 0.15)'}
+        ],
+        threshold: {
+          line: {color: '#6c757d', width: 3},
+          thickness: 0.75,
+          value: 75
+        }
+      }
+    }],
+    layout: {
+      plot_bgcolor: 'white',
+      paper_bgcolor: 'white',
+      font: {family: 'Open Sans, sans-serif', size: 12},
+      margin: {l: 40, r: 40, t: 20, b: 60},
+      height: 400,
+      showlegend: false,
+      annotations: [{
+        text: '<b>Target: 75%</b>',
+        x: 0.5,
+        y: -0.15,
+        xref: 'paper',
+        yref: 'paper',
+        showarrow: false,
+        font: {size: 16, color: '#2c3e50', family: 'Montserrat, sans-serif', weight: 'bold'}
+      }]
+    }
+  };
+  Plotly.newPlot('occupancy-chart', occupancyFig.data, occupancyFig.layout, plotlyConfig);
   {% endif %}
 
   {% if revenue_report %}
@@ -291,17 +339,291 @@
 
   {% if employee_hours_chart %}
   var employeeHoursData = {{ employee_hours_chart|safe }};
+  function mapRoleInLabel(label) {
+    if (!label) {
+      return label;
+    }
+    return label
+      .replace(/\(Attendant\)/gi, '(דייל)')
+      .replace(/\(Pilot\)/gi, '(טייס)');
+  }
+  if (employeeHoursData && Array.isArray(employeeHoursData.data)) {
+    employeeHoursData.data.forEach(function(trace) {
+      if (Array.isArray(trace.y)) {
+        trace.y = trace.y.map(mapRoleInLabel);
+      }
+    });
+  }
   Plotly.newPlot('employee-hours-chart', employeeHoursData.data, employeeHoursData.layout, plotlyConfig);
+  {% elif employee_hours_report %}
+  var employeeHoursReport = {{ employee_hours_report|tojson|safe }};
+  employeeHoursReport.sort(function(a, b) {
+    return (parseFloat(b.total_hours) || 0) - (parseFloat(a.total_hours) || 0);
+  });
+  function mapRole(roleValue) {
+    if (roleValue === null || roleValue === undefined) {
+      return roleValue;
+    }
+    var roleText = String(roleValue).trim();
+    var roleKey = roleText.toLowerCase();
+    if (roleKey === 'pilot' || roleKey === 'טייס') {
+      return 'טייס';
+    }
+    if (roleKey === 'attendant' || roleKey === 'flight attendant' || roleKey === 'דייל') {
+      return 'דייל';
+    }
+    return roleText;
+  }
+  var employeeNames = employeeHoursReport.map(function(row) {
+    return row.first_name + ' ' + row.last_name + ' (' + mapRole(row.role) + ')';
+  });
+  var shortHours = employeeHoursReport.map(function(row) {
+    return parseFloat(row.short_hours) || 0;
+  });
+  var longHours = employeeHoursReport.map(function(row) {
+    return parseFloat(row.long_hours) || 0;
+  });
+  var employeeHoursLayout = {
+    barmode: 'stack',
+    bargap: 0.15,
+    plot_bgcolor: 'white',
+    paper_bgcolor: 'white',
+    font: {family: 'Open Sans, sans-serif', size: 13},
+    margin: {l: 150, r: 40, t: 6, b: 80},
+    height: Math.max(800, employeeNames.length * 80),
+    xaxis: {
+      title: 'Flight Hours',
+      title_font: {size: 16},
+      tickfont: {size: 13},
+      gridcolor: '#e0e0e0'
+    },
+    yaxis: {
+      title: 'Employee',
+      title_font: {size: 16},
+      tickfont: {size: 13},
+      autorange: 'reversed'
+    },
+    legend: {
+      orientation: 'h',
+      yanchor: 'bottom',
+      y: 1.0,
+      xanchor: 'right',
+      x: 1,
+      font: {size: 13}
+    },
+    hovermode: 'y unified',
+    uniformtext: {minsize: 11, mode: 'hide'},
+    hoverlabel: {
+      bgcolor: 'white',
+      bordercolor: '#2c3e50',
+      font_size: 13,
+      font_family: 'Open Sans, sans-serif'
+    }
+  };
+  var employeeHoursTraces = [
+    {
+      name: 'Short Flights (≤6h)',
+      y: employeeNames,
+      x: shortHours,
+      orientation: 'h',
+      type: 'bar',
+      marker: {color: '#3498db', line: {width: 0}},
+      texttemplate: '%{x:.1f}h',
+      textposition: 'inside',
+      textfont: {size: 11, color: 'white'},
+      insidetextanchor: 'middle',
+      constraintext: 'inside',
+      hovertemplate: '<b>%{y}</b><br>Short Flights: %{x:.1f}h<extra></extra>'
+    },
+    {
+      name: 'Long Flights (>6h)',
+      y: employeeNames,
+      x: longHours,
+      orientation: 'h',
+      type: 'bar',
+      marker: {color: '#e67e22', line: {width: 0}},
+      texttemplate: '%{x:.1f}h',
+      textposition: 'inside',
+      textfont: {size: 11, color: 'white'},
+      insidetextanchor: 'middle',
+      constraintext: 'inside',
+      hovertemplate: '<b>%{y}</b><br>Long Flights: %{x:.1f}h<extra></extra>'
+    }
+  ];
+  Plotly.newPlot('employee-hours-chart', employeeHoursTraces, employeeHoursLayout, plotlyConfig);
   {% endif %}
 
   {% if cancellation_chart %}
   var cancellationData = {{ cancellation_chart|safe }};
   Plotly.newPlot('cancellation-chart', cancellationData.data, cancellationData.layout, plotlyConfig);
+  {% elif cancellation_report %}
+  var cancellationReport = {{ cancellation_report|tojson|safe }};
+  cancellationReport.sort(function(a, b) {
+    return a.month.localeCompare(b.month);
+  });
+  var monthLabels = cancellationReport.map(function(row) {
+    if (!row.month) return '';
+    var parts = row.month.split('-');
+    if (parts.length !== 2) return row.month;
+    var dt = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, 1);
+    return dt.toLocaleString('en-US', {month: 'short', year: 'numeric'});
+  });
+  var totalOrders = cancellationReport.map(function(row) {
+    return parseInt(row.total_orders, 10) || 0;
+  });
+  var cancelledOrders = cancellationReport.map(function(row) {
+    return parseInt(row.cancelled_orders, 10) || 0;
+  });
+  var activeOrders = totalOrders.map(function(total, idx) {
+    return total - cancelledOrders[idx];
+  });
+  var cancellationRates = cancellationReport.map(function(row) {
+    return parseFloat(row.cancellation_rate) || 0;
+  });
+  var cancellationTraces = [
+    {
+      name: 'Active Orders',
+      x: monthLabels,
+      y: activeOrders,
+      type: 'bar',
+      marker: {color: '#28a745', opacity: 0.8, line: {color: 'white', width: 1.5}},
+      hovertemplate: '<b>%{x}</b><br>Active Orders: %{y}<extra></extra>'
+    },
+    {
+      name: 'Cancelled Orders',
+      x: monthLabels,
+      y: cancelledOrders,
+      type: 'bar',
+      marker: {color: '#e74c3c', opacity: 0.8, line: {color: 'white', width: 1.5}},
+      hovertemplate: '<b>%{x}</b><br>Cancelled Orders: %{y}<extra></extra>'
+    },
+    {
+      name: 'Cancellation Rate',
+      x: monthLabels,
+      y: cancellationRates,
+      type: 'scatter',
+      yaxis: 'y2',
+      mode: 'lines+markers+text',
+      marker: {color: '#ffc107', size: 12, line: {color: 'white', width: 2}},
+      line: {color: '#ffc107', width: 3, dash: 'dash'},
+      text: cancellationRates.map(function(rate) { return rate.toFixed(1) + '%'; }),
+      textposition: 'top center',
+      textfont: {size: 11, color: '#f39c12', family: 'Open Sans, sans-serif', weight: 'bold'},
+      hovertemplate: '<b>%{x}</b><br>Cancellation Rate: %{y:.1f}%<extra></extra>'
+    }
+  ];
+  var cancellationLayout = {
+    plot_bgcolor: 'white',
+    paper_bgcolor: 'white',
+    font: {family: 'Open Sans, sans-serif', size: 11},
+    margin: {l: 80, r: 80, t: 40, b: 80},
+    height: 550,
+    barmode: 'stack',
+    bargap: 0.15,
+    legend: {orientation: 'h', yanchor: 'top', y: 0.98, xanchor: 'right', x: 1},
+    hovermode: 'x unified',
+    hoverlabel: {
+      bgcolor: 'white',
+      bordercolor: '#2c3e50',
+      font_size: 12,
+      font_family: 'Open Sans, sans-serif'
+    },
+    xaxis: {
+      title: {text: 'חודש / Month', font: {size: 13, family: 'Open Sans, sans-serif', color: '#2c3e50'}},
+      tickangle: 0
+    },
+    yaxis: {
+      title: {text: 'מספר הזמנות / Number of Orders', font: {size: 13, family: 'Open Sans, sans-serif', color: '#2c3e50'}}
+    },
+    yaxis2: {
+      title: {text: 'שיעור ביטול (%) / Cancellation Rate (%)', font: {size: 13, family: 'Open Sans, sans-serif', color: '#2c3e50'}},
+      overlaying: 'y',
+      side: 'right'
+    }
+  };
+  Plotly.newPlot('cancellation-chart', cancellationTraces, cancellationLayout, plotlyConfig);
   {% endif %}
 
   {% if plane_activity_chart %}
   var planeActivityData = {{ plane_activity_chart|safe }};
   Plotly.newPlot('plane-activity-chart', planeActivityData.data, planeActivityData.layout, plotlyConfig);
+  {% elif plane_activity_report %}
+  var planeActivityReport = {{ plane_activity_report|tojson|safe }};
+  var aircraftMap = {};
+  planeActivityReport.forEach(function(row) {
+    var aircraftId = row.aircraft_id;
+    if (!aircraftMap[aircraftId]) {
+      aircraftMap[aircraftId] = {performed: 0, cancelled: 0};
+    }
+    aircraftMap[aircraftId].performed += parseInt(row.flights_performed, 10) || 0;
+    aircraftMap[aircraftId].cancelled += parseInt(row.flights_cancelled, 10) || 0;
+  });
+  var aircraftStats = Object.keys(aircraftMap).map(function(key) {
+    var stats = aircraftMap[key];
+    return {id: key, performed: stats.performed, cancelled: stats.cancelled, total: stats.performed + stats.cancelled};
+  }).sort(function(a, b) {
+    return b.total - a.total;
+  });
+  var aircraftNames = aircraftStats.map(function(row) { return 'Aircraft ' + row.id; });
+  var performedCounts = aircraftStats.map(function(row) { return row.performed; });
+  var cancelledCounts = aircraftStats.map(function(row) { return row.cancelled; });
+  var planeActivityLayout = {
+    barmode: 'stack',
+    bargap: 0.15,
+    plot_bgcolor: 'white',
+    paper_bgcolor: 'white',
+    font: {family: 'Open Sans, sans-serif', size: 13},
+    margin: {l: 150, r: 80, t: 12, b: 80},
+    height: Math.max(800, aircraftNames.length * 80),
+    xaxis: {
+      title: 'Number of Flights',
+      title_font: {size: 16},
+      gridcolor: '#e0e0e0',
+      tickfont: {size: 13}
+    },
+    yaxis: {
+      title: 'Aircraft',
+      title_font: {size: 16},
+      tickfont: {size: 13},
+      autorange: 'reversed'
+    },
+    legend: {
+      orientation: 'h',
+      yanchor: 'bottom',
+      y: 1.005,
+      xanchor: 'right',
+      x: 1,
+      font: {size: 13}
+    },
+    hovermode: 'y unified'
+  };
+  var planeActivityTraces = [
+    {
+      name: 'Flights Performed',
+      y: aircraftNames,
+      x: performedCounts,
+      orientation: 'h',
+      type: 'bar',
+      marker: {color: '#28a745', line: {width: 0}},
+      text: performedCounts,
+      textposition: 'auto',
+      textfont: {size: 13},
+      hovertemplate: '<b>%{y}</b><br>Performed: %{x}<extra></extra>'
+    },
+    {
+      name: 'Flights Cancelled',
+      y: aircraftNames,
+      x: cancelledCounts,
+      orientation: 'h',
+      type: 'bar',
+      marker: {color: '#dc3545', line: {width: 0}},
+      text: cancelledCounts,
+      textposition: 'auto',
+      textfont: {size: 13},
+      hovertemplate: '<b>%{y}</b><br>Cancelled: %{x}<extra></extra>'
+    }
+  ];
+  Plotly.newPlot('plane-activity-chart', planeActivityTraces, planeActivityLayout, plotlyConfig);
   {% endif %}
 
   // Make charts responsive on window resize
@@ -309,7 +631,7 @@
     {% if occupancy_chart %}
     Plotly.Plots.resize('occupancy-chart');
     {% endif %}
-    {% if revenue_chart %}
+    {% if revenue_report %}
     Plotly.Plots.resize('revenue-chart');
     {% endif %}
     {% if employee_hours_chart %}
