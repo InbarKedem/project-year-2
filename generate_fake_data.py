@@ -1988,6 +1988,341 @@ def validate_orders_for_canceled_flights(cursor):
     if updated_count > 0:
         print(f"  Updated {updated_count} orders for canceled flights to System Cancellation")
 
+def ensure_test_users_have_data(cursor):
+    """
+    Ensure the first manager (111111111) and first customer (reg1@test.com) have comprehensive data.
+    
+    For Customer reg1@test.com:
+    - Creates 5-10 orders with various statuses (Active, Completed, Client Cancellation, System Cancellation)
+    - Ensures orders span different flights, dates, and seat classes
+    
+    For Manager Reports (system-wide):
+    - Verifies sufficient data exists for all report types
+    - Creates additional data if needed
+    """
+    print("\n--- ENSURING TEST USERS HAVE COMPLETE DATA ---")
+    
+    test_customer_email = 'reg1@test.com'
+    
+    # Check current order count for test customer
+    cursor.execute("""
+        SELECT COUNT(*) FROM Order_Table WHERE customer_email = %s
+    """, (test_customer_email,))
+    current_order_count = cursor.fetchone()[0]
+    
+    print(f"Test customer {test_customer_email} currently has {current_order_count} orders")
+    
+    # Target: 8-10 orders with various statuses
+    target_order_count = 8
+    orders_needed = max(0, target_order_count - current_order_count)
+    
+    if orders_needed > 0:
+        print(f"Creating {orders_needed} additional orders for test customer...")
+        
+        # Get max order code
+        cursor.execute("SELECT MAX(order_code) FROM Order_Table")
+        max_order = cursor.fetchone()[0] or 0
+        
+        # Get available flights (past and future)
+        cursor.execute("""
+            SELECT F.source_airport_id, F.dest_airport_id, F.departure_time, F.aircraft_id, 
+                   F.economy_price, F.business_price, F.flight_status
+            FROM Flight F
+            WHERE F.aircraft_id IS NOT NULL
+            ORDER BY F.departure_time
+        """)
+        all_flights = cursor.fetchall()
+        
+        if not all_flights:
+            print("  WARNING: No flights available to create orders")
+            return
+        
+        # Separate past and future flights
+        now = datetime.now()
+        past_flights = [f for f in all_flights if f[2] < now]
+        future_flights = [f for f in all_flights if f[2] > now and f[6] == 'Active']
+        
+        orders_created = 0
+        
+        # Create 2-3 Active orders for future flights (more than 36 hours away)
+        active_orders_needed = min(3, orders_needed)
+        for _ in range(active_orders_needed):
+            if not future_flights:
+                break
+            
+            # Find flights more than 36 hours away
+            suitable_flights = [f for f in future_flights if (f[2] - now).total_seconds() > 36 * 3600]
+            if not suitable_flights:
+                suitable_flights = future_flights
+            
+            flight = random.choice(suitable_flights)
+            source_id, dest_id, departure_time, aircraft_id, economy_price, business_price, flight_status = flight
+            
+            # Get available seats
+            cursor.execute("""
+                SELECT s.row_number, s.column_number, s.is_business
+                FROM Seat s
+                WHERE s.aircraft_id = %s
+                AND (s.aircraft_id, s.is_business, s.row_number, s.column_number) NOT IN (
+                    SELECT os.aircraft_id, os.is_business, os.row_number, os.column_number
+                    FROM Order_Seats os
+                    JOIN Order_Table ot ON os.order_code = ot.order_code
+                    WHERE ot.source_airport_id = %s AND ot.dest_airport_id = %s 
+                    AND ot.departure_time = %s
+                    AND ot.order_status NOT IN ('Client Cancellation', 'System Cancellation')
+                )
+                ORDER BY RAND()
+                LIMIT 3
+            """, (aircraft_id, source_id, dest_id, departure_time))
+            
+            seats = cursor.fetchall()
+            if not seats:
+                continue
+            
+            max_order += 1
+            orders_created += 1
+            orders_needed -= 1
+            
+            # Select 1-2 seats
+            num_seats = min(random.randint(1, 2), len(seats))
+            selected_seats = random.sample(seats, num_seats)
+            
+            # Mix economy and business if possible
+            order_date = fake_en.date_time_between(
+                start_date=departure_time - timedelta(days=60),
+                end_date=departure_time - timedelta(hours=2)
+            )
+            
+            total_payment = sum(
+                (business_price if seat[2] else economy_price)
+                for seat in selected_seats
+            )
+            
+            try:
+                cursor.execute("""
+                    INSERT INTO Order_Table (order_code, order_date, total_payment, order_status, 
+                                           customer_email, source_airport_id, dest_airport_id, departure_time)
+                    VALUES (%s, %s, %s, 'Active', %s, %s, %s, %s)
+                """, (max_order, order_date, total_payment, test_customer_email, source_id, dest_id, departure_time))
+                
+                for seat in selected_seats:
+                    cursor.execute("""
+                        INSERT INTO Order_Seats (order_code, aircraft_id, is_business, `row_number`, `column_number`)
+                        VALUES (%s, %s, %s, %s, %s)
+                    """, (max_order, aircraft_id, seat[2], seat[0], seat[1]))
+            except mysql.connector.errors.IntegrityError:
+                max_order -= 1
+                orders_created -= 1
+                orders_needed += 1
+                continue
+        
+        # Create 2-3 Completed orders for past flights
+        completed_orders_needed = min(3, orders_needed)
+        for _ in range(completed_orders_needed):
+            if not past_flights:
+                break
+            
+            flight = random.choice(past_flights)
+            source_id, dest_id, departure_time, aircraft_id, economy_price, business_price, flight_status = flight
+            
+            # Get seats (can reuse since flight is past)
+            cursor.execute("""
+                SELECT s.row_number, s.column_number, s.is_business
+                FROM Seat s
+                WHERE s.aircraft_id = %s
+                ORDER BY RAND()
+                LIMIT 3
+            """, (aircraft_id,))
+            
+            seats = cursor.fetchall()
+            if not seats:
+                continue
+            
+            max_order += 1
+            orders_created += 1
+            orders_needed -= 1
+            
+            num_seats = min(random.randint(1, 2), len(seats))
+            selected_seats = random.sample(seats, num_seats)
+            
+            order_date = fake_en.date_time_between(
+                start_date=departure_time - timedelta(days=60),
+                end_date=departure_time - timedelta(hours=1)
+            )
+            
+            total_payment = sum(
+                (business_price if seat[2] else economy_price)
+                for seat in selected_seats
+            )
+            
+            try:
+                cursor.execute("""
+                    INSERT INTO Order_Table (order_code, order_date, total_payment, order_status, 
+                                           customer_email, source_airport_id, dest_airport_id, departure_time)
+                    VALUES (%s, %s, %s, 'Completed', %s, %s, %s, %s)
+                """, (max_order, order_date, total_payment, test_customer_email, source_id, dest_id, departure_time))
+                
+                for seat in selected_seats:
+                    cursor.execute("""
+                        INSERT INTO Order_Seats (order_code, aircraft_id, is_business, `row_number`, `column_number`)
+                        VALUES (%s, %s, %s, %s, %s)
+                    """, (max_order, aircraft_id, seat[2], seat[0], seat[1]))
+            except mysql.connector.errors.IntegrityError:
+                max_order -= 1
+                orders_created -= 1
+                orders_needed += 1
+                continue
+        
+        # Create 1 Client Cancellation order
+        if orders_needed > 0 and future_flights:
+            suitable_flights = [f for f in future_flights if (f[2] - now).total_seconds() > 36 * 3600]
+            if not suitable_flights:
+                suitable_flights = future_flights
+            
+            if suitable_flights:
+                flight = random.choice(suitable_flights)
+                source_id, dest_id, departure_time, aircraft_id, economy_price, business_price, flight_status = flight
+                
+                cursor.execute("""
+                    SELECT s.row_number, s.column_number, s.is_business
+                    FROM Seat s
+                    WHERE s.aircraft_id = %s
+                    ORDER BY RAND()
+                    LIMIT 1
+                """, (aircraft_id,))
+                
+                seat = cursor.fetchone()
+                if seat:
+                    max_order += 1
+                    orders_created += 1
+                    orders_needed -= 1
+                    
+                    price = business_price if seat[2] else economy_price
+                    cancellation_fee = price * 0.05  # 5% fee
+                    
+                    order_date = fake_en.date_time_between(
+                        start_date=departure_time - timedelta(days=60),
+                        end_date=departure_time - timedelta(days=2)
+                    )
+                    
+                    try:
+                        cursor.execute("""
+                            INSERT INTO Order_Table (order_code, order_date, total_payment, order_status, 
+                                                   customer_email, source_airport_id, dest_airport_id, departure_time)
+                            VALUES (%s, %s, %s, 'Client Cancellation', %s, %s, %s, %s)
+                        """, (max_order, order_date, cancellation_fee, test_customer_email, source_id, dest_id, departure_time))
+                        
+                        cursor.execute("""
+                            INSERT INTO Order_Seats (order_code, aircraft_id, is_business, `row_number`, `column_number`)
+                            VALUES (%s, %s, %s, %s, %s)
+                        """, (max_order, aircraft_id, seat[2], seat[0], seat[1]))
+                    except mysql.connector.errors.IntegrityError:
+                        max_order -= 1
+                        orders_created -= 1
+                        orders_needed += 1
+        
+        # Create 1 System Cancellation order (if canceled flight exists)
+        if orders_needed > 0:
+            cursor.execute("""
+                SELECT F.source_airport_id, F.dest_airport_id, F.departure_time, F.aircraft_id, 
+                       F.economy_price, F.business_price
+                FROM Flight F
+                WHERE F.flight_status = 'Canceled' AND F.aircraft_id IS NOT NULL
+                ORDER BY RAND()
+                LIMIT 1
+            """)
+            canceled_flight = cursor.fetchone()
+            
+            if canceled_flight:
+                source_id, dest_id, departure_time, aircraft_id, economy_price, business_price = canceled_flight
+                
+                cursor.execute("""
+                    SELECT s.row_number, s.column_number, s.is_business
+                    FROM Seat s
+                    WHERE s.aircraft_id = %s
+                    ORDER BY RAND()
+                    LIMIT 1
+                """, (aircraft_id,))
+                
+                seat = cursor.fetchone()
+                if seat:
+                    max_order += 1
+                    orders_created += 1
+                    orders_needed -= 1
+                    
+                    order_date = fake_en.date_time_between(
+                        start_date=departure_time - timedelta(days=60),
+                        end_date=departure_time - timedelta(days=1)
+                    )
+                    
+                    try:
+                        cursor.execute("""
+                            INSERT INTO Order_Table (order_code, order_date, total_payment, order_status, 
+                                                   customer_email, source_airport_id, dest_airport_id, departure_time)
+                            VALUES (%s, %s, 0, 'System Cancellation', %s, %s, %s, %s)
+                        """, (max_order, order_date, test_customer_email, source_id, dest_id, departure_time))
+                        
+                        cursor.execute("""
+                            INSERT INTO Order_Seats (order_code, aircraft_id, is_business, `row_number`, `column_number`)
+                            VALUES (%s, %s, %s, %s, %s)
+                        """, (max_order, aircraft_id, seat[2], seat[0], seat[1]))
+                    except mysql.connector.errors.IntegrityError:
+                        max_order -= 1
+                        orders_created -= 1
+                        orders_needed += 1
+        
+        print(f"  Created {orders_created} additional orders for test customer")
+    
+    # Verify system-wide data for manager reports
+    print("\nVerifying system-wide data for manager reports...")
+    
+    # Check occupancy report data
+    cursor.execute("""
+        SELECT COUNT(*) FROM Flight F
+        WHERE F.departure_time < NOW() 
+        AND F.flight_status = 'Completed'
+        AND EXISTS (
+            SELECT 1 FROM Order_Table O
+            WHERE O.source_airport_id = F.source_airport_id
+            AND O.dest_airport_id = F.dest_airport_id
+            AND O.departure_time = F.departure_time
+        )
+    """)
+    occupancy_flights = cursor.fetchone()[0]
+    print(f"  Occupancy report: {occupancy_flights} completed flights with orders")
+    
+    # Check employee hours report data
+    cursor.execute("""
+        SELECT COUNT(DISTINCT E.id_number) FROM Employee E
+        JOIN Flight_Crew FC ON E.id_number = FC.id_number
+        JOIN Employee_Flight_Assignment EFA ON E.id_number = EFA.employee_id
+        JOIN Flight F ON EFA.source_airport_id = F.source_airport_id 
+                      AND EFA.dest_airport_id = F.dest_airport_id 
+                      AND EFA.departure_time = F.departure_time
+        WHERE F.flight_status != 'Canceled'
+    """)
+    employees_with_hours = cursor.fetchone()[0]
+    print(f"  Employee hours report: {employees_with_hours} employees with flight assignments")
+    
+    # Check cancellation report data
+    cursor.execute("""
+        SELECT COUNT(DISTINCT DATE_FORMAT(order_date, '%Y-%m')) 
+        FROM Order_Table
+        WHERE order_status IN ('System Cancellation', 'Client Cancellation')
+    """)
+    cancellation_months = cursor.fetchone()[0]
+    print(f"  Cancellation report: {cancellation_months} months with cancellations")
+    
+    # Check plane activity report data
+    cursor.execute("""
+        SELECT COUNT(DISTINCT DATE_FORMAT(departure_time, '%Y-%m'))
+        FROM Flight
+    """)
+    activity_months = cursor.fetchone()[0]
+    print(f"  Plane activity report: {activity_months} months with flight data")
+    
+    print("Test users data verification complete!")
+
 def update_orders_for_past_flights(cursor):
     """
     Update all Active orders for past flights to Completed status.
@@ -2228,6 +2563,9 @@ def generate_all_fake_data(drop_schema=True):
         # Generate additional test data for manager reports dashboard
         print("\n--- GENERATING TEST DATA FOR REPORTS ---")
         generate_test_data_for_reports(cursor)
+        
+        # Ensure test users have complete data
+        ensure_test_users_have_data(cursor)
         
         # Run validation functions to ensure data consistency
         print("\n--- VALIDATING DATA CONSISTENCY ---")
