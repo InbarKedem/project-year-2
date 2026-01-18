@@ -11,110 +11,91 @@ except ImportError:
     make_subplots = None
 
 def generate_occupancy_chart(occupancy_data):
-    """Generate interactive vertical bar chart for flight occupancy - each column represents a flight"""
+    """Generate interactive gauge/indicator chart for average flight occupancy"""
     if not PLOTLY_AVAILABLE or not occupancy_data:
         return None
     
-    # Prepare data
-    flight_labels = []
-    occupancy_values = []
-    colors = []
+    # Extract the average occupancy rate (new query returns single row with avg_occupancy_rate)
+    avg_occupancy = 0
+    if occupancy_data and len(occupancy_data) > 0:
+        # Convert from decimal (0.0-1.0) to percentage (0-100)
+        avg_occupancy = float(occupancy_data[0].get('avg_occupancy_rate', 0)) * 100
     
-    for row in occupancy_data:
-        source = row.get('source', 'Unknown')
-        dest = row.get('dest', 'Unknown')
-        departure_time = row.get('departure_time')
-        
-        # Format flight label - include route and date if available
-        if departure_time:
-            try:
-                # Try to parse and format the date
-                if isinstance(departure_time, str):
-                    from datetime import datetime
-                    # Handle different datetime formats
-                    if '.' in departure_time:
-                        dt = datetime.strptime(departure_time.split('.')[0], '%Y-%m-%d %H:%M:%S')
-                    else:
-                        dt = datetime.strptime(departure_time, '%Y-%m-%d %H:%M:%S')
-                    date_str = dt.strftime('%m/%d/%Y')
-                else:
-                    date_str = str(departure_time)[:10]
-                # Format label with line breaks for better display
-                # Plotly supports <br> for line breaks
-                flight_label = f"{source}<br>→ {dest}<br>{date_str}"
-            except Exception as e:
-                # Fallback to simple label if date parsing fails
-                flight_label = f"{source} → {dest}"
-        else:
-            flight_label = f"{source} → {dest}"
-        
-        flight_labels.append(flight_label)
-        occupancy = float(row['occupancy_percentage']) if row.get('occupancy_percentage') is not None else 0
-        occupancy_values.append(occupancy)
-        
-        # Color coding based on occupancy
-        if occupancy >= 80:
-            colors.append('#28a745')  # Green for high
-        elif occupancy >= 50:
-            colors.append('#ffc107')  # Orange for medium
-        else:
-            colors.append('#dc3545')  # Red for low
+    # Color coding based on occupancy level
+    if avg_occupancy >= 80:
+        color = '#28a745'  # Green for high
+        status = 'Excellent'
+    elif avg_occupancy >= 60:
+        color = '#ffc107'  # Yellow for good
+        status = 'Good'
+    elif avg_occupancy >= 40:
+        color = '#fd7e14'  # Orange for medium
+        status = 'Moderate'
+    else:
+        color = '#dc3545'  # Red for low
+        status = 'Low'
     
-    # Create vertical bar chart (columns)
+    # Create a gauge/indicator chart
     fig = go.Figure()
     
-    fig.add_trace(go.Bar(
-        x=flight_labels,
-        y=occupancy_values,
-        orientation='v',
-        marker=dict(
-            color=colors,
-            line=dict(color='white', width=2),
-            opacity=0.85
-        ),
-        text=[f'{val:.1f}%' for val in occupancy_values],
-        textposition='outside',
-        hovertemplate='<b>Flight: %{x}</b><br>Seats Bought: %{y:.1f}%<extra></extra>',
-        name='Occupancy'
+    # Add the gauge
+    fig.add_trace(go.Indicator(
+        mode="gauge+number+delta",
+        value=avg_occupancy,
+        domain={'x': [0, 1], 'y': [0, 1]},
+        number={
+            'suffix': '%',
+            'font': {'size': 50, 'family': 'Montserrat, sans-serif', 'color': color}
+        },
+        delta={
+            'reference': 75,  # Target occupancy
+            'increasing': {'color': '#28a745'},
+            'decreasing': {'color': '#dc3545'},
+            'position': 'bottom'
+        },
+        gauge={
+            'axis': {
+                'range': [None, 100],
+                'tickwidth': 2,
+                'tickcolor': '#2c3e50',
+                'tickfont': {'size': 14, 'family': 'Open Sans, sans-serif'}
+            },
+            'bar': {'color': color, 'thickness': 0.75},
+            'bgcolor': 'white',
+            'borderwidth': 2,
+            'bordercolor': '#e0e0e0',
+            'steps': [
+                {'range': [0, 40], 'color': 'rgba(220, 53, 69, 0.15)'},
+                {'range': [40, 60], 'color': 'rgba(253, 126, 20, 0.15)'},
+                {'range': [60, 80], 'color': 'rgba(255, 193, 7, 0.15)'},
+                {'range': [80, 100], 'color': 'rgba(40, 167, 69, 0.15)'}
+            ],
+            'threshold': {
+                'line': {'color': '#6c757d', 'width': 3},
+                'thickness': 0.75,
+                'value': 75
+            }
+        }
     ))
     
     fig.update_layout(
-        title={
-            'text': 'Average Flight Occupancy - Percentage of Seats Bought',
-            'x': 0.5,
-            'xanchor': 'center',
-            'font': {'size': 18, 'family': 'Montserrat, sans-serif'}
-        },
-        yaxis=dict(
-            range=[0, max(occupancy_values) * 1.2 if occupancy_values else 100],
-            title='Percentage of Seats Bought (%)'
-        ),
         plot_bgcolor='white',
         paper_bgcolor='white',
-        font=dict(family='Open Sans, sans-serif', size=11),
-        margin=dict(l=80, r=80, t=80, b=180),
-        height=550,
+        font=dict(family='Open Sans, sans-serif', size=12),
+        margin=dict(l=40, r=40, t=20, b=60),
+        height=400,
         showlegend=False,
-        hovermode='closest',
-        hoverlabel=dict(
-            bgcolor='white',
-            bordercolor='#2c3e50',
-            font_size=12,
-            font_family='Open Sans, sans-serif'
-        )
-    )
-    
-    # Update axes with correct title font syntax
-    fig.update_xaxes(
-        title_text='Flight (Route)', 
-        title_font=dict(size=13, family='Open Sans, sans-serif', color='#2c3e50'),
-        tickangle=-45,
-        tickfont=dict(size=10, family='Open Sans, sans-serif'),
-        automargin=True
-    )
-    fig.update_yaxes(
-        title_text='Percentage of Seats Bought (%)', 
-        title_font=dict(size=13, family='Open Sans, sans-serif', color='#2c3e50')
+        annotations=[
+            dict(
+                text='<b>Target: 75%</b>',
+                x=0.5,
+                y=-0.15,
+                xref='paper',
+                yref='paper',
+                showarrow=False,
+                font=dict(size=16, color='#2c3e50', family='Montserrat, sans-serif', weight='bold')
+            )
+        ]
     )
     
     return json.dumps(fig.to_dict(), indent=2)
@@ -155,6 +136,7 @@ def generate_revenue_chart(revenue_data):
         name='Economy',
         x=x_labels,
         y=economy_values,
+        # Remove explicit width - let Plotly handle it
         marker=dict(color='#3498db', line=dict(color='white', width=1.5)),
         text=[f'${val:,.0f}' if val > 0 else '' for val in economy_values],
         textposition='outside',
@@ -166,6 +148,7 @@ def generate_revenue_chart(revenue_data):
         name='Business',
         x=x_labels,
         y=business_values,
+        # Remove explicit width - let Plotly handle it
         marker=dict(color='#9b59b6', line=dict(color='white', width=1.5)),
         text=[f'${val:,.0f}' if val > 0 else '' for val in business_values],
         textposition='outside',
@@ -173,22 +156,19 @@ def generate_revenue_chart(revenue_data):
     ))
     
     fig.update_layout(
-        title={
-            'text': 'Revenue by Aircraft Type',
-            'x': 0.5,
-            'xanchor': 'center',
-            'font': {'size': 18, 'family': 'Montserrat, sans-serif'}
-        },
+        title=None,
         barmode='group',
+        bargap=0.15,  # Consistent gap
+        bargroupgap=0.1,  # Gap between groups
         plot_bgcolor='white',
         paper_bgcolor='white',
         font=dict(family='Open Sans, sans-serif', size=11),
-        margin=dict(l=80, r=80, t=80, b=100),
+        margin=dict(l=80, r=80, t=30, b=100),
         height=550,
         legend=dict(
             orientation='h',
-            yanchor='bottom',
-            y=1.02,
+            yanchor='top',
+            y=0.98,
             xanchor='right',
             x=1
         ),
@@ -284,22 +264,17 @@ def generate_filtered_revenue_chart(revenue_data, manufacturer_filter=None, size
     ))
     
     fig.update_layout(
-        title={
-            'text': 'Revenue by Aircraft Type',
-            'x': 0.5,
-            'xanchor': 'center',
-            'font': {'size': 18, 'family': 'Montserrat, sans-serif'}
-        },
+        title=None,
         barmode='group',
         plot_bgcolor='white',
         paper_bgcolor='white',
         font=dict(family='Open Sans, sans-serif', size=11),
-        margin=dict(l=80, r=80, t=80, b=100),
+        margin=dict(l=80, r=80, t=30, b=100),
         height=550,
         legend=dict(
             orientation='h',
-            yanchor='bottom',
-            y=1.02,
+            yanchor='top',
+            y=0.98,
             xanchor='right',
             x=1
         ),
@@ -325,90 +300,97 @@ def generate_filtered_revenue_chart(revenue_data, manufacturer_filter=None, size
     return json.dumps(fig.to_dict(), indent=2)
 
 def generate_employee_hours_chart(employee_data):
-    """Generate interactive stacked bar chart for employee flight hours"""
+    """Generate horizontal stacked bar chart for employee flight hours."""
     if not PLOTLY_AVAILABLE or not employee_data:
         return None
-    
-    names = []
-    long_hours = []
-    short_hours = []
-    
-    for row in employee_data:
-        names.append(f"{row['first_name']} {row['last_name']}")
-        long_hours.append(float(row['long_hours']) if row.get('long_hours') is not None else 0)
-        short_hours.append(float(row['short_hours']) if row.get('short_hours') is not None else 0)
-    
+
+    sorted_data = sorted(
+        employee_data,
+        key=lambda x: float(x.get('total_hours', 0) or 0),
+        reverse=True
+    )
+
+    # Use role in label (no id suffix).
+    names = [
+        f"{row['first_name']} {row['last_name']} ({row.get('role', 'Employee')})"
+        for row in sorted_data
+    ]
+    long_hours = [float(row['long_hours']) if row.get('long_hours') is not None else 0 for row in sorted_data]
+    short_hours = [float(row['short_hours']) if row.get('short_hours') is not None else 0 for row in sorted_data]
+
     fig = go.Figure()
-    
-    # Short flights (bottom)
+
     fig.add_trace(go.Bar(
         name='Short Flights (≤6h)',
-        x=names,
-        y=short_hours,
-        marker=dict(color='#3498db', line=dict(color='white', width=1.5)),
-        hovertemplate='<b>%{x}</b><br>Short Flights: %{y:.1f}h<extra></extra>'
+        y=names,
+        x=short_hours,
+        orientation='h',
+        marker=dict(color='#3498db', line=dict(width=0)),
+        texttemplate='%{x:.1f}h',
+        textposition='inside',
+        textfont=dict(size=11, color='white'),
+        textangle=0,
+        insidetextanchor='middle',
+        constraintext='inside',
+        hovertemplate='<b>%{y}</b><br>Short Flights: %{x:.1f}h<extra></extra>'
     ))
-    
-    # Long flights (stacked on top)
+
     fig.add_trace(go.Bar(
         name='Long Flights (>6h)',
-        x=names,
-        y=long_hours,
-        marker=dict(color='#e67e22', line=dict(color='white', width=1.5)),
-        hovertemplate='<b>%{x}</b><br>Long Flights: %{y:.1f}h<extra></extra>'
+        y=names,
+        x=long_hours,
+        orientation='h',
+        marker=dict(color='#e67e22', line=dict(width=0)),
+        texttemplate='%{x:.1f}h',
+        textposition='inside',
+        textfont=dict(size=11, color='white'),
+        textangle=0,
+        insidetextanchor='middle',
+        constraintext='inside',
+        hovertemplate='<b>%{y}</b><br>Long Flights: %{x:.1f}h<extra></extra>'
     ))
-    
-    # Add total labels on top
-    totals = [s + l for s, l in zip(short_hours, long_hours)]
-    fig.add_trace(go.Scatter(
-        x=names,
-        y=totals,
-        mode='text',
-        text=[f'{t:.1f}h' if t > 0 else '' for t in totals],
-        textposition='top center',
-        textfont=dict(size=10, color='#2c3e50', family='Open Sans, sans-serif'),
-        showlegend=False,
-        hoverinfo='skip'
-    ))
-    
+
+    # Match Chart 5 layout to avoid the top gap issue.
+    chart_height = max(800, len(names) * 80)
+
     fig.update_layout(
-        title={
-            'text': 'Employee Flight Hours (Long vs Short)',
-            'x': 0.5,
-            'xanchor': 'center',
-            'font': {'size': 18, 'family': 'Montserrat, sans-serif'}
-        },
-        xaxis=dict(
-            tickangle=-45
-        ),
         barmode='stack',
+        bargap=0.15,
         plot_bgcolor='white',
         paper_bgcolor='white',
-        font=dict(family='Open Sans, sans-serif', size=11),
-        margin=dict(l=80, r=80, t=80, b=140),
-        height=550,
+        font=dict(family='Open Sans, sans-serif', size=13),
+        margin=dict(l=150, r=40, t=6, b=80),
+        height=chart_height,
+        xaxis=dict(
+            title='Flight Hours',
+            title_font=dict(size=16),
+            tickfont=dict(size=13),
+            gridcolor='#e0e0e0'
+        ),
+        yaxis=dict(
+            title='Employee',
+            title_font=dict(size=16),
+            tickfont=dict(size=13),
+            autorange='reversed'
+        ),
         legend=dict(
             orientation='h',
             yanchor='bottom',
-            y=1.02,
+            y=1.0,  # tight to top of plot
             xanchor='right',
-            x=1
+            x=1,
+            font=dict(size=13)
         ),
-        hovermode='x unified',
+        hovermode='y unified',
+        uniformtext=dict(minsize=11, mode='hide'),
         hoverlabel=dict(
             bgcolor='white',
             bordercolor='#2c3e50',
-            font_size=12,
+            font_size=13,
             font_family='Open Sans, sans-serif'
         )
     )
-    
-    # Update axes with correct title font syntax
-    fig.update_xaxes(title_text='Employee', 
-                     title_font=dict(size=13, family='Open Sans, sans-serif', color='#2c3e50'))
-    fig.update_yaxes(title_text='Flight Hours', 
-                     title_font=dict(size=13, family='Open Sans, sans-serif', color='#2c3e50'))
-    
+
     return json.dumps(fig.to_dict(), indent=2)
 
 def generate_cancellation_chart(cancellation_data):
@@ -455,6 +437,7 @@ def generate_cancellation_chart(cancellation_data):
             name='Active Orders',
             x=month_labels,
             y=active_orders,
+            # Remove explicit width - let Plotly handle it
             marker=dict(color='#28a745', opacity=0.8, line=dict(color='white', width=1.5)),
             hovertemplate='<b>%{x}</b><br>Active Orders: %{y}<extra></extra>'
         ),
@@ -467,6 +450,7 @@ def generate_cancellation_chart(cancellation_data):
             name='Cancelled Orders',
             x=month_labels,
             y=cancelled_orders,
+            # Remove explicit width - let Plotly handle it
             marker=dict(color='#e74c3c', opacity=0.8, line=dict(color='white', width=1.5)),
             hovertemplate='<b>%{x}</b><br>Cancelled Orders: %{y}<extra></extra>'
         ),
@@ -491,22 +475,17 @@ def generate_cancellation_chart(cancellation_data):
     )
     
     fig.update_layout(
-        title={
-            'text': 'שיעור ביטולי רכישות לפי חודש<br><span style="font-size:14px;color:#666;">Monthly Cancellation Rate Analysis</span>',
-            'x': 0.5,
-            'xanchor': 'center',
-            'font': {'size': 18, 'family': 'Montserrat, sans-serif'}
-        },
         plot_bgcolor='white',
         paper_bgcolor='white',
         font=dict(family='Open Sans, sans-serif', size=11),
-        margin=dict(l=80, r=80, t=100, b=80),
+        margin=dict(l=80, r=80, t=40, b=80),
         height=550,
         barmode='stack',  # Changed to stack
+        bargap=0.15,  # Match other charts
         legend=dict(
             orientation='h',
-            yanchor='bottom',
-            y=1.02,
+            yanchor='top',
+            y=0.98,
             xanchor='right',
             x=1
         ),
@@ -539,81 +518,102 @@ def generate_cancellation_chart(cancellation_data):
     return json.dumps(fig.to_dict(), indent=2)
 
 def generate_plane_activity_chart(plane_data):
-    """Generate interactive grouped bar chart for plane activity"""
+    """Generate horizontal bar chart with vertical scrolling for plane activity"""
     if not PLOTLY_AVAILABLE or not plane_data:
         return None
     
-    # Organize data by aircraft and month
-    aircraft_ids = sorted(set(row['aircraft_id'] for row in plane_data))
-    months = sorted(set(row['month'] for row in plane_data))
+    # Group data by aircraft and calculate totals
+    aircraft_stats = {}
+    for row in plane_data:
+        aircraft_id = row['aircraft_id']
+        if aircraft_id not in aircraft_stats:
+            aircraft_stats[aircraft_id] = {'performed': 0, 'cancelled': 0}
+        
+        performed = int(row.get('flights_performed', 0) or 0)
+        cancelled = int(row.get('flights_cancelled', 0) or 0)
+        aircraft_stats[aircraft_id]['performed'] += performed
+        aircraft_stats[aircraft_id]['cancelled'] += cancelled
     
-    # Create matrices for flights performed
-    flights_matrix = {}
-    for aircraft_id in aircraft_ids:
-        flights_matrix[aircraft_id] = {}
-        for month in months:
-            matching = [r for r in plane_data if r['aircraft_id'] == aircraft_id and r['month'] == month]
-            if matching:
-                flights_matrix[aircraft_id][month] = int(matching[0]['flights_performed']) if matching[0].get('flights_performed') is not None else 0
-            else:
-                flights_matrix[aircraft_id][month] = 0
+    # Sort by total activity (performed + cancelled)
+    sorted_aircraft = sorted(
+        aircraft_stats.items(),
+        key=lambda x: x[1]['performed'] + x[1]['cancelled'],
+        reverse=True
+    )
+    
+    # Prepare data for horizontal bars
+    aircraft_names = [f'Aircraft {aid}' for aid, _ in sorted_aircraft]
+    performed_counts = [stats['performed'] for _, stats in sorted_aircraft]
+    cancelled_counts = [stats['cancelled'] for _, stats in sorted_aircraft]
     
     fig = go.Figure()
     
-    # Generate colors for each aircraft
-    colors = px.colors.qualitative.Set3[:len(aircraft_ids)]
+    # Green bars for flights performed
+    fig.add_trace(go.Bar(
+        name='Flights Performed',
+        y=aircraft_names,
+        x=performed_counts,
+        orientation='h',
+        # NO width parameter - let Plotly auto-size to match vertical charts
+        marker=dict(
+            color='#28a745',
+            line=dict(width=0)
+        ),
+        text=performed_counts,
+        textposition='auto',
+        textfont=dict(size=13),
+        hovertemplate='<b>%{y}</b><br>Performed: %{x}<extra></extra>'
+    ))
     
-    for i, aircraft_id in enumerate(aircraft_ids):
-        flights = [flights_matrix[aircraft_id].get(month, 0) for month in months]
-        fig.add_trace(go.Bar(
-            name=f'Aircraft {aircraft_id}',
-            x=months,
-            y=flights,
-            marker=dict(
-                color=colors[i % len(colors)],
-                line=dict(color='white', width=1.5)
-            ),
-            text=[str(val) if val > 0 else '' for val in flights],
-            textposition='outside',
-            hovertemplate=f'<b>Aircraft {aircraft_id}</b><br>Month: %{{x}}<br>Flights: %{{y}}<extra></extra>'
-        ))
+    # Red bars for flights cancelled
+    fig.add_trace(go.Bar(
+        name='Flights Cancelled',
+        y=aircraft_names,
+        x=cancelled_counts,
+        orientation='h',
+        # NO width parameter - let Plotly auto-size to match vertical charts
+        marker=dict(
+            color='#dc3545',
+            line=dict(width=0)
+        ),
+        text=cancelled_counts,
+        textposition='auto',
+        textfont=dict(size=13),
+        hovertemplate='<b>%{y}</b><br>Cancelled: %{x}<extra></extra>'
+    ))
+    
+    # Match Chart 3 style and thickness.
+    chart_height = max(800, len(aircraft_names) * 80)
     
     fig.update_layout(
-        title={
-            'text': 'Plane Activity by Month',
-            'x': 0.5,
-            'xanchor': 'center',
-            'font': {'size': 18, 'family': 'Montserrat, sans-serif'}
-        },
-        barmode='group',
+        barmode='stack',  # Match Chart 3 style
+        bargap=0.15,  # Match Chart 3 spacing
         plot_bgcolor='white',
         paper_bgcolor='white',
-        font=dict(family='Open Sans, sans-serif', size=11),
-        margin=dict(l=80, r=120, t=80, b=100),
-        height=550,
-        legend=dict(
-            title='Aircraft ID',
-            title_font=dict(size=12, family='Open Sans, sans-serif'),
-            orientation='v',
-            yanchor='top',
-            y=1,
-            xanchor='left',
-            x=1.02,
-            font=dict(size=11, family='Open Sans, sans-serif')
+        font=dict(family='Open Sans, sans-serif', size=13),
+        margin=dict(l=150, r=80, t=12, b=80),  # Reduce gap above bars
+        height=chart_height,
+        xaxis=dict(
+            title='Number of Flights',
+            title_font=dict(size=16),
+            gridcolor='#e0e0e0',
+            tickfont=dict(size=13)
         ),
-        hovermode='x unified',
-        hoverlabel=dict(
-            bgcolor='white',
-            bordercolor='#2c3e50',
-            font_size=12,
-            font_family='Open Sans, sans-serif'
-        )
+        yaxis=dict(
+            title='Aircraft',
+            title_font=dict(size=16),
+            tickfont=dict(size=13),
+            autorange='reversed'  # Top to bottom
+        ),
+        legend=dict(
+            orientation='h',
+            yanchor='bottom',
+            y=1.005,  # just above bars without large gap
+            xanchor='right',
+            x=1,
+            font=dict(size=13)
+        ),
+        hovermode='y unified'
     )
-    
-    # Update axes with correct title font syntax
-    fig.update_xaxes(title_text='Month', 
-                     title_font=dict(size=13, family='Open Sans, sans-serif', color='#2c3e50'))
-    fig.update_yaxes(title_text='Flights Performed', 
-                     title_font=dict(size=13, family='Open Sans, sans-serif', color='#2c3e50'))
     
     return json.dumps(fig.to_dict(), indent=2)

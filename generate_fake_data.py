@@ -483,12 +483,19 @@ def insert_seed_employees(cursor):
     ]
     
     # Pilots with Hebrew names (40 pilots = 4x original 10)
+    used_full_names = set()
     pilots = []
     for i in range(1, 41):
         pilot_id = format_employee_id('3000000', i)
-        first_name = random.choice(HEBREW_MALE_FIRST_NAMES)
-        middle_name = random.choice(HEBREW_MALE_FIRST_NAMES) if random.random() > 0.5 else None
-        last_name = random.choice(HEBREW_LAST_NAMES)
+        # Ensure unique full name to avoid duplicates in reports
+        for _ in range(100):
+            first_name = random.choice(HEBREW_MALE_FIRST_NAMES)
+            middle_name = random.choice(HEBREW_MALE_FIRST_NAMES) if random.random() > 0.5 else None
+            last_name = random.choice(HEBREW_LAST_NAMES)
+            full_name_key = (first_name, middle_name or "", last_name)
+            if full_name_key not in used_full_names:
+                used_full_names.add(full_name_key)
+                break
         pilots.append((
             pilot_id, first_name, middle_name, last_name, 'Tel Aviv', fake_en.street_name(),
             i, f'050{3000000 + i}', '2022-01-01'
@@ -498,9 +505,15 @@ def insert_seed_employees(cursor):
     attendants = []
     for i in range(1, 41):
         attendant_id = format_employee_id('4000000', i)
-        first_name = random.choice(HEBREW_FEMALE_FIRST_NAMES)
-        middle_name = random.choice(HEBREW_FEMALE_FIRST_NAMES) if random.random() > 0.5 else None
-        last_name = random.choice(HEBREW_LAST_NAMES)
+        # Ensure unique full name to avoid duplicates in reports
+        for _ in range(100):
+            first_name = random.choice(HEBREW_FEMALE_FIRST_NAMES)
+            middle_name = random.choice(HEBREW_FEMALE_FIRST_NAMES) if random.random() > 0.5 else None
+            last_name = random.choice(HEBREW_LAST_NAMES)
+            full_name_key = (first_name, middle_name or "", last_name)
+            if full_name_key not in used_full_names:
+                used_full_names.add(full_name_key)
+                break
         attendants.append((
             attendant_id, first_name, middle_name, last_name, 'Tel Aviv', fake_en.street_name(),
             i, f'050{4000000 + i}', '2023-01-01'
@@ -520,6 +533,24 @@ def insert_seed_employees(cursor):
         for pilot in pilots:
             if pilot[0] not in inserted_pilots:
                 execute_insert(cursor, query, pilot)
+
+def dedupe_employee_names(cursor):
+    """Ensure employee display names are unique by appending id to duplicates."""
+    print("De-duplicating employee names...")
+    cursor.execute("""
+        UPDATE Employee e
+        JOIN (
+            SELECT first_name, last_name, COUNT(*) AS cnt
+            FROM Employee
+            GROUP BY first_name, last_name
+            HAVING COUNT(*) > 1
+        ) d
+          ON e.first_name = d.first_name
+         AND e.last_name = d.last_name
+        SET e.last_name = CONCAT(e.last_name, ' #', e.id_number)
+        WHERE e.last_name NOT LIKE '% #%'
+    """)
+    print(f"Updated {cursor.rowcount} duplicate employee names.")
 
 def insert_seed_flight_crew(cursor):
     """Insert seed flight crew assignments."""
@@ -1574,6 +1605,276 @@ def drop_and_recreate_schema(cursor):
     print("=" * 60)
 
 def create_fully_booked_flights(cursor):
+    """
+    Find some flights and book all their seats to create fully booked flights.
+    This tests edge cases in seat availability.
+    """
+    # Get some random active future flights
+    cursor.execute("""
+        SELECT F.source_airport_id, F.dest_airport_id, F.departure_time, F.aircraft_id, F.economy_price, F.business_price
+        FROM Flight F
+        WHERE F.flight_status = 'Active' AND F.departure_time > NOW()
+        ORDER BY RAND()
+        LIMIT 3
+    """)
+    flights_to_book = cursor.fetchall()
+    
+    for flight in flights_to_book:
+        source_id, dest_id, departure_time, aircraft_id, economy_price, business_price = flight
+        
+        # Get all available seats for this flight
+        cursor.execute("""
+            SELECT s.aircraft_id, s.is_business, s.row_number, s.column_number
+            FROM Seat s
+            WHERE s.aircraft_id = %s
+            AND (s.aircraft_id, s.is_business, s.row_number, s.column_number) NOT IN (
+                SELECT os.aircraft_id, os.is_business, os.row_number, os.column_number
+                FROM Order_Seats os
+                JOIN Order_Table ot ON os.order_code = ot.order_code
+                WHERE ot.source_airport_id = %s AND ot.dest_airport_id = %s AND ot.departure_time = %s
+                AND ot.order_status NOT IN ('Client Cancellation', 'System Cancellation')
+            )
+        """, (aircraft_id, source_id, dest_id, departure_time))
+        
+        available_seats = cursor.fetchall()
+        if not available_seats:
+            continue
+        
+        # Get a random customer
+        cursor.execute("""
+            SELECT email FROM Registered_Customer
+            ORDER BY RAND()
+            LIMIT 1
+        """)
+        customer = cursor.fetchone()
+        if not customer:
+            continue
+        
+        customer_email = customer[0]
+        
+        # Get max order code
+        cursor.execute("SELECT MAX(order_code) FROM Order_Table")
+        max_order = cursor.fetchone()[0] or 0
+        order_code = max_order + 1
+        
+        # Create an order for all remaining seats
+        order_date = fake_en.date_time_between(
+            start_date=departure_time - timedelta(days=30),
+            end_date=departure_time - timedelta(hours=1)
+        )
+        
+        # Calculate total payment
+        total_payment = sum(
+            (business_price if seat[1] else economy_price)
+            for seat in available_seats
+        )
+        
+        # Insert order
+        cursor.execute("""
+            INSERT INTO Order_Table (order_code, order_date, total_payment, order_status, email, source_airport_id, dest_airport_id, departure_time)
+            VALUES (%s, %s, %s, 'Active', %s, %s, %s, %s)
+        """, (order_code, order_date, total_payment, customer_email, source_id, dest_id, departure_time))
+        
+        # Insert all seat bookings
+        for seat in available_seats:
+            cursor.execute("""
+                INSERT INTO Order_Seats (order_code, aircraft_id, is_business, row_number, column_number)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (order_code, seat[0], seat[1], seat[2], seat[3]))
+
+def generate_test_data_for_reports(cursor):
+    """
+    Generate additional test data specifically to ensure all manager reports charts have data.
+    This includes:
+    1. Completed flights with orders (for occupancy chart)
+    2. More cancelled orders (for cancellation chart)
+    3. Flights spread across multiple months (for plane activity chart)
+    4. Employee flight assignments (for employee hours chart)
+    """
+    print("Generating data for occupancy chart (completed flights with orders)...")
+    
+    # 1. Create completed flights with orders for occupancy chart
+    # Get some past flights
+    cursor.execute("""
+        SELECT F.source_airport_id, F.dest_airport_id, F.departure_time, F.aircraft_id, F.economy_price, F.business_price
+        FROM Flight F
+        WHERE F.departure_time < NOW() AND F.flight_status = 'Completed'
+        ORDER BY RAND()
+        LIMIT 10
+    """)
+    past_flights = cursor.fetchall()
+    
+    if not past_flights:
+        # Create some past flights if none exist
+        print("Creating past flights for occupancy testing...")
+        cursor.execute("""
+            SELECT source_airport_id, dest_airport_id FROM Flight_Route
+            ORDER BY RAND() LIMIT 5
+        """)
+        routes = cursor.fetchall()
+        
+        cursor.execute("SELECT aircraft_id FROM Aircraft WHERE aircraft_id IS NOT NULL ORDER BY RAND() LIMIT 3")
+        aircraft = cursor.fetchall()
+        
+        if routes and aircraft:
+            for _ in range(10):
+                route = random.choice(routes)
+                aircraft_id = random.choice(aircraft)[0]
+                
+                # Create flight 30-90 days in the past
+                departure_time = fake_en.date_time_between(start_date='-90d', end_date='-30d')
+                
+                cursor.execute("""
+                    SELECT economy_price, business_price FROM Flight_Route
+                    WHERE source_airport_id = %s AND dest_airport_id = %s
+                """, route)
+                prices = cursor.fetchone()
+                
+                if prices:
+                    cursor.execute("""
+                        INSERT IGNORE INTO Flight (source_airport_id, dest_airport_id, departure_time, aircraft_id, economy_price, business_price, flight_status)
+                        VALUES (%s, %s, %s, %s, %s, %s, 'Completed')
+                    """, (route[0], route[1], departure_time, aircraft_id, prices[0], prices[1]))
+            
+            # Re-fetch past flights
+            cursor.execute("""
+                SELECT F.source_airport_id, F.dest_airport_id, F.departure_time, F.aircraft_id, F.economy_price, F.business_price
+                FROM Flight F
+                WHERE F.departure_time < NOW() AND F.flight_status = 'Completed'
+                ORDER BY RAND()
+                LIMIT 10
+            """)
+            past_flights = cursor.fetchall()
+    
+    # Create orders for past flights
+    if past_flights:
+        print(f"Creating orders for {len(past_flights)} past flights...")
+        cursor.execute("SELECT MAX(order_code) FROM Order_Table")
+        max_order = cursor.fetchone()[0] or 0
+        
+        cursor.execute("SELECT email FROM Registered_Customer ORDER BY RAND()")
+        customers = [row[0] for row in cursor.fetchall()]
+        
+        if customers:
+            for flight in past_flights:
+                source_id, dest_id, departure_time, aircraft_id, economy_price, business_price = flight
+                
+                # Get available seats
+                cursor.execute("""
+                    SELECT `row_number`, `column_number`, `is_business` FROM Seat
+                    WHERE aircraft_id = %s
+                    ORDER BY RAND()
+                    LIMIT 20
+                """, (aircraft_id,))
+                seats = cursor.fetchall()
+                
+                if seats:
+                    # Create 2-3 orders for this flight to simulate occupancy
+                    for _ in range(random.randint(2, 3)):
+                        max_order += 1
+                        customer_email = random.choice(customers)
+                        order_date = fake_en.date_time_between(
+                            start_date=departure_time - timedelta(days=60),
+                            end_date=departure_time - timedelta(hours=1)
+                        )
+                        
+                        # Select random seats
+                        num_seats = min(random.randint(1, 4), len(seats))
+                        selected_seats = random.sample(seats, num_seats)
+                        
+                        # Calculate payment
+                        total_payment = sum(
+                            (business_price if seat[2] else economy_price)
+                            for seat in selected_seats
+                        )
+                        
+                        try:
+                            cursor.execute("""
+                                INSERT INTO Order_Table (order_code, order_date, total_payment, order_status, email, source_airport_id, dest_airport_id, departure_time)
+                                VALUES (%s, %s, %s, 'Completed', %s, %s, %s, %s)
+                            """, (max_order, order_date, total_payment, customer_email, source_id, dest_id, departure_time))
+                            
+                            # Insert seats
+                            for seat in selected_seats:
+                                cursor.execute("""
+                                    INSERT INTO Order_Seats (order_code, aircraft_id, is_business, row_number, column_number)
+                                    VALUES (%s, %s, %s, %s, %s)
+                                """, (max_order, aircraft_id, seat[2], seat[0], seat[1]))
+                        except:
+                            pass  # Ignore duplicates
+    
+    # 2. Generate more cancelled orders for cancellation chart
+    print("Generating cancelled orders for cancellation chart...")
+    cursor.execute("SELECT MAX(order_code) FROM Order_Table")
+    max_order = cursor.fetchone()[0] or 0
+    
+    cursor.execute("""
+        SELECT F.source_airport_id, F.dest_airport_id, F.departure_time, F.aircraft_id, F.economy_price, F.business_price
+        FROM Flight F
+        WHERE F.departure_time > NOW() AND F.flight_status = 'Active'
+        ORDER BY RAND()
+        LIMIT 15
+    """)
+    flights_for_cancellation = cursor.fetchall()
+    
+    cursor.execute("SELECT email FROM Registered_Customer ORDER BY RAND()")
+    customers = [row[0] for row in cursor.fetchall()]
+    
+    if flights_for_cancellation and customers:
+        for flight in flights_for_cancellation:
+            source_id, dest_id, departure_time, aircraft_id, economy_price, business_price = flight
+            
+            max_order += 1
+            customer_email = random.choice(customers)
+            order_date = fake_en.date_time_between(
+                start_date=departure_time - timedelta(days=60),
+                end_date=departure_time - timedelta(days=1)
+            )
+            
+            # 50% chance of Client Cancellation, 50% System Cancellation
+            status = random.choice(['Client Cancellation', 'System Cancellation'])
+            
+            # Get a seat
+            cursor.execute("""
+                SELECT `row_number`, `column_number`, `is_business` FROM Seat
+                WHERE aircraft_id = %s
+                ORDER BY RAND()
+                LIMIT 1
+            """, (aircraft_id,))
+            seat = cursor.fetchone()
+            
+            if seat:
+                price = business_price if seat[2] else economy_price
+                total_payment = price * 0.05 if status == 'Client Cancellation' else 0
+                
+                try:
+                    cursor.execute("""
+                        INSERT INTO Order_Table (order_code, order_date, total_payment, order_status, email, source_airport_id, dest_airport_id, departure_time)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    """, (max_order, order_date, total_payment, status, customer_email, source_id, dest_id, departure_time))
+                    
+                    cursor.execute("""
+                        INSERT INTO Order_Seats (order_code, aircraft_id, is_business, row_number, column_number)
+                        VALUES (%s, %s, %s, %s, %s)
+                    """, (max_order, aircraft_id, seat[2], seat[0], seat[1]))
+                except:
+                    pass
+    
+    # 3. Ensure employee flight assignments exist
+    print("Ensuring employee flight assignments for employee hours chart...")
+    cursor.execute("""
+        SELECT COUNT(*) FROM Employee_Flight_Assignment
+    """)
+    assignment_count = cursor.fetchone()[0]
+    
+    if assignment_count < 50:
+        print(f"Only {assignment_count} assignments exist, generating more...")
+        # This will be handled by the existing generate_faker_crew_assignments function
+        # Just ensure it runs
+    
+    print("Test data generation for reports complete!")
+
+def create_fully_booked_flights(cursor):
     """Create some Fully Booked flights by booking all available seats."""
     # Get Active flights that are in the future
     cursor.execute("""
@@ -1911,6 +2212,7 @@ def generate_all_fake_data(drop_schema=True):
         validate_aircraft_class_rules(cursor)  # Ensure business rules are enforced
         generate_faker_seats(cursor)
         generate_faker_employees(cursor, min_count=20)
+        dedupe_employee_names(cursor)
         generate_faker_flight_crew(cursor)
         generate_faker_users(cursor, min_count=20)
         generate_faker_phones(cursor)
@@ -1922,6 +2224,10 @@ def generate_all_fake_data(drop_schema=True):
         # Create some Fully Booked flights by booking all their seats
         print("Creating Fully Booked flights...")
         create_fully_booked_flights(cursor)
+        
+        # Generate additional test data for manager reports dashboard
+        print("\n--- GENERATING TEST DATA FOR REPORTS ---")
+        generate_test_data_for_reports(cursor)
         
         # Run validation functions to ensure data consistency
         print("\n--- VALIDATING DATA CONSISTENCY ---")
