@@ -101,7 +101,7 @@ def get_employee_hours_report():
             E.id_number,
             E.first_name, 
             E.last_name, 
-            CASE WHEN FC.is_pilot THEN 'Pilot' ELSE 'Attendant' END as role,
+            CASE WHEN FC.is_pilot THEN 'טייס' ELSE 'דייל' END as role,
             SUM(CASE WHEN FR.flight_duration > 360 THEN FR.flight_duration ELSE 0 END) / 60 as long_hours,
             SUM(CASE WHEN FR.flight_duration <= 360 THEN FR.flight_duration ELSE 0 END) / 60 as short_hours,
             SUM(FR.flight_duration) / 60 as total_hours
