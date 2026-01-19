@@ -159,6 +159,9 @@ def my_orders():
     raw_orders = query_db(query, tuple(params))
     
     # Group seats by order
+    # Note: LEFT JOIN ensures all orders are returned, even if they have no seats
+    # (though all orders should have at least one seat after data generation validation)
+    # If an order has multiple seats, it will appear as multiple rows which we group here
     orders_map = {}
     total_spending = 0
     
@@ -207,11 +210,12 @@ def my_orders():
                 # Active orders - full payment
                 total_spending += row['total_payment']
         
-        if row['row_number'] is not None:
+        # Add seat information if available (should always be available after validation)
+        if row['row_number'] is not None and row['column_number'] is not None:
             orders_map[code]['seats'].append({
                 'row': row['row_number'],
                 'col': row['column_number'],
-                'is_business': row['is_business']
+                'is_business': bool(row['is_business']) if row['is_business'] is not None else False
             })
     
     orders = list(orders_map.values())

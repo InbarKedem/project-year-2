@@ -2766,6 +2766,87 @@ def validate_order_flight_relationships(cursor):
     
     print("  Order-flight relationship validation complete")
 
+def ensure_all_orders_have_seats(cursor):
+    """
+    Ensure all orders have at least one seat.
+    If an order has no seats, add at least one seat from the flight's aircraft.
+    """
+    print("Ensuring all orders have at least one seat...")
+    
+    # Find all orders without seats
+    cursor.execute("""
+        SELECT O.order_code, O.source_airport_id, O.dest_airport_id, O.departure_time, F.aircraft_id
+        FROM Order_Table O
+        LEFT JOIN Flight F ON O.source_airport_id = F.source_airport_id
+            AND O.dest_airport_id = F.dest_airport_id
+            AND O.departure_time = F.departure_time
+        WHERE NOT EXISTS (
+            SELECT 1 FROM Order_Seats OS
+            WHERE OS.order_code = O.order_code
+        )
+        AND F.aircraft_id IS NOT NULL
+    """)
+    
+    orders_without_seats = cursor.fetchall()
+    
+    if not orders_without_seats:
+        print("  All orders have at least one seat")
+        return
+    
+    print(f"  Found {len(orders_without_seats)} orders without seats. Fixing...")
+    
+    fixed_count = 0
+    for order_code, source_id, dest_id, departure_time, aircraft_id in orders_without_seats:
+        # Get available seats for this flight
+        # For past flights, we can use any seat from the aircraft
+        # For future flights, we need to check seat availability
+        cursor.execute("""
+            SELECT s.row_number, s.column_number, s.is_business
+            FROM Seat s
+            WHERE s.aircraft_id = %s
+            AND (s.aircraft_id, s.is_business, s.row_number, s.column_number) NOT IN (
+                SELECT os.aircraft_id, os.is_business, os.row_number, os.column_number
+                FROM Order_Seats os
+                JOIN Order_Table ot ON os.order_code = ot.order_code
+                WHERE ot.source_airport_id = %s AND ot.dest_airport_id = %s 
+                AND ot.departure_time = %s
+                AND ot.order_status NOT IN ('Client Cancellation', 'System Cancellation')
+                AND ot.order_code != %s
+            )
+            ORDER BY s.row_number, s.column_number
+            LIMIT 1
+        """, (aircraft_id, source_id, dest_id, departure_time, order_code))
+        
+        available_seat = cursor.fetchone()
+        
+        if not available_seat:
+            # If no available seat (shouldn't happen often), try any seat from the aircraft
+            # This handles edge cases where the flight might be fully booked
+            cursor.execute("""
+                SELECT s.row_number, s.column_number, s.is_business
+                FROM Seat s
+                WHERE s.aircraft_id = %s
+                ORDER BY s.row_number, s.column_number
+                LIMIT 1
+            """, (aircraft_id,))
+            available_seat = cursor.fetchone()
+        
+        if available_seat:
+            row_num, col_num, is_business = available_seat
+            try:
+                cursor.execute("""
+                    INSERT IGNORE INTO Order_Seats (order_code, aircraft_id, is_business, `row_number`, `column_number`)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (order_code, aircraft_id, is_business, row_num, col_num))
+                fixed_count += 1
+            except mysql.connector.errors.IntegrityError:
+                # Seat might already be assigned, skip
+                pass
+        else:
+            print(f"  WARNING: Could not find a seat for order {order_code} (aircraft_id: {aircraft_id})")
+    
+    print(f"  Fixed {fixed_count} orders by adding seats")
+
 def update_flight_statuses_realistic(cursor):
     """Update flight statuses to reflect reality based on seat availability and departure time."""
     # Import the update function from flight_service
@@ -2903,6 +2984,7 @@ def generate_all_fake_data(drop_schema=True):
         
         # Run validation functions to ensure data consistency
         print("\n--- VALIDATING DATA CONSISTENCY ---")
+        ensure_all_orders_have_seats(cursor)
         validate_orders_for_canceled_flights(cursor)
         update_orders_for_past_flights(cursor)
         validate_order_flight_relationships(cursor)
@@ -2914,6 +2996,7 @@ def generate_all_fake_data(drop_schema=True):
         # Final validation pass after status updates
         print("Running final validation pass...")
         validate_order_flight_relationships(cursor)
+        ensure_all_orders_have_seats(cursor)  # Ensure no orders lost seats during updates
         
         conn.commit()
         print("\n--- FAKER DATA GENERATED ---\n")
