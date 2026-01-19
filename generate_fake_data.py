@@ -1154,8 +1154,8 @@ def generate_faker_flights(cursor, min_count=50):
     past_date = start_date - timedelta(days=180)  # For completed flights
     
     # Generate flights with realistic statuses
-    # 60% Active, 25% Completed (past), 10% Cancelled, 5% Fully Booked (will be set after orders)
-    status_distribution = ['Active'] * 60 + ['Completed'] * 25 + ['Cancelled'] * 10 + ['Active'] * 5  # Last 5% will become Fully Booked
+    # 60% Active, 25% Completed (past), 10% Canceled, 5% Fully Booked (will be set after orders)
+    status_distribution = ['Active'] * 60 + ['Completed'] * 25 + ['Canceled'] * 10 + ['Active'] * 5  # Last 5% will become Fully Booked
     
     for i in range(needed):
         route = random.choice(routes)
@@ -1172,13 +1172,13 @@ def generate_faker_flights(cursor, min_count=50):
             # Completed flights should be in the past
             departure_time = fake_en.date_time_between(start_date=past_date, end_date=start_date - timedelta(hours=1))
             status = 'Completed'
-        elif status_choice == 'Cancelled':
-            # Cancelled flights can be past or future, but mostly future
+        elif status_choice == 'Canceled':
+            # Canceled flights can be past or future, but mostly future
             if random.random() < 0.3:  # 30% past canceled
                 departure_time = fake_en.date_time_between(start_date=past_date, end_date=start_date - timedelta(hours=1))
             else:  # 70% future canceled
                 departure_time = fake_en.date_time_between(start_date=start_date, end_date=end_date)
-            status = 'Cancelled'
+            status = 'Canceled'
         else:
             # Active flights (some will become Fully Booked later)
             departure_time = fake_en.date_time_between(start_date=start_date, end_date=end_date)
@@ -1483,11 +1483,11 @@ def generate_faker_orders(cursor, min_count=20):
             if order[3] == 'System Cancellation':  # order[3] is order_status
                 cursor.execute("""
                     UPDATE Flight 
-                    SET flight_status = 'Cancelled'
+                    SET flight_status = 'Canceled'
                     WHERE source_airport_id = %s 
                     AND dest_airport_id = %s 
                     AND departure_time = %s
-                    AND flight_status != 'Cancelled'
+                    AND flight_status != 'Canceled'
                 """, (order[5], order[6], order[7]))  # order[5]=source_id, order[6]=dest_id, order[7]=departure_time
         except mysql.connector.errors.IntegrityError:
             pass  # Duplicate order code, skip
@@ -1560,11 +1560,11 @@ def generate_faker_orders(cursor, min_count=20):
                     if status == 'System Cancellation':
                         cursor.execute("""
                             UPDATE Flight 
-                            SET flight_status = 'Cancelled'
+                            SET flight_status = 'Canceled'
                             WHERE source_airport_id = %s 
                             AND dest_airport_id = %s 
                             AND departure_time = %s
-                            AND flight_status != 'Cancelled'
+                            AND flight_status != 'Canceled'
                         """, (source_id, dest_id, departure_time))
                     
                     final_count += 1
@@ -2297,7 +2297,7 @@ def validate_orders_for_canceled_flights(cursor):
             AND O.departure_time = F.departure_time
         SET O.order_status = 'System Cancellation',
             O.total_payment = 0
-        WHERE F.flight_status = 'Cancelled'
+        WHERE F.flight_status = 'Canceled'
         AND O.order_status = 'Active'
     """)
     updated_count = cursor.rowcount
@@ -2543,7 +2543,7 @@ def ensure_test_users_have_data(cursor):
                 SELECT F.source_airport_id, F.dest_airport_id, F.departure_time, F.aircraft_id, 
                        F.economy_price, F.business_price
                 FROM Flight F
-                WHERE F.flight_status = 'Cancelled' AND F.aircraft_id IS NOT NULL
+                WHERE F.flight_status = 'Canceled' AND F.aircraft_id IS NOT NULL
                 ORDER BY RAND()
                 LIMIT 1
             """)
@@ -2615,7 +2615,7 @@ def ensure_test_users_have_data(cursor):
         JOIN Flight F ON EFA.source_airport_id = F.source_airport_id 
                       AND EFA.dest_airport_id = F.dest_airport_id 
                       AND EFA.departure_time = F.departure_time
-        WHERE F.flight_status != 'Cancelled'
+        WHERE F.flight_status != 'Canceled'
     """)
     employees_with_hours = cursor.fetchone()[0]
     print(f"  Employee hours report: {employees_with_hours} employees with flight assignments")
@@ -2659,7 +2659,7 @@ def validate_order_flight_relationships(cursor):
     Comprehensive validation of order-flight relationships.
     Ensures:
     - No Completed orders for future flights
-    - All System Cancellation orders have corresponding Cancelled flights
+    - All System Cancellation orders have corresponding Canceled flights
     - All orders for canceled flights are System Cancellation
     - All orders for past flights are Completed
     """
@@ -2682,28 +2682,28 @@ def validate_order_flight_relationships(cursor):
         """)
         print(f"  Fixed: Updated {cursor.rowcount} orders to Active")
     
-    # Check 2: All System Cancellation orders should have Cancelled flights
+    # Check 2: All System Cancellation orders should have Canceled flights
     cursor.execute("""
         SELECT COUNT(*) FROM Order_Table O
         LEFT JOIN Flight F ON O.source_airport_id = F.source_airport_id
             AND O.dest_airport_id = F.dest_airport_id
             AND O.departure_time = F.departure_time
         WHERE O.order_status = 'System Cancellation'
-        AND (F.flight_status IS NULL OR F.flight_status != 'Cancelled')
+        AND (F.flight_status IS NULL OR F.flight_status != 'Canceled')
     """)
     invalid_system_cancel = cursor.fetchone()[0]
     if invalid_system_cancel > 0:
-        print(f"  WARNING: Found {invalid_system_cancel} System Cancellation orders without Cancelled flights")
+        print(f"  WARNING: Found {invalid_system_cancel} System Cancellation orders without Canceled flights")
         cursor.execute("""
             UPDATE Flight F
             JOIN Order_Table O ON F.source_airport_id = O.source_airport_id
                 AND F.dest_airport_id = O.dest_airport_id
                 AND F.departure_time = O.departure_time
-            SET F.flight_status = 'Cancelled'
+            SET F.flight_status = 'Canceled'
             WHERE O.order_status = 'System Cancellation'
-            AND F.flight_status != 'Cancelled'
+            AND F.flight_status != 'Canceled'
         """)
-        print(f"  Fixed: Updated {cursor.rowcount} flights to Cancelled")
+        print(f"  Fixed: Updated {cursor.rowcount} flights to Canceled")
     
     # Check 3: All orders for canceled flights should be System Cancellation
     cursor.execute("""
@@ -2711,12 +2711,12 @@ def validate_order_flight_relationships(cursor):
         JOIN Flight F ON O.source_airport_id = F.source_airport_id
             AND O.dest_airport_id = F.dest_airport_id
             AND O.departure_time = F.departure_time
-        WHERE F.flight_status = 'Cancelled'
+        WHERE F.flight_status = 'Canceled'
         AND O.order_status != 'System Cancellation'
     """)
     invalid_canceled_flight_orders = cursor.fetchone()[0]
     if invalid_canceled_flight_orders > 0:
-        print(f"  WARNING: Found {invalid_canceled_flight_orders} orders for Cancelled flights that are not System Cancellation")
+        print(f"  WARNING: Found {invalid_canceled_flight_orders} orders for Canceled flights that are not System Cancellation")
         cursor.execute("""
             UPDATE Order_Table O
             JOIN Flight F ON O.source_airport_id = F.source_airport_id
@@ -2724,7 +2724,7 @@ def validate_order_flight_relationships(cursor):
                 AND O.departure_time = F.departure_time
             SET O.order_status = 'System Cancellation',
                 O.total_payment = 0
-            WHERE F.flight_status = 'Cancelled'
+            WHERE F.flight_status = 'Canceled'
             AND O.order_status != 'System Cancellation'
         """)
         print(f"  Fixed: Updated {cursor.rowcount} orders to System Cancellation")
