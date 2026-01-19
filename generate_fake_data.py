@@ -1739,20 +1739,25 @@ def generate_test_data_for_reports(cursor):
                 # Create flight 30-180 days in the past
                 departure_time = fake_en.date_time_between(start_date='-180d', end_date='-30d')
                 
-                cursor.execute("""
-                    SELECT economy_price, business_price FROM Flight_Route
-                    WHERE source_airport_id = %s AND dest_airport_id = %s
-                """, route)
-                prices = cursor.fetchone()
+                # Generate prices (Flight_Route doesn't have prices, so generate them)
+                base_price = random.randint(300, 1200)
+                economy_price = base_price
                 
-                if prices:
-                    try:
-                        cursor.execute("""
-                            INSERT IGNORE INTO Flight (source_airport_id, dest_airport_id, departure_time, aircraft_id, economy_price, business_price, flight_status)
-                            VALUES (%s, %s, %s, %s, %s, %s, 'Completed')
-                        """, (route[0], route[1], departure_time, aircraft_id, prices[0], prices[1]))
-                    except:
-                        pass
+                # Check if aircraft has business class
+                cursor.execute("""
+                    SELECT COUNT(*) FROM Aircraft_Class 
+                    WHERE aircraft_id = %s AND is_business = TRUE
+                """, (aircraft_id,))
+                has_business = cursor.fetchone()[0] > 0
+                business_price = int(base_price * random.uniform(1.8, 2.5)) if has_business else None
+                
+                try:
+                    cursor.execute("""
+                        INSERT IGNORE INTO Flight (source_airport_id, dest_airport_id, departure_time, aircraft_id, economy_price, business_price, flight_status)
+                        VALUES (%s, %s, %s, %s, %s, %s, 'Completed')
+                    """, (route[0], route[1], departure_time, aircraft_id, economy_price, business_price))
+                except:
+                    pass
             
             # Re-fetch past flights
             cursor.execute("""
@@ -2060,20 +2065,25 @@ def generate_test_data_for_reports(cursor):
                     else:
                         status = 'Canceled'
                     
-                    cursor.execute("""
-                        SELECT economy_price, business_price FROM Flight_Route
-                        WHERE source_airport_id = %s AND dest_airport_id = %s
-                    """, route)
-                    prices = cursor.fetchone()
+                    # Generate prices (Flight_Route doesn't have prices, so generate them)
+                    base_price = random.randint(300, 1200)
+                    economy_price = base_price
                     
-                    if prices:
-                        try:
-                            cursor.execute("""
-                                INSERT IGNORE INTO Flight (source_airport_id, dest_airport_id, departure_time, aircraft_id, economy_price, business_price, flight_status)
-                                VALUES (%s, %s, %s, %s, %s, %s, %s)
-                            """, (route[0], route[1], departure_time, aircraft_id, prices[0], prices[1], status))
-                        except:
-                            pass
+                    # Check if aircraft has business class
+                    cursor.execute("""
+                        SELECT COUNT(*) FROM Aircraft_Class 
+                        WHERE aircraft_id = %s AND is_business = TRUE
+                    """, (aircraft_id,))
+                    has_business = cursor.fetchone()[0] > 0
+                    business_price = int(base_price * random.uniform(1.8, 2.5)) if has_business else None
+                    
+                    try:
+                        cursor.execute("""
+                            INSERT IGNORE INTO Flight (source_airport_id, dest_airport_id, departure_time, aircraft_id, economy_price, business_price, flight_status)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        """, (route[0], route[1], departure_time, aircraft_id, economy_price, business_price, status))
+                    except:
+                        pass
     
     # 5. ENHANCE EMPLOYEE HOURS REPORT DATA - Ensure sufficient flight assignments
     print("Ensuring employee flight assignments for employee hours chart...")
@@ -2144,37 +2154,45 @@ def generate_test_data_for_reports(cursor):
                         num_attendants = BIG_PLANE_ATTENDANTS if is_large else SMALL_PLANE_ATTENDANTS
                         
                         # Get available pilots
-                        cursor.execute("""
-                            SELECT FC.id_number FROM Flight_Crew FC
-                            WHERE FC.is_pilot = TRUE
-                            AND (FC.trained_for_long_flights = TRUE OR %s = FALSE)
-                            AND FC.id_number IN %s
-                            AND FC.id_number NOT IN (
-                                SELECT EFA.employee_id FROM Employee_Flight_Assignment EFA
-                                WHERE EFA.source_airport_id = %s
-                                AND EFA.dest_airport_id = %s
-                                AND EFA.departure_time = %s
-                            )
-                            ORDER BY RAND()
-                            LIMIT %s
-                        """, (is_long, tuple(employees), source_id, dest_id, departure_time, num_pilots))
+                        if employees:
+                            placeholders = ','.join(['%s'] * len(employees))
+                            cursor.execute(f"""
+                                SELECT FC.id_number FROM Flight_Crew FC
+                                WHERE FC.is_pilot = TRUE
+                                AND (FC.trained_for_long_flights = TRUE OR %s = FALSE)
+                                AND FC.id_number IN ({placeholders})
+                                AND FC.id_number NOT IN (
+                                    SELECT EFA.employee_id FROM Employee_Flight_Assignment EFA
+                                    WHERE EFA.source_airport_id = %s
+                                    AND EFA.dest_airport_id = %s
+                                    AND EFA.departure_time = %s
+                                )
+                                ORDER BY RAND()
+                                LIMIT %s
+                            """, (is_long,) + tuple(employees) + (source_id, dest_id, departure_time, num_pilots))
+                        else:
+                            cursor.execute("SELECT 1 WHERE 1=0")  # Return empty result
                         pilots = [row[0] for row in cursor.fetchall()]
                         
                         # Get available attendants
-                        cursor.execute("""
-                            SELECT FC.id_number FROM Flight_Crew FC
-                            WHERE FC.is_pilot = FALSE
-                            AND (FC.trained_for_long_flights = TRUE OR %s = FALSE)
-                            AND FC.id_number IN %s
-                            AND FC.id_number NOT IN (
-                                SELECT EFA.employee_id FROM Employee_Flight_Assignment EFA
-                                WHERE EFA.source_airport_id = %s
-                                AND EFA.dest_airport_id = %s
-                                AND EFA.departure_time = %s
-                            )
-                            ORDER BY RAND()
-                            LIMIT %s
-                        """, (is_long, tuple(employees), source_id, dest_id, departure_time, num_attendants))
+                        if employees:
+                            placeholders = ','.join(['%s'] * len(employees))
+                            cursor.execute(f"""
+                                SELECT FC.id_number FROM Flight_Crew FC
+                                WHERE FC.is_pilot = FALSE
+                                AND (FC.trained_for_long_flights = TRUE OR %s = FALSE)
+                                AND FC.id_number IN ({placeholders})
+                                AND FC.id_number NOT IN (
+                                    SELECT EFA.employee_id FROM Employee_Flight_Assignment EFA
+                                    WHERE EFA.source_airport_id = %s
+                                    AND EFA.dest_airport_id = %s
+                                    AND EFA.departure_time = %s
+                                )
+                                ORDER BY RAND()
+                                LIMIT %s
+                            """, (is_long,) + tuple(employees) + (source_id, dest_id, departure_time, num_attendants))
+                        else:
+                            cursor.execute("SELECT 1 WHERE 1=0")  # Return empty result
                         attendants = [row[0] for row in cursor.fetchall()]
                         
                         # Assign crew
