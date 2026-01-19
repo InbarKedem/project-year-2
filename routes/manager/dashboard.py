@@ -35,12 +35,12 @@ def reports():
     cancellation_data = get_cancellation_report()
     plane_activity_data = get_plane_activity_report()
     
-    # Generate charts
-    occupancy_chart = generate_occupancy_chart(occupancy_data) if occupancy_data else None
-    revenue_chart = generate_revenue_chart(revenue_data) if revenue_data else None
-    employee_hours_chart = generate_employee_hours_chart(employee_hours_data) if employee_hours_data else None
-    cancellation_chart = generate_cancellation_chart(cancellation_data) if cancellation_data else None
-    plane_activity_chart = generate_plane_activity_chart(plane_activity_data) if plane_activity_data else None
+    # Generate charts (handle empty lists and None values)
+    occupancy_chart = generate_occupancy_chart(occupancy_data) if occupancy_data and len(occupancy_data) > 0 else None
+    revenue_chart = generate_revenue_chart(revenue_data) if revenue_data and len(revenue_data) > 0 else None
+    employee_hours_chart = generate_employee_hours_chart(employee_hours_data) if employee_hours_data and len(employee_hours_data) > 0 else None
+    cancellation_chart = generate_cancellation_chart(cancellation_data) if cancellation_data and len(cancellation_data) > 0 else None
+    plane_activity_chart = generate_plane_activity_chart(plane_activity_data) if plane_activity_data and len(plane_activity_data) > 0 else None
 
     return render_template('manager/reports.html', 
                            occupancy_report=occupancy_data,
