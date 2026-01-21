@@ -137,14 +137,12 @@
     if (this.checked) {
       // Large aircraft MUST have business class
       hasBusinessCheckbox.checked = true;
-      hasBusinessCheckbox.disabled = true; // Prevent unchecking
       businessConfig.style.display = "block";
       businessRows.setAttribute("required", "required");
       businessColumns.setAttribute("required", "required");
     } else {
       // Small aircraft MUST NOT have business class
       hasBusinessCheckbox.checked = false;
-      hasBusinessCheckbox.disabled = false; // Allow checking for future changes
       businessConfig.style.display = "none";
       businessRows.removeAttribute("required");
       businessColumns.removeAttribute("required");
