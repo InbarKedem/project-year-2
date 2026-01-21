@@ -99,7 +99,7 @@
   <!-- 5. Plane Monthly Activity -->
   <div class="card report-card">
     <h3>Plane Monthly Activity</h3>
-    <p>Horizontal bar chart showing total flights performed (green) and cancelled (red) per aircraft. Scroll vertically to view all aircraft.</p>
+    <p>Horizontal bar chart showing total flights performed (green) and canceled (red) per aircraft. Scroll vertically to view all aircraft.</p>
   {% if plane_activity_chart or plane_activity_report %}
     <div style="width: 100%; height: 800px; overflow-y: auto; overflow-x: hidden;">
       <div class="chart-container" id="plane-activity-chart"></div>
@@ -471,11 +471,11 @@
   var totalOrders = cancellationReport.map(function(row) {
     return parseInt(row.total_orders, 10) || 0;
   });
-  var cancelledOrders = cancellationReport.map(function(row) {
-    return parseInt(row.cancelled_orders, 10) || 0;
+  var canceledOrders = cancellationReport.map(function(row) {
+    return parseInt(row.canceled_orders, 10) || 0;
   });
   var activeOrders = totalOrders.map(function(total, idx) {
-    return total - cancelledOrders[idx];
+    return total - canceledOrders[idx];
   });
   var cancellationRates = cancellationReport.map(function(row) {
     return parseFloat(row.cancellation_rate) || 0;
@@ -490,12 +490,12 @@
       hovertemplate: '<b>%{x}</b><br>Active Orders: %{y}<extra></extra>'
     },
     {
-      name: 'Cancelled Orders',
+      name: 'Canceled Orders',
       x: monthLabels,
-      y: cancelledOrders,
+      y: canceledOrders,
       type: 'bar',
       marker: {color: '#e74c3c', opacity: 0.8, line: {color: 'white', width: 1.5}},
-      hovertemplate: '<b>%{x}</b><br>Cancelled Orders: %{y}<extra></extra>'
+      hovertemplate: '<b>%{x}</b><br>Canceled Orders: %{y}<extra></extra>'
     },
     {
       name: 'Cancellation Rate',
@@ -553,20 +553,20 @@
   planeActivityReport.forEach(function(row) {
     var aircraftId = row.aircraft_id;
     if (!aircraftMap[aircraftId]) {
-      aircraftMap[aircraftId] = {performed: 0, cancelled: 0};
+      aircraftMap[aircraftId] = {performed: 0, canceled: 0};
     }
     aircraftMap[aircraftId].performed += parseInt(row.flights_performed, 10) || 0;
-    aircraftMap[aircraftId].cancelled += parseInt(row.flights_cancelled, 10) || 0;
+    aircraftMap[aircraftId].canceled += parseInt(row.flights_canceled, 10) || 0;
   });
   var aircraftStats = Object.keys(aircraftMap).map(function(key) {
     var stats = aircraftMap[key];
-    return {id: key, performed: stats.performed, cancelled: stats.cancelled, total: stats.performed + stats.cancelled};
+    return {id: key, performed: stats.performed, canceled: stats.canceled, total: stats.performed + stats.canceled};
   }).sort(function(a, b) {
     return b.total - a.total;
   });
   var aircraftNames = aircraftStats.map(function(row) { return 'Aircraft ' + row.id; });
   var performedCounts = aircraftStats.map(function(row) { return row.performed; });
-  var cancelledCounts = aircraftStats.map(function(row) { return row.cancelled; });
+  var canceledCounts = aircraftStats.map(function(row) { return row.canceled; });
   var planeActivityLayout = {
     barmode: 'stack',
     bargap: 0.15,
@@ -611,16 +611,16 @@
       hovertemplate: '<b>%{y}</b><br>Performed: %{x}<extra></extra>'
     },
     {
-      name: 'Flights Cancelled',
+      name: 'Flights Canceled',
       y: aircraftNames,
-      x: cancelledCounts,
+      x: canceledCounts,
       orientation: 'h',
       type: 'bar',
       marker: {color: '#dc3545', line: {width: 0}},
-      text: cancelledCounts,
+      text: canceledCounts,
       textposition: 'auto',
       textfont: {size: 13},
-      hovertemplate: '<b>%{y}</b><br>Cancelled: %{x}<extra></extra>'
+      hovertemplate: '<b>%{y}</b><br>Canceled: %{x}<extra></extra>'
     }
   ];
   Plotly.newPlot('plane-activity-chart', planeActivityTraces, planeActivityLayout, plotlyConfig);

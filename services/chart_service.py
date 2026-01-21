@@ -414,15 +414,15 @@ def generate_cancellation_chart(cancellation_data):
     months = []
     month_labels = []
     total_orders = []
-    cancelled_orders = []
+    canceled_orders = []
     active_orders = []
     cancellation_rates = []
     
     for row in sorted(cancellation_data, key=lambda x: x['month']):
         month_str = row['month']  # Format: 'YYYY-MM'
         total = int(row['total_orders']) if row.get('total_orders') is not None else 0
-        cancelled = int(row['cancelled_orders']) if row.get('cancelled_orders') is not None else 0
-        active = total - cancelled
+        canceled = int(row['canceled_orders']) if row.get('canceled_orders') is not None else 0
+        active = total - canceled
         rate = float(row['cancellation_rate']) if row.get('cancellation_rate') is not None else 0
         
         # Format month label to simple format (e.g., "Nov 2025")
@@ -435,7 +435,7 @@ def generate_cancellation_chart(cancellation_data):
         months.append(month_str)
         month_labels.append(month_label)
         total_orders.append(total)
-        cancelled_orders.append(cancelled)
+        canceled_orders.append(canceled)
         active_orders.append(active)
         cancellation_rates.append(rate)
     
@@ -455,15 +455,15 @@ def generate_cancellation_chart(cancellation_data):
         secondary_y=False,
     )
     
-    # Stacked bar chart - Cancelled orders (on top of active)
+    # Stacked bar chart - Canceled orders (on top of active)
     fig.add_trace(
         go.Bar(
-            name='Cancelled Orders',
+            name='Canceled Orders',
             x=month_labels,
-            y=cancelled_orders,
+            y=canceled_orders,
             # Remove explicit width - let Plotly handle it
             marker=dict(color='#e74c3c', opacity=0.8, line=dict(color='white', width=1.5)),
-            hovertemplate='<b>%{x}</b><br>Cancelled Orders: %{y}<extra></extra>'
+            hovertemplate='<b>%{x}</b><br>Canceled Orders: %{y}<extra></extra>'
         ),
         secondary_y=False,
     )
@@ -538,24 +538,24 @@ def generate_plane_activity_chart(plane_data):
     for row in plane_data:
         aircraft_id = row['aircraft_id']
         if aircraft_id not in aircraft_stats:
-            aircraft_stats[aircraft_id] = {'performed': 0, 'cancelled': 0}
+            aircraft_stats[aircraft_id] = {'performed': 0, 'canceled': 0}
         
         performed = int(row.get('flights_performed', 0) or 0)
-        cancelled = int(row.get('flights_cancelled', 0) or 0)
+        canceled = int(row.get('flights_canceled', 0) or 0)
         aircraft_stats[aircraft_id]['performed'] += performed
-        aircraft_stats[aircraft_id]['cancelled'] += cancelled
+        aircraft_stats[aircraft_id]['canceled'] += canceled
     
-    # Sort by total activity (performed + cancelled)
+    # Sort by total activity (performed + canceled)
     sorted_aircraft = sorted(
         aircraft_stats.items(),
-        key=lambda x: x[1]['performed'] + x[1]['cancelled'],
+        key=lambda x: x[1]['performed'] + x[1]['canceled'],
         reverse=True
     )
     
     # Prepare data for horizontal bars
     aircraft_names = [f'Aircraft {aid}' for aid, _ in sorted_aircraft]
     performed_counts = [stats['performed'] for _, stats in sorted_aircraft]
-    cancelled_counts = [stats['cancelled'] for _, stats in sorted_aircraft]
+    canceled_counts = [stats['canceled'] for _, stats in sorted_aircraft]
     
     fig = go.Figure()
     
@@ -576,21 +576,21 @@ def generate_plane_activity_chart(plane_data):
         hovertemplate='<b>%{y}</b><br>Performed: %{x}<extra></extra>'
     ))
     
-    # Red bars for flights cancelled
+    # Red bars for flights canceled
     fig.add_trace(go.Bar(
-        name='Flights Cancelled',
+        name='Flights Canceled',
         y=aircraft_names,
-        x=cancelled_counts,
+        x=canceled_counts,
         orientation='h',
         # NO width parameter - let Plotly auto-size to match vertical charts
         marker=dict(
             color='#dc3545',
             line=dict(width=0)
         ),
-        text=cancelled_counts,
+        text=canceled_counts,
         textposition='auto',
         textfont=dict(size=13),
-        hovertemplate='<b>%{y}</b><br>Cancelled: %{x}<extra></extra>'
+        hovertemplate='<b>%{y}</b><br>Canceled: %{x}<extra></extra>'
     ))
     
     # Match Chart 3 style and thickness.
