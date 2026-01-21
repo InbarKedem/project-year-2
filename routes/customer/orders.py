@@ -38,7 +38,7 @@ def track_order():
             if order['order_status'] == 'System Cancellation':
                 order['total_payment'] = 0
             
-            # Check if order can be cancelled (Active status, not Completed, and flight is in the future)
+            # Check if order can be canceled (Active status, not Completed, and flight is in the future)
             departure_time_obj = order['departure_time']
             if isinstance(departure_time_obj, str):
                 try:
@@ -171,7 +171,7 @@ def my_orders():
             # System Cancellation orders should show 0 payment (full refund)
             display_payment = 0 if row['order_status'] == 'System Cancellation' else row['total_payment']
             
-            # Check if order can be cancelled (Active status, not Completed, and flight is in the future)
+            # Check if order can be canceled (Active status, not Completed, and flight is in the future)
             departure_time_obj = row['departure_time']
             if isinstance(departure_time_obj, str):
                 try:
@@ -202,11 +202,11 @@ def my_orders():
             # - Active orders: full payment
             # - Client Cancellation: 5% cancellation fee (stored in total_payment)
             # - System Cancellation: 0 (full refund)
-            # - Cancelled (legacy): 0
+            # - Canceled (legacy): 0
             if row['order_status'] == 'Client Cancellation':
-                # Client cancelled orders have the 5% fee stored in total_payment
+                # Client canceled orders have the 5% fee stored in total_payment
                 total_spending += row['total_payment']
-            elif row['order_status'] not in ['Cancelled', 'System Cancellation']:
+            elif row['order_status'] not in ['Canceled', 'System Cancellation']:
                 # Active orders - full payment
                 total_spending += row['total_payment']
         
@@ -258,8 +258,8 @@ def cancel_order(order_code):
         else:
             return redirect(url_for('customer.track_order'))
         
-    if order['order_status'] in ['Cancelled', 'Client Cancellation', 'System Cancellation']:
-        flash('Order is already cancelled.', 'warning')
+    if order['order_status'] in ['Canceled', 'Client Cancellation', 'System Cancellation']:
+        flash('Order is already canceled.', 'warning')
         if 'user_id' in session:
             return redirect(url_for('customer.my_orders'))
         else:
@@ -306,9 +306,9 @@ def cancel_order(order_code):
     
     try:
         execute_db("UPDATE Order_Table SET order_status = 'Client Cancellation', total_payment = %s WHERE order_code = %s", (fee, order_code))
-        flash(f'Order cancelled successfully. A 5% cancellation fee (${fee:.2f}) was deducted. Refund amount: ${refund_amount:.2f}', 'success')
+        flash(f'Order canceled successfully. A 5% cancellation fee (${fee:.2f}) was deducted. Refund amount: ${refund_amount:.2f}', 'success')
     except Exception as e:
-        flash(f'Error cancelling order: {e}', 'danger')
+        flash(f'Error canceling order: {e}', 'danger')
         
     if 'user_id' in session:
         return redirect(url_for('customer.my_orders'))
