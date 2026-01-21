@@ -167,7 +167,7 @@ def manage_flights():
     
     now = datetime.now()
     
-    # Add a flag for cancellation eligibility (72 hours and not already cancelled or completed)
+    # Add a flag for cancellation eligibility (72 hours and not already canceled or completed)
     try:
         for f in flights:
             # Ensure departure_time is a datetime object

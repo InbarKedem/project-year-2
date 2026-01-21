@@ -81,10 +81,10 @@ def test_order_status_client_cancellation_displayed(page: Page):
     expect(confirmed_option).to_have_count(0)
 
 
-def test_order_status_completed_cannot_be_cancelled(page: Page):
+def test_order_status_completed_cannot_be_canceled(page: Page):
     """
     Test that completed orders do not show cancel button in My Orders page.
-    Verifies the fix: Completed orders cannot be cancelled.
+    Verifies the fix: Completed orders cannot be canceled.
     """
     # Create a test order with Completed status
     conn = get_db_connection()
@@ -616,7 +616,7 @@ def cleanup_test_order(order_code):
 def test_manager_cancels_flight_orders_get_system_cancellation(page: Page):
     """
     Test that when a manager cancels a flight, all related orders get System Cancellation status.
-    Verifies the fix: Orders get System Cancellation when flight is cancelled by manager.
+    Verifies the fix: Orders get System Cancellation when flight is canceled by manager.
     """
     login_as_manager(page)
     
@@ -793,10 +793,10 @@ def test_system_cancellation_order_shows_zero_payment_in_track_order(page: Page)
         conn.close()
 
 
-def test_past_flight_order_cannot_be_cancelled_in_my_orders(page: Page):
+def test_past_flight_order_cannot_be_canceled_in_my_orders(page: Page):
     """
     Test that orders for past flights do not show cancel button in My Orders page.
-    Verifies the fix: Past flights cannot be cancelled.
+    Verifies the fix: Past flights cannot be canceled.
     """
     # Create a test order for a past flight
     source_id, dest_id = get_airport_ids()
@@ -848,10 +848,10 @@ def test_past_flight_order_cannot_be_cancelled_in_my_orders(page: Page):
         conn.close()
 
 
-def test_past_flight_order_cannot_be_cancelled_in_track_order(page: Page):
+def test_past_flight_order_cannot_be_canceled_in_track_order(page: Page):
     """
     Test that orders for past flights do not show cancel button in Track Order page.
-    Verifies the fix: Past flights cannot be cancelled.
+    Verifies the fix: Past flights cannot be canceled.
     """
     # Create a test order for a past flight
     source_id, dest_id = get_airport_ids()
@@ -897,9 +897,9 @@ def test_past_flight_order_cannot_be_cancelled_in_track_order(page: Page):
         conn.close()
 
 
-def test_future_flight_order_can_be_cancelled(page: Page):
+def test_future_flight_order_can_be_canceled(page: Page):
     """
-    Test that orders for future flights (more than 36 hours away) can be cancelled.
+    Test that orders for future flights (more than 36 hours away) can be canceled.
     Verifies that the cancel button is visible for future flights.
     """
     # Create a test order for a future flight

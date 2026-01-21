@@ -75,8 +75,8 @@ The UI tests verify the following fixes (40 total tests):
    - "Client Cancellation" status displayed correctly
    - "System Cancellation" status displayed correctly
    - "Confirmed" status removed
-   - Completed orders cannot be cancelled
-   - Active orders can be cancelled
+   - Completed orders cannot be canceled
+   - Active orders can be canceled
    - Order filtering by status
 
 ### 6. Flight Status Updates (2 tests)

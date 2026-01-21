@@ -169,7 +169,7 @@ def book_flight():
         FROM Order_Seats OS
         JOIN Order_Table O ON OS.order_code = O.order_code
         WHERE O.source_airport_id = %s AND O.dest_airport_id = %s AND O.departure_time = %s
-        AND O.order_status NOT IN ('Cancelled', 'Client Cancellation', 'System Cancellation')
+        AND O.order_status NOT IN ('Canceled', 'Client Cancellation', 'System Cancellation')
     """
     occupied_seats = query_db(occupied_query, (source_id, dest_id, time_str))
     
